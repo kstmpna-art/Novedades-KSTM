@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <base target="_top">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy:        #03101f;
+      --navy-mid:    #051828;
+      --navy-light:  #0a2038;
+      --cyan:        #00e5ff;
+      --cyan-dim:    rgba(0,229,255,0.15);
+      --cyan-border: rgba(0,229,255,0.2);
+      --amber:       #fbbf24;
+      --green:       #4ade80;
+      --red:         #f87171;
+      --blue:        #60a5fa;
+      --text-main:   #e2e8f0;
+      --text-muted:  #64748b;
+      --sidebar-w:   220px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--navy);
+      color: var(--text-main);
+      display: flex;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ══ SIDEBAR ══════════════════════════════════════════════════ */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--navy-mid);
+      border-right: 1px solid var(--cyan-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 10;
+    }
+    #sidebar-brand {
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid var(--cyan-border);
+      background: rgba(0,0,0,0.3);
+    }
+    #sidebar-brand img { height: 36px; margin-bottom: 8px; display: block; }
+    #sidebar-brand .org {
+      font-size: 11px; font-weight: 800; color: var(--cyan);
+      letter-spacing: 1px; text-transform: uppercase; line-height: 1.3;
+    }
+    #sidebar-brand .sub {
+      font-size: 9px; color: var(--text-muted);
+      letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px;
+    }
+    #sidebar-fecha {
+      padding: 8px 14px; font-size: 11px; font-weight: 700;
+      color: var(--amber); border-bottom: 1px solid var(--cyan-border);
+      letter-spacing: 0.3px; background: rgba(251,191,36,0.04);
+    }
+    #sidebar-search { padding: 8px 10px; border-bottom: 1px solid var(--cyan-border); }
+    #sidebar-search input {
+      width: 100%; background: rgba(0,0,0,0.4);
+      border: 1px solid var(--cyan-border); border-radius: 4px;
+      color: white; font-size: 11px; padding: 5px 8px;
+      outline: none; font-family: 'Inter', sans-serif;
+    }
+    #sidebar-search input:focus { border-color: var(--cyan); }
+    #sidebar-search input::placeholder { color: var(--text-muted); }
+
+    #sidebar-nav { flex: 1; overflow-y: auto; padding: 4px 0 12px; }
+    #sidebar-nav::-webkit-scrollbar { width: 3px; }
+    #sidebar-nav::-webkit-scrollbar-thumb { background: var(--cyan-border); border-radius: 2px; }
+
+    .nav-group-label {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 14px 4px;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 7px 14px;
+      background: transparent; border: none;
+      border-left: 2px solid transparent;
+      color: var(--text-muted); font-size: 11px;
+      font-family: 'Inter', sans-serif; cursor: pointer;
+      text-align: left; transition: all 0.15s; line-height: 1.3;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,0.04); color: #cbd5e1; }
+    .nav-btn.active {
+      background: var(--cyan-dim); border-left-color: var(--cyan);
+      color: var(--cyan); font-weight: 700;
+    }
+    .nav-btn .nav-icon { font-size: 13px; flex-shrink: 0; opacity: 0.85; }
+    .nav-btn .nav-label { flex: 1; }
+    .nav-badge {
+      font-size: 11px; font-weight: 700;
+      padding: 1px 6px; border-radius: 10px; border: 1px solid; flex-shrink: 0;
+    }
+    .nb-cyan  { color: var(--cyan);  border-color: var(--cyan-border);    background: var(--cyan-dim); }
+    .nb-red   { color: var(--red);   border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.1); }
+    .nb-amber { color: var(--amber); border-color: rgba(251,191,36,0.3);  background: rgba(251,191,36,0.1); }
+    .nb-green { color: var(--green); border-color: rgba(74,222,128,0.3);  background: rgba(74,222,128,0.1); }
+
+    #sidebar-actions {
+      padding: 10px; border-top: 1px solid var(--cyan-border);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .sb-action-btn {
+      width: 100%; padding: 7px 10px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.5px; text-transform: uppercase; border-radius: 4px;
+      cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .sb-action-btn.outline { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); }
+    .sb-action-btn.outline:hover { background: var(--cyan); color: var(--navy); }
+    .sb-action-btn.outline:disabled { opacity: 0.4; cursor: not-allowed; }
+    .sb-action-btn.solid { background: rgba(0,229,255,0.12); border: 1px solid var(--cyan-border); color: var(--cyan); }
+    .sb-action-btn.solid:hover { background: rgba(0,229,255,0.22); }
+
+    /* ══ MAIN ═════════════════════════════════════════════════════ */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--navy); min-width: 0; }
+
+    #main-topbar {
+      padding: 10px 20px; background: rgba(3,16,31,0.95);
+      border-bottom: 1px solid var(--cyan-border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    #main-section-title { font-size: 15px; font-weight: 800; color: var(--cyan); letter-spacing: 1px; text-transform: uppercase; }
+    #main-section-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+    .tb-btn {
+      font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 4px;
+      cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+      transition: all 0.15s; font-family: 'Inter', sans-serif;
+    }
+    .tb-btn.outline { background: transparent; border: 1px solid var(--cyan-border); color: var(--text-muted); }
+    .tb-btn.outline:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    #main-body { flex: 1; overflow-y: auto; padding: 16px 20px 24px; }
+    #main-body::-webkit-scrollbar { width: 4px; }
+    #main-body::-webkit-scrollbar-thumb { background: var(--cyan-border); border-radius: 2px; }
+
+    /* ══ LOADER ═══════════════════════════════════════════════════ */
+    #loader {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; gap: 16px;
+      color: var(--cyan); font-size: 13px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      animation: pulse 1.5s infinite;
+    }
+    #loader img { width: 120px; opacity: 0.7; }
+    @keyframes pulse { 0%,100%{ opacity:0.5 } 50%{ opacity:1 } }
+
+    #visor { display: none; }
+
+    /* ══ BOTÓN FLOTANTE BRIEFING ══════════════════════════════════ */
+    #btn-salir-briefing {
+      display: none; position: fixed; top: 12px; right: 14px;
+      z-index: 99999; background: rgba(3,16,31,0.92);
+      border: 1px solid var(--cyan); color: var(--cyan);
+      font-size: 10px; font-weight: 700; font-family: 'Inter', sans-serif;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer;
+      letter-spacing: 0.5px; text-transform: uppercase; transition: background 0.15s;
+    }
+    #btn-salir-briefing:hover { background: var(--cyan); color: var(--navy); }
+    .briefing-mode #btn-salir-briefing { display: block; }
+    .briefing-mode .ocultar-briefing { display: none !important; }
+
+    /* ══ CONTENIDO ════════════════════════════════════════════════ */
+    .bloque-sub {
+      font-size: 15px; font-weight: 700; color: var(--cyan);
+      letter-spacing: 1px; text-transform: uppercase;
+      padding: 6px 0 5px; border-bottom: 1px solid var(--cyan-border);
+      margin: 12px 0 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .bloque-sub:first-child { margin-top: 0; }
+
+    .badge { font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 10px; border: 1px solid; }
+    .badge.cyan  { color: var(--cyan);  border-color: var(--cyan-border);       background: var(--cyan-dim); }
+    .badge.red   { color: var(--red);   border-color: rgba(248,113,113,0.3);    background: rgba(248,113,113,0.1); }
+    .badge.green { color: var(--green); border-color: rgba(74,222,128,0.3);     background: rgba(74,222,128,0.1); }
+    .badge.muted { color: var(--text-muted); border-color: rgba(100,116,139,0.3); background: rgba(100,116,139,0.07); }
+
+    .item-card {
+      padding: 10px 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid var(--cyan);
+      border-radius: 4px; margin-bottom: 8px; font-size: 11px;
+      color: var(--text-main); line-height: 1.6; transition: background 0.15s;
+    }
+    .item-card:hover { background: rgba(0,229,255,0.05); }
+    .item-card.muted { border-left-color: var(--text-muted); opacity: 0.65; }
+    .item-card.green { border-left-color: var(--green); }
+    .item-card.amber { border-left-color: var(--amber); }
+    .item-card.red   { border-left-color: var(--red); }
+    .item-card b { color: #fff; }
+    .item-card .lbl { color: var(--text-muted); font-size: 10px; }
+
+    .sep  { border-top: 1px solid rgba(0,229,255,0.1); margin: 10px 0; }
+    .empty { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 6px 0; }
+
+    .buque-name { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+    .dias-row { display: flex; gap: 14px; margin-top: 7px; font-size: 10px; font-weight: 700; }
+
+    .caso-title { font-size: 15px; font-weight: 800; margin-bottom: 7px; }
+    .caso-line  { font-size: 12.5px; color: #cbd5e1; margin-bottom: 3px; line-height: 1.5; }
+    .caso-reloj { font-size: 13px; font-weight: 700; margin-top: 8px; font-family: monospace; color: var(--green); }
+    .caso-reloj.vencido { color: var(--red); }
+
+    /* ══ IMAGEN VIEWER ════════════════════════════════════════════ */
+    .img-toggle-btn {
+      margin-top: 9px; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 700; color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.35); background: rgba(251,191,36,0.07);
+      border-radius: 4px; padding: 4px 10px; cursor: pointer;
+      letter-spacing: 0.3px; text-transform: uppercase; transition: background 0.15s;
+    }
+    .img-toggle-btn:hover { background: rgba(251,191,36,0.15); }
+    .img-toggle-btn.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
+    .img-viewer {
+      margin-top: 8px; border: 1px solid rgba(251,191,36,0.25);
+      border-radius: 5px; overflow: hidden; display: none; background: rgba(0,0,0,0.3);
+    }
+    .img-viewer.open { display: block; }
+    .img-viewer img { width: 100%; max-height: 260px; object-fit: contain; display: block; }
+    .img-viewer .img-cap {
+      padding: 5px 10px; font-size: 9px; color: var(--amber);
+      border-top: 1px solid rgba(251,191,36,0.2); background: rgba(251,191,36,0.04);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* ══ UPLOADER ═════════════════════════════════════════════════ */
+    .uploader-wrap {
+      margin-top: 10px; border: 1px solid rgba(0,229,255,0.15);
+      border-radius: 6px; overflow: hidden; display: none;
+    }
+    .uploader-wrap.open { display: block; }
+    .uploader-header {
+      background: rgba(0,229,255,0.08); padding: 6px 10px;
+      font-size: 12px; font-weight: 700; color: var(--cyan);
+      letter-spacing: 0.5px; text-transform: uppercase;
+      border-bottom: 1px solid rgba(0,229,255,0.15);
+    }
+    .dropzone {
+      border: 2px dashed rgba(0,229,255,0.25); border-radius: 6px;
+      padding: 20px; text-align: center; cursor: pointer;
+      transition: all 0.2s; background: rgba(0,229,255,0.02); margin: 10px;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--cyan); background: rgba(0,229,255,0.07);
+    }
+    .dropzone-icon { font-size: 24px; margin-bottom: 6px; }
+    .dropzone-txt { font-size: 10px; color: var(--text-muted); line-height: 1.6; }
+    .dropzone-txt b { color: var(--cyan); }
+    .upload-preview {
+      margin: 0 10px 10px; border-radius: 5px; overflow: hidden;
+      border: 1px solid rgba(0,229,255,0.2); display: none;
+    }
+    .upload-preview img { width: 100%; max-height: 180px; object-fit: contain; display: block; background: rgba(0,0,0,0.3); }
+    .upload-preview-bar {
+      padding: 6px 10px; background: rgba(0,229,255,0.06);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; color: var(--text-muted);
+    }
+    .upload-status {
+      margin: 0 10px 10px; padding: 7px 10px; border-radius: 4px;
+      font-size: 12px; font-weight: 700; display: none;
+      text-align: center; letter-spacing: 0.3px;
+    }
+    .upload-status.ok     { background: rgba(74,222,128,0.1);  color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+    .upload-status.error  { background: rgba(248,113,113,0.1); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+    .upload-status.loading{ background: rgba(251,191,36,0.1);  color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+    .upload-btn {
+      margin: 0 10px 10px; width: calc(100% - 20px);
+      padding: 8px; font-size: 10px; font-weight: 700;
+      font-family: 'Inter', sans-serif; border-radius: 4px; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s;
+      background: var(--cyan); border: none; color: var(--navy); display: none;
+    }
+    .upload-btn:hover { background: #00b8d4; }
+    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-operador {
+      margin-top: 8px; display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      border: 1px solid rgba(100,116,139,0.3); background: rgba(100,116,139,0.05);
+      border-radius: 4px; padding: 4px 10px; cursor: pointer;
+      letter-spacing: 0.3px; text-transform: uppercase; transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-operador:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,229,255,0.05); }
+    .btn-operador.autenticado { color: var(--green); border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.05); }
+
+    /* ══ MODAL PIN ════════════════════════════════════════════════ */
+    #modalPin {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,0.85); align-items: center; justify-content: center;
+    }
+    #modalPin.activo { display: flex; }
+    .pin-box {
+      background: var(--navy-mid); border: 1px solid var(--cyan);
+      border-radius: 10px; padding: 28px 28px 22px; width: 280px;
+      text-align: center; box-shadow: 0 0 40px rgba(0,229,255,0.15);
+    }
+    .pin-box h3 { color: var(--cyan); font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+    .pin-box p  { color: var(--text-muted); font-size: 10px; margin-bottom: 16px; }
+    .pin-input {
+      width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--cyan-border);
+      border-radius: 5px; color: white; font-size: 20px; padding: 10px;
+      text-align: center; letter-spacing: 8px; font-family: monospace;
+      outline: none; margin-bottom: 12px;
+    }
+    .pin-input:focus { border-color: var(--cyan); }
+    .pin-error { color: var(--red); font-size: 10px; margin-bottom: 8px; min-height: 14px; }
+    .pin-btns { display: flex; gap: 8px; }
+    .pin-btns button {
+      flex: 1; padding: 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+      font-family: 'Inter', sans-serif; cursor: pointer; text-transform: uppercase; transition: all 0.15s;
+    }
+    .pin-ok  { background: var(--cyan); border: none; color: var(--navy); }
+    .pin-ok:hover { background: #00b8d4; }
+    .pin-cancel { background: transparent; border: 1px solid var(--cyan-border); color: var(--text-muted); }
+    .pin-cancel:hover { border-color: var(--red); color: var(--red); }
+
+    /* ══ TABLAS ═══════════════════════════════════════════════════ */
+    .pna-table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+    .pna-table th {
+      background: rgba(0,229,255,0.1); color: var(--cyan);
+      padding: 6px 8px; border: 1px solid var(--cyan-border);
+      text-align: center; font-size: 9.5px; font-weight: 700;
+    }
+    .pna-table td { border: 1px solid rgba(255,255,255,0.06); padding: 5px 8px; text-align: center; color: var(--text-main); }
+    .pna-table td.dep { font-weight: 700; text-align: left; color: #fff; }
+    .pna-table td.num-red   { color: var(--red);   font-weight: 700; }
+    .pna-table td.num-amber { color: var(--amber); font-weight: 700; }
+    .pna-table td.num-blue  { color: var(--blue);  font-weight: 700; }
+    .pna-table tr.total-row td { font-weight: 700; background: rgba(248,113,113,0.05); color: var(--red); }
+    .tbl-title {
+      font-size: 11px; font-weight: 700; color: var(--cyan);
+      text-align: center; background: rgba(0,229,255,0.06);
+      padding: 8px; border: 1px solid var(--cyan-border);
+      margin-bottom: 0; letter-spacing: 0.5px;
+    }
+    .tbl-wrap { overflow-x: auto; margin-bottom: 18px; -webkit-overflow-scrolling: touch; }
+
+    .avi-table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+    .avi-table th { background: rgba(0,229,255,0.1); color: var(--cyan); padding: 5px 8px; border: 1px solid var(--cyan-border); text-align: center; font-size: 9.5px; }
+    .avi-table td { border: 1px solid rgba(255,255,255,0.06); padding: 4px 8px; }
+    .avi-sub { background: rgba(0,229,255,0.07); color: var(--cyan); font-weight: 700; text-align: center; padding: 6px; font-size: 10px; letter-spacing: 0.5px; border: 1px solid var(--cyan-border); }
+
+    /* ══ STATUS BAR ═══════════════════════════════════════════════ */
+    #statusbar {
+      padding: 5px 20px; background: rgba(3,16,31,0.98);
+      border-top: 1px solid var(--cyan-border); font-size: 9px;
+      color: var(--text-muted); display: flex; gap: 20px;
+      letter-spacing: 0.3px; flex-shrink: 0;
+    }
+    #statusbar span { display: flex; align-items: center; gap: 4px; }
+    .sdot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+    .sdot.g { background: var(--green); }
+    .sdot.r { background: var(--red); }
+    .sdot.a { background: var(--amber); }
+
+    /* ══ MODAL EXPORTAR ═══════════════════════════════════════════ */
+    #modalExport {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.8); align-items: center; justify-content: center;
+    }
+    #modalExport.activo { display: flex; }
+    .modal-box {
+      background: var(--navy-mid); border: 1px solid var(--cyan);
+      border-radius: 8px; padding: 28px 32px; width: 320px;
+      text-align: center; box-shadow: 0 0 40px rgba(0,229,255,0.15);
+    }
+    .modal-box h2 { color: var(--cyan); font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px; }
+    .modal-btns { display: flex; flex-direction: column; gap: 10px; }
+    .modal-btns button { padding: 11px; font-size: 11px; border-radius: 5px; font-family: 'Inter', sans-serif; }
+    .btn-cancelar { margin-top: 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 11px; text-decoration: underline; font-family: 'Inter', sans-serif; }
+    .btn-cancelar:hover { color: #fff; }
+
+    #exportContainer { position: fixed; left: -9999px; top: 0; z-index: -1; width: 210mm; background: #fff; color: #000; font-family: Arial, sans-serif; font-size: 9pt; padding: 18mm 15mm; }
+
+    /* Modal zoom imagen */
+    #imgZoomModal {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+      cursor: zoom-out;
+    }
+    #imgZoomModal.activo { display: flex; }
+    #imgZoomModal img {
+      max-width: 90vw; max-height: 90vh;
+      object-fit: contain; border-radius: 4px;
+      box-shadow: 0 0 40px rgba(0,229,255,0.2);
+    }
+    #imgZoomModal .cerrar-zoom {
+      position: fixed; top: 16px; right: 20px;
+      color: white; font-size: 28px; cursor: pointer;
+      font-weight: 700; opacity: 0.7; z-index: 100000;
+    }
+    #imgZoomModal .cerrar-zoom:hover { opacity: 1; }
+
+    /* ══ RESPONSIVE ═══════════════════════════════════════════════ */
+#hamburger {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 200;
+  background: var(--navy-mid);
+  border: 1px solid var(--cyan-border);
+  color: var(--cyan);
+  font-size: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(3px);
+  z-index: 99;
+}
+
+@media (max-width: 768px) {
+  #hamburger { display: flex; }
+
+  #sidebar {
+    position: fixed;
+    left: -255px;
+    top: 0;
+    height: 100%;
+    width: 255px !important;
+    min-width: 255px !important;
+    z-index: 100;
+    transition: left 0.35s ease;
+    box-shadow: 3px 0 15px rgba(0,0,0,0.6);
+  }
+
+  #sidebar.abierto {
+    left: 0;
+  }
+
+  #sidebar-overlay.visible { display: block; }
+
+  #main-topbar {
+    padding-left: 68px;
+  }
+
+  #main-body {
+    padding: 14px 12px 80px 12px;
+  }
+
+  .item-card {
+    padding: 11px 13px;
+    font-size: 12.8px;
+  }
+
+  .buque-name { font-size: 15.5px; }
+  .caso-title { font-size: 14.5px; }
+  .bloque-sub { font-size: 13.5px; }
+
+  .tbl-wrap {
+    margin-bottom: 16px;
+  }
+
+  .pna-table, .avi-table {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  #main-body {
+    padding: 12px 10px 70px;
+  }
+  
+  .dias-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+  </style>
+</head>
+<body>
+
+<button id="hamburger" onclick="toggleSidebar()" aria-label="Abrir menú">☰</button>
+<div id="sidebar-overlay" onclick="cerrarSidebar()"></div>
+<button id="btn-salir-briefing" onclick="toggleBriefing()">✕ Salir pantalla completa</button>
+
+<!-- ══ MODAL PIN ══════════════════════════════════════════════════ -->
+<div id="modalPin">
+  <div class="pin-box">
+    <h3>🔒 Acceso operador</h3>
+    <p>Ingresá el PIN para cargar imágenes</p>
+    <input type="password" class="pin-input" id="pinInput" maxlength="8"
+      placeholder="••••" onkeydown="if(event.key==='Enter')confirmarPin()">
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-btns">
+      <button class="pin-cancel" onclick="cancelarPin()">Cancelar</button>
+      <button class="pin-ok" onclick="confirmarPin()">Ingresar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
+<div id="sidebar">
+  <div id="sidebar-brand">
+    <img src="https://www.argentina.gob.ar/sites/default/files/styles/isotipo/public/imagenEncabezado/prefectura-escudo.png?itok=EywBfOaV"
+         alt="PNA" onerror="this.style.display='none'">
+    <div class="org">Prefectura Naval<br>Argentina</div>
+    <div class="sub">Tráfico Marítimo — KSTM</div>
+  </div>
+  <div id="sidebar-fecha">📅 Cargando...</div>
+  <div id="sidebar-search">
+    <input type="text" id="buscador" placeholder="🔍 Buscar..." onkeyup="filtrarPartes()">
+  </div>
+  <nav id="sidebar-nav">
+    <div class="nav-group-label">Operaciones</div>
+    <button class="nav-btn" onclick="mostrarSeccion('AVIACION')"><span class="nav-icon">✈</span><span class="nav-label">Aviación</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('GC')"><span class="nav-icon">🚢</span><span class="nav-label">Guardacostas</span><span class="nav-badge nb-green" id="badge-GC"></span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('CONVENIO')"><span class="nav-icon">⚓</span><span class="nav-label">Convenio PNA-ARA</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('ARA')"><span class="nav-icon">🛡</span><span class="nav-label">Buques ARA</span><span class="nav-badge nb-cyan" id="badge-ARA"></span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('SALVAMENTO')"><span class="nav-icon">🔥</span><span class="nav-label">Salvamento / SERS</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('KSTM')"><span class="nav-icon">⚓</span><span class="nav-label">Tráfico Marítimo (Pilotaje y Conserva)</span><span class="nav-badge nb-cyan" id="badge-KSTM"></span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('RESERVA')"><span class="nav-icon">🔒</span><span class="nav-label">Reserva de Canal</span></button>
+
+    <div class="nav-group-label">SAR / MAS</div>
+    <button class="nav-btn" onclick="mostrarSeccion('SAR')"><span class="nav-icon">🆘</span><span class="nav-label">Casos SAR</span><span class="nav-badge nb-red" id="badge-SAR"></span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('MAS')"><span class="nav-icon">⚕</span><span class="nav-label">Casos MAS</span><span class="nav-badge nb-amber" id="badge-MAS"></span></button>
+
+    <div class="nav-group-label">Eventos</div>
+    <button class="nav-btn" onclick="mostrarSeccion('REGATAS')"><span class="nav-icon">⛵</span><span class="nav-label">Eventos Náuticos</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('EJER.ARMAS')"><span class="nav-icon">🎯</span><span class="nav-label">Ejercicios de Armas</span></button>
+
+    <div class="nav-group-label">Situación</div>
+    <button class="nav-btn" onclick="mostrarSeccion('PUERTOS')"><span class="nav-icon">🚫</span><span class="nav-label">Puertos Cerrados</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('ALERTA')"><span class="nav-icon">🌩</span><span class="nav-label">Alertas Meteorológicas</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('DRAGAS')"><span class="nav-icon">🚢</span><span class="nav-label">Dragas Operando</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('DETERMINANTES')"><span class="nav-icon">💧</span><span class="nav-label">Determinantes</span></button>
+
+    <div class="nav-group-label">Portuario</div>
+    <button class="nav-btn" onclick="mostrarSeccion('MOV_BAJO_PARANA')"><span class="nav-icon">📊</span><span class="nav-label">Bajo Paraná</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('MOV_DELTA')"><span class="nav-icon">📊</span><span class="nav-label">Delta</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('MOV_ZONA3')"><span class="nav-icon">📊</span><span class="nav-label">Río de la Plata</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('MOV_ZONA4')"><span class="nav-icon">📊</span><span class="nav-label">Mar Norte</span></button>
+    <button class="nav-btn" onclick="abrirDashboardGeneral()"><span class="nav-icon">🗂</span><span class="nav-label">Resumen Portuario</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('BUQUES')"><span class="nav-icon">⚠</span><span class="nav-label">Buques Infracción</span></button>
+
+    <div class="nav-group-label">Administración</div>
+    <button class="nav-btn" onclick="mostrarSeccion('VISITAS')"><span class="nav-icon">👥</span><span class="nav-label">Visitas Previstas</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('NOVEDADES')"><span class="nav-icon">📝</span><span class="nav-label">Novedades Varias</span></button>
+    <button class="nav-btn" onclick="mostrarSeccion('PERSONAL_COSTERA')"><span class="nav-icon">👤</span><span class="nav-label">Personal Costera</span></button>
+  </nav>
+  <div id="sidebar-actions">
+    <button class="sb-action-btn outline" onclick="abrirModalExport()" id="btnExportar">📄 Exportar Parte</button>
+    <button class="sb-action-btn solid" onclick="abrirNovedadPAPE()">🚢 Enlace PAPE</button>
+  </div>
+</div>
+
+<!-- ══ MAIN ═══════════════════════════════════════════════════════ -->
+<div id="main">
+  <div id="main-topbar" class="ocultar-briefing">
+    <div>
+      <div id="main-section-title">PARTE DE NOVEDADES</div>
+      <div id="main-section-sub">Seleccione una sección del menú</div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-btn outline" onclick="toggleBriefing()">🖥 Pantalla completa</button>
+    </div>
+  </div>
+
+  <div id="main-body">
+    <div id="loader">
+      ESTABLECIENDO ENLACE DE DATOS...
+      <img src="https://lh3.googleusercontent.com/d/10YGZZENFGr-SvTavvW1vtdTClAsC7gW0" alt="" onerror="this.style.display='none'">
+    </div>
+    <div id="visor" style="display:none"></div>
+  </div>
+
+  <div id="statusbar">
+    <span><span class="sdot g"></span>SISTEMA ACTIVO</span>
+    <span id="sb-sar"><span class="sdot r"></span>SAR: —</span>
+    <span id="sb-mas"><span class="sdot a"></span>MAS: —</span>
+    <span class="sb-extra" style="margin-left:auto">GMT-3 — KSTM</span>
+  </div>
+</div>
+
+<!-- MODAL EXPORTAR -->
+<div id="modalExport">
+  <div class="modal-box">
+    <h2>📄 Exportar Parte</h2>
+    <div class="modal-btns">
+      <button onclick="exportarPDF()" id="btnPDF" class="sb-action-btn outline">📕 Descargar PDF</button>
+      <button onclick="exportarWord()" id="btnWord" class="sb-action-btn outline">📘 Descargar Word (.doc)</button>
+    </div>
+    <button class="btn-cancelar" onclick="cerrarModalExport()">Cancelar</button>
+  </div>
+</div>
+<div id="exportContainer"></div>
+
+<div id="imgZoomModal" onclick="cerrarZoom()">
+  <span class="cerrar-zoom">✕</span>
+  <img id="imgZoomSrc" src="" alt="Zoom">
+</div>
+
+<script>
+// ================================================================
+// ▶ CONFIGURACIÓN — REEMPLAZÁ ESTA URL CON TU WEB APP URL
+// ================================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbyIbvefMxToVjEC-IBBW9NA0ofp7XRQUUWQLQ48noOgZio5HxLKkHBBDzyfs-DDLqLcFA/exec";
+
+// ================================================================
+
+async function llamarAPI(accion, params = {}) {
+  const url = new URL(API_URL);
+  url.searchParams.set("accion", accion);
+  Object.entries(params).forEach(([k, v]) => {
+    url.searchParams.set(k, typeof v === "object" ? JSON.stringify(v) : v);
+  });
+  const response = await fetch(url.toString(), {
+  method: "GET",
+  redirect: "follow"
+});
+
+const text = await response.text();
+
+try {
+  return JSON.parse(text);
+} catch(e) {
+  console.error("Respuesta inválida:", text);
+  throw new Error("La API no devolvió JSON válido");
+}
+}
+
+// ================================================================
+// SVG
+// ================================================================
+const SVG_BUQUE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 48" width="26" height="16" style="display:inline-block;vertical-align:middle;margin-right:6px"><g fill="none" stroke="#00e5ff" stroke-width="2" opacity="0.9"><path d="M8 30L72 30L66 42L14 42Z" fill="rgba(0,229,255,0.15)"/><rect x="24" y="18" width="32" height="13" fill="rgba(0,229,255,0.2)"/><rect x="32" y="10" width="16" height="9" fill="rgba(0,229,255,0.25)"/><line x1="40" y1="4" x2="40" y2="10" stroke-width="1.5"/></g></svg>`;
+
+// ================================================================
+// ESTADO GLOBAL
+// ================================================================
+let datosGlobales  = null;
+let seccionActiva  = null;
+let relojInterval  = null;
+let pinVerificado  = false;
+let pinCallbackFn  = null;
+
+// ================================================================
+// SIDEBAR RESPONSIVE
+// ================================================================
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (sidebar.classList.contains("abierto")) {
+    cerrarSidebar();
+  } else {
+    sidebar.classList.add("abierto");
+    overlay.classList.add("visible");
+  }
+}
+
+function cerrarSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (sidebar && overlay) {
+    sidebar.classList.remove("abierto");
+    overlay.classList.remove("visible");
+  }
+}
+
+window.addEventListener('resize', function() {
+  if (window.innerWidth > 768) cerrarSidebar();
+});
+
+// ================================================================
+// UTILIDADES
+// ================================================================
+function esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
+}
+function parseDate(s) {
+  if (!s || typeof s !== "string") return null;
+  const p = s.trim().split(/[\/\-]/);
+  if (p.length !== 3) return null;
+  const d = +p[0], m = +p[1], y = p[2].length === 2 ? 2000 + +p[2] : +p[2];
+  if (!d || !m || !y || d > 31 || m > 12) return null;
+  return new Date(y, m - 1, d);
+}
+function calcularDias(zarpada, regreso) {
+  const ini = parseDate(zarpada), fin = parseDate(regreso);
+  if (!ini || !fin) return { navegando: "?", restantes: "?" };
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  return {
+    navegando: Math.max(0, Math.floor((hoy - ini) / 86400000)),
+    restantes: Math.max(0, Math.floor((fin - hoy)  / 86400000))
+  };
+}
+function partesAHtml(partes) {
+  if (!Array.isArray(partes)) return "";
+  return partes.map(p => {
+    const pre = p.prefijo ? `<span style="color:var(--text-muted)">${p.prefijo}</span> ` : "";
+    return pre + (p.negrita ? `<b>${p.texto}</b>` : p.texto);
+  }).join(" <span style='opacity:.4'>|</span> ");
+}
+function filaArrayAHtml(datos) {
+  return (datos || []).filter(v => v).join(" <span style='opacity:.4'>|</span> ");
+}
+
+// ================================================================
+// RENDERIZADO PRINCIPAL
+// ================================================================
+function renderizar(data) {
+  if (!data || !data.secciones) {
+    document.getElementById("loader").innerHTML = "ERROR: No se recibieron datos.";
+    return;
+  }
+  datosGlobales = data;
+  document.getElementById("loader").style.display = "none";
+  document.getElementById("visor").style.display  = "block";
+  document.getElementById("sidebar-fecha").textContent = "📅 " + (data.fecha || "");
+
+  const sar  = data.secciones.find(s => s.id === "SAR");
+  const mas  = data.secciones.find(s => s.id === "MAS");
+  const sarN = sar ? (sar.filas||[]).filter(f => f && f.tipo === "caso_especial").length : 0;
+  const masN = mas ? (mas.filas||[]).filter(f => f && f.tipo === "caso_especial").length : 0;
+
+  const elSAR = document.getElementById("badge-SAR");
+  const elMAS = document.getElementById("badge-MAS");
+  if (elSAR) elSAR.textContent = sarN;
+  if (elMAS) elMAS.textContent = masN;
+  document.getElementById("sb-sar").innerHTML = `<span class="sdot r"></span>SAR: ${sarN} casos`;
+  document.getElementById("sb-mas").innerHTML = `<span class="sdot a"></span>MAS: ${masN} casos`;
+
+  const gc   = data.secciones.find(s => s.id === "GC");
+  const ara  = data.secciones.find(s => s.id === "ARA");
+  const kstm = data.secciones.find(s => s.id === "KSTM");
+  if (gc)   { const b = document.getElementById("badge-GC");   if(b) b.textContent = (gc.filas||[]).filter(f=>f&&f.tipo==="fila").length; }
+  if (ara)  { const b = document.getElementById("badge-ARA");  if(b) b.textContent = (ara.filas||[]).filter(f=>f&&f.tipo==="fila").length; }
+  if (kstm) { const b = document.getElementById("badge-KSTM"); if(b) b.textContent = (kstm.filas||[]).filter(f=>f&&(f.tipo==="partes"||f.tipo==="fila"||f.tipo==="texto")).length; }
+
+  mostrarSeccion("SAR");
+}
+
+// ================================================================
+// SELECCIÓN DE SECCIÓN
+// ================================================================
+function mostrarSeccion(id) {
+  if (window.innerWidth <= 768) cerrarSidebar();
+
+  seccionActiva = id;
+  document.querySelectorAll(".nav-btn").forEach(b => {
+    b.classList.toggle("active", b.getAttribute("onclick") === `mostrarSeccion('${id}')`);
+  });
+  if (!datosGlobales) return;
+
+  const sec = datosGlobales.secciones.find(s => s.id === id);
+  const titleMap = {
+    AVIACION:"Servicio de Aviación", GC:"Buques Guardacostas", CONVENIO:"Convenio PNA-ARA",
+    ARA:"Buques ARA", SALVAMENTO:"Salvamento / SERS", KSTM:"Tráfico Marítimo",
+    RESERVA:"Reserva de Canal", SAR:"Casos SAR", MAS:"Casos MAS",
+    REGATAS:"Eventos Náuticos", "EJER.ARMAS":"Ejercicios de Armas",
+    PUERTOS:"Puertos Cerrados", ALERTA:"Alertas Meteorológicas", DRAGAS:"Dragas Operando",
+    DETERMINANTES:"Determinantes", MOV_BAJO_PARANA:"Mov. Portuario — Bajo Paraná",
+    MOV_DELTA:"Mov. Portuario — Delta", MOV_ZONA3:"Mov. Portuario — Río de la Plata",
+    MOV_ZONA4:"Mov. Portuario — Mar Norte", BUQUES:"Buques Infracción",
+    VISITAS:"Visitas Previstas", NOVEDADES:"Novedades Varias", PERSONAL_COSTERA:"Personal Costera"
+  };
+  document.getElementById("main-section-title").textContent = titleMap[id] || id;
+  document.getElementById("main-section-sub").textContent   = sec ? sec.titulo : id;
+
+  if (relojInterval) { clearInterval(relojInterval); relojInterval = null; }
+
+  const visor = document.getElementById("visor");
+  if (!sec) { visor.innerHTML = `<div class="empty">Sección no disponible.</div>`; return; }
+  visor.innerHTML = renderSeccion(sec);
+  if (sec.tipo === "casos_especiales") iniciarRelojes();
+}
+
+// ================================================================
+// RENDER POR TIPO
+// ================================================================
+function renderSeccion(sec) {
+  const filas = sec.filas || [];
+
+  if (sec.id === "AVIACION") {
+    let h = `<div style="margin-bottom:12px">
+      <button class="sb-action-btn outline" style="width:auto;padding:7px 14px;font-size:10px" onclick="abrirAviacion()">
+        📂 Abrir archivo de Aviación del día</button></div>
+      <div class="tbl-wrap"><table class="avi-table">`;
+    filas.forEach(f => {
+      if (!f) return;
+      if (f.tipo === "subtitulo") {
+        h += `<tr><td colspan="4" class="avi-sub">${esc(f.texto)}</td></tr>`;
+      } else if (f.tipo === "partes") {
+        const c = f.partes;
+        h += `<tr>
+          <td style="font-weight:700;padding:6px 8px">${c[0]?c[0].texto:""}</td>
+          <td style="text-align:center">${c[1]?c[1].texto:""}</td>
+          <td style="text-align:center">${c[2]?c[2].texto:""}</td>
+          <td style="color:#94a3b8;font-size:10px">${c.slice(3).map(p=>p.texto).join(" | ")}</td>
+        </tr>`;
+      }
+    });
+    h += `</table></div>`;
+    return h;
+  }
+
+  if (sec.id === "GC") {
+    const hoy  = new Date(); hoy.setHours(0,0,0,0);
+    const ff   = filas.filter(f => f && f.tipo === "fila");
+    const act  = ff.filter(f => { const d = parseDate(f.datos[1]); return !d || d <= hoy; });
+    const prev = ff.filter(f => { const d = parseDate(f.datos[1]); return d && d > hoy; });
+    let h = `<div class="bloque-sub">${SVG_BUQUE}En navegación <span class="badge green">${act.length}</span></div>`;
+    act.forEach(f => {
+      const d = calcularDias(f.datos[1], f.datos[2]);
+      h += `<div class="item-card green">
+        <div class="buque-name" style="color:var(--green)">${esc(f.datos[0])}</div>
+        <div style="font-size:10.5px;color:#94a3b8;margin-bottom:4px">${esc(f.datos[3]||"SIN NOVEDADES")}</div>
+        <div class="dias-row">
+          <span style="color:var(--green)">🕒 NAV: ${d.navegando} días</span>
+          <span style="color:var(--text-muted)">|</span>
+          <span style="color:var(--amber)">ETA: ${d.restantes} días</span>
+        </div></div>`;
+    });
+    if (!act.length) h += `<div class="empty">Sin navegaciones activas.</div>`;
+    h += `<div class="sep"></div><div class="bloque-sub">📅 Previstas <span class="badge cyan">${prev.length}</span></div>`;
+    prev.forEach(f => {
+      h += `<div class="item-card">
+        <div class="buque-name" style="color:var(--cyan)">${esc(f.datos[0])}</div>
+        <div style="font-size:10.5px">Zarpe: <b>${esc(f.datos[1])}</b> | ETA: <b>${esc(f.datos[2])}</b></div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:3px">${esc(f.datos[3]||"")}</div>
+      </div>`;
+    });
+    if (!prev.length) h += `<div class="empty">Sin navegaciones previstas.</div>`;
+    return h;
+  }
+
+  if (sec.id === "ARA") {
+    const ff = filas.filter(f => f && f.tipo === "fila");
+    let h = ff.length ? "" : `<div class="empty">Sin datos.</div>`;
+    ff.forEach(f => {
+      h += `<div class="item-card">
+        <div class="buque-name" style="color:var(--cyan)">${SVG_BUQUE}${esc(f.datos[0])}</div>
+        <div style="font-size:10.5px;color:#94a3b8">${[f.datos[1],f.datos[2],f.datos[3]].filter(v=>v).join(" | ")}</div>
+      </div>`;
+    });
+    return h;
+  }
+
+  if (sec.id === "CONVENIO") {
+    let h = `<div class="tbl-wrap"><table class="pna-table">
+      <tr><th rowspan="2">Meses</th><th colspan="3">PNA</th><th colspan="3">ARA</th></tr>
+      <tr><th>Fecha Z-A</th><th>M/Superficie</th><th>Días Nav.</th><th>M/Superficie</th><th>Fecha Z-A</th><th>Días Nav.</th></tr>`;
+    filas.filter(f=>f&&f.tipo==="fila").forEach(f => {
+      h += `<tr>${f.datos.map((v,i)=>`<td${i===0?' class="dep"':''} style="text-align:center">${esc(v)}</td>`).join("")}</tr>`;
+    });
+    h += `</table></div>`;
+    return h;
+  }
+
+  // ── SAR / MAS ────────────────────────────────────────────────────
+  if (sec.tipo === "casos_especiales") {
+    let h = "";
+    filas.forEach(f => {
+      if (!f) return;
+      if (f.tipo === "subtitulo") {
+        const esPend = (f.texto||"").toUpperCase().includes("PENDIENTE");
+        h += `<div class="bloque-sub" style="${esPend?'':'color:var(--text-muted)'}">${esc(f.texto)}</div>`;
+      }
+      else if (f.tipo === "separador") h += `<div class="sep"></div>`;
+      else if (f.tipo === "html")      h += `<div class="empty">${f.texto}</div>`;
+      else if (f.tipo === "caso_especial") {
+        const id       = uid();
+        const esSAR    = sec.id === "SAR";
+        const cerrado  = (f.situacion||"").toUpperCase().includes("CERRADO");
+        const hasImg = !!(f.imgUrl && f.imgUrl.trim());
+        const fila   = f.filaSheet || "";
+        const hojaId = f.hojaId || sec.id;
+
+        const relojHtml = esSAR && !cerrado
+          ? `<div class="caso-reloj" id="reloj-${id}" data-ts="${f.ultimaActualizacion||''}">⏱ --:--:--</div>`
+          : "";
+
+        const imgViewerHtml = hasImg
+          ? `<button class="img-toggle-btn" onclick="toggleImg('imgv-${id}')">📷 Ver imagen de situación</button>
+             <div class="img-viewer" id="imgv-${id}">
+               <img src="${esc(f.imgUrl)}" alt="Imagen situación"
+                 referrerpolicy="no-referrer"
+                 style="cursor:zoom-in"
+                 onclick="abrirZoom(this.src)"
+                 onerror="this.src='';this.parentElement.style.display='none'">
+               <div class="img-cap">
+                 <span>Imagen de situación — clic para ampliar</span>
+                 <span style="cursor:pointer;color:var(--cyan)" onclick="recargarImagen('imgv-${id}','${esc(f.imgUrl)}')">↺ Actualizar</span>
+               </div>
+             </div>`
+          : `<div style="font-size:10px;color:var(--text-muted);margin-top:6px;font-style:italic">📷 Sin imagen cargada aún</div>`;
+
+        const uploaderHtml = cerrado ? "" : `
+          <button class="btn-operador ${pinVerificado?'autenticado':''}" id="btnop-${id}"
+            onclick="abrirUploader('${id}','${fila}','${hojaId}')">
+            ${pinVerificado ? '✅ Operador activo — Cargar imagen' : '🔒 Cargar imagen (operador)'}
+          </button>
+          <div class="uploader-wrap" id="upwrap-${id}">
+            <div class="uploader-header">📁 Subir imagen de situación — ${esc(f.buque)}</div>
+            <div class="dropzone" id="dz-${id}"
+              ondragover="dzOver(event,'${id}')"
+              ondragleave="dzLeave('${id}')"
+              ondrop="dzDrop(event,'${id}','${fila}','${hojaId}')"
+              onclick="document.getElementById('fi-${id}').click()">
+              <div class="dropzone-icon">📁</div>
+              <div class="dropzone-txt">
+                <b>Arrastrá</b> una imagen aquí<br>o hacé clic para seleccionar<br>
+                <span style="font-size:9px">JPG · PNG · GIF — máx. 5 MB</span>
+              </div>
+              <input type="file" id="fi-${id}" accept="image/*" style="display:none"
+                onchange="fileSelected(this,'${id}','${fila}','${hojaId}')">
+            </div>
+            <div class="upload-preview" id="prev-${id}">
+              <img id="previmg-${id}" src="" alt="Vista previa">
+              <div class="upload-preview-bar">
+                <span id="prevname-${id}"></span>
+                <span style="cursor:pointer;color:var(--red)" onclick="limpiarPreview('${id}')">✕ Quitar</span>
+              </div>
+            </div>
+            <div class="upload-status" id="upstatus-${id}"></div>
+            <button class="upload-btn" id="upbtn-${id}" onclick="subirImagen('${id}','${fila}','${hojaId}')">
+              ⬆ Subir imagen
+            </button>
+          </div>`;
+
+        h += `<div class="item-card ${cerrado?'muted':''}" id="card-${id}">
+          <div class="caso-title" style="color:${cerrado?'var(--text-muted)':'var(--cyan)'}">${esc(f.buque)}</div>
+          <div class="caso-line"><span class="lbl">ASUNTO: </span>${esc(f.asunto)}</div>
+          <div class="caso-line"><span class="lbl">POSICIÓN: </span>${esc(f.posicion)}</div>
+          <div class="caso-line"><span class="lbl">ÚLTIMA NOVEDAD: </span>${esc(f.novedad)}</div>
+          <div class="caso-line"><span class="lbl">CARACTERÍSTICAS: </span>${esc(f.caracteristicas)}</div>
+          <div class="caso-line" style="color:${cerrado?'var(--text-muted)':'var(--green)'}">
+            <span class="lbl">SITUACIÓN: </span>${esc(f.situacion)}
+          </div>
+          ${relojHtml}
+          <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px">
+            ${imgViewerHtml}
+            ${uploaderHtml}
+          </div>
+        </div>`;
+      }
+    });
+    return h || `<div class="empty">Sin casos.</div>`;
+  }
+
+  if (sec.id === "ALERTA") {
+    const grupos = {};
+    filas.filter(f=>f&&f.tipo==="fila").forEach(f => {
+      const k = f.datos[0]||"SIN"; if(!grupos[k]) grupos[k]=[]; grupos[k].push(f.datos);
+    });
+    let h = `<div class="tbl-wrap"><table class="pna-table">
+      <tr><th>Alerta N°</th><th>Zona</th><th>Fenómeno</th><th>MOI y destinos</th></tr>`;
+    Object.values(grupos).forEach(grupo => {
+      const rs = grupo.length;
+      grupo.forEach((fila, idx) => {
+        h += `<tr>`;
+        if (idx===0) h += `<td rowspan="${rs}" style="text-align:center;font-weight:700;vertical-align:middle;color:var(--amber)">${esc(fila[0])}</td>`;
+        h += `<td style="text-align:left">${esc(fila[1]||"")}</td><td>${esc(fila[2]||"")}</td>`;
+        if (idx===0) h += `<td rowspan="${rs}" style="text-align:left;vertical-align:middle">${esc(fila[3]||"")}</td>`;
+        h += `</tr>`;
+      });
+    });
+    if (!Object.keys(grupos).length) h += `<tr><td colspan="4" style="text-align:center;font-style:italic;color:#64748b">Sin alertas vigentes.</td></tr>`;
+    h += `</table></div>`;
+    return h;
+  }
+
+  if (sec.id === "BUQUES") {
+    let h = `<div class="tbl-wrap"><table class="pna-table">
+      <tr><th>BUQUES</th><th>2010-2023</th><th>2024</th><th>2025</th><th>2026</th><th>TOTAL</th></tr>`;
+    filas.filter(f=>f&&f.tipo==="fila").forEach(f => {
+      h += `<tr><td class="dep">${esc(f.datos[0]||"")}</td>${f.datos.slice(1).map(v=>`<td>${esc(v)}</td>`).join("")}</tr>`;
+    });
+    h += `</table></div>`;
+    return h;
+  }
+
+  if (sec.id === "VISITAS") {
+    let h = `<div class="tbl-wrap"><table class="pna-table">
+      <tr><th>DÍA/HS</th><th>AUT./SOL.</th><th>ACTIVIDAD</th><th>S/MOZO</th><th>PERS.</th><th>PROYECCIÓN</th><th>AUT. EXT.</th></tr>`;
+    const ff = filas.filter(f=>f&&f.tipo==="fila");
+    if (!ff.length) h += `<tr><td colspan="7" style="text-align:center;font-style:italic;color:#64748b">Sin visitas previstas.</td></tr>`;
+    ff.forEach(f => { h += `<tr>${f.datos.map(v=>`<td style="text-align:left">${esc(v)}</td>`).join("")}</tr>`; });
+    h += `</table></div>`;
+    return h;
+  }
+
+  if (sec.id === "DETERMINANTES") {
+    let h = `<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="sb-action-btn outline" style="width:auto;padding:6px 12px;font-size:10px"
+        onclick="window.open('https://docs.google.com/spreadsheets/d/1RQGVSo4Yjha_AQ3aBMqEfVlt-N7Eh1TGvFYddt9vVDE/edit#gid=468968028','_blank')">
+        📊 Ver Determinantes</button>
+      <button class="sb-action-btn outline" style="width:auto;padding:6px 12px;font-size:10px"
+        onclick="abrirAnpyn()">
+        💧 ANPYN</button></div>`;
+    filas.forEach(f => {
+      if (!f) return;
+      if      (f.tipo==="subtitulo") h += `<div class="bloque-sub">${esc(f.texto)}</div>`;
+      else if (f.tipo==="fila")      h += `<div class="item-card"><span style="font-size:11px">${esc(f.datos[0]||"")}</span></div>`;
+      else if (f.tipo==="texto")     h += `<div class="item-card"><span style="font-size:11px">${esc(f.texto)}</span></div>`;
+    });
+    if (!filas.length) h += `<div class="empty">Sin determinantes.</div>`;
+    return h;
+  }
+
+  if (sec.tipo === "portuario") {
+    const buques = filas.filter(f=>f&&f.tipo==="buque");
+    const movs   = filas.filter(f=>f&&f.tipo==="movimiento");
+    let h = `<div class="tbl-wrap"><div class="tbl-title">SITUACIÓN DE BUQUES</div>
+      <table class="pna-table"><tr>
+        <th>Dep.</th><th>N° T.P</th><th>Muelles</th>
+        <th style="color:var(--amber)">B/ Amar.</th><th>M/ Libres</th>
+        <th>Radas</th><th>Cap. Radas</th>
+        <th style="color:var(--amber)">C/B Fond.</th><th>Disp. Rada</th>
+      </tr>`;
+    if (!buques.length) h += `<tr><td colspan="9" style="font-style:italic;color:#64748b;text-align:center">Sin datos.</td></tr>`;
+    buques.forEach(f => {
+      const tot = (f.datos[0]||"").toUpperCase().includes("TOTAL");
+      h += `<tr${tot?' class="total-row"':''}>
+        <td class="dep">${esc(f.datos[0]||"")}</td>
+        <td class="num-red">${esc(f.datos[1]||"")}</td>
+        <td class="num-red">${esc(f.datos[2]||"")}</td>
+        <td class="num-amber">${esc(f.datos[3]||"")}</td>
+        <td>${esc(f.datos[4]||"")}</td>
+        <td>${esc(f.datos[5]||"")}</td>
+        <td>${esc(f.datos[6]||"")}</td>
+        <td class="num-amber">${esc(f.datos[7]||"")}</td>
+        <td class="num-red">${esc(f.datos[8]||"")}</td>
+      </tr>`;
+    });
+    h += `</table></div>
+    <div class="tbl-wrap" style="margin-top:16px"><div class="tbl-title">MOVIMIENTOS DE BUQUES</div>
+      <table class="pna-table">
+        <tr><th rowspan="2">Dep.</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th rowspan="2">T.Mov.</th></tr>
+        <tr><th>B/C</th><th>B/T</th><th>B/C</th><th>B/T</th><th>B/P</th><th>B/Port</th><th>B/C</th><th>B/Port</th></tr>`;
+    if (!movs.length) h += `<tr><td colspan="10" style="font-style:italic;color:#64748b;text-align:center">Sin datos.</td></tr>`;
+    movs.forEach(f => {
+      const tot = (f.datos[0]||"").toUpperCase().includes("TOTAL");
+      h += `<tr${tot?' class="total-row"':''}>
+        <td class="dep">${f.datos[0]||""}</td>
+        ${f.datos.slice(1).map(v=>`<td class="num-red">${esc(v)}</td>`).join("")}
+      </tr>`;
+    });
+    h += `</table></div>`;
+    return h;
+  }
+
+  if (sec.id === "NOVEDADES" || sec.id === "PERSONAL_COSTERA") {
+    const items = filas.filter(f=>f&&f.tipo==="novedad");
+    let h = items.length ? "" : `<div class="empty">Sin novedades.</div>`;
+    items.forEach(n => {
+      h += `<div class="item-card">
+        <div style="font-weight:700;color:#fff;margin-bottom:3px">${esc(n.titulo)}</div>
+        <div style="font-size:10.5px;color:#94a3b8">${esc(n.texto)}</div>
+      </div>`;
+    });
+    return h;
+  }
+
+  return renderFilasGenericas(filas);
+}
+
+function renderFilasGenericas(filas) {
+  if (!filas || !filas.length) return `<div class="empty">Sin novedades.</div>`;
+  let h = "";
+  filas.forEach(f => {
+    if (!f) return;
+    if      (f.tipo==="subtitulo") h += `<div class="bloque-sub">${esc(f.texto)}</div>`;
+    else if (f.tipo==="separador") h += `<div class="sep"></div>`;
+    else if (f.tipo==="html")      h += `<div class="item-card">${f.texto}</div>`;
+    else if (f.tipo==="partes")    h += `<div class="item-card">${partesAHtml(f.partes)}</div>`;
+    else if (f.tipo==="fila")      h += `<div class="item-card">${filaArrayAHtml(f.datos)}</div>`;
+    else if (f.tipo==="arma")      h += `<div class="item-card"><b>${esc(f.datos[0])}</b> | Inicio/Fin: ${esc(f.datos[1])}${f.datos[2]?' - '+esc(f.datos[2]):''} | Obs: ${esc(f.datos[3])}</div>`;
+    else if (f.tipo==="puerto")    h += `<div class="item-card amber">Puerto: <b>${esc(f.datos[0])}</b> | Cierre: ${esc(f.datos[1])} | Hora: ${esc(f.datos[2])} | Motivo: ${esc(f.datos[3])}</div>`;
+    else if (f.tipo==="texto"&&f.texto&&f.texto.trim()) h += `<div class="item-card">${esc(f.texto)}</div>`;
+    else if (f.tipo==="novedad")   h += `<div class="item-card"><div style="font-weight:700;color:#fff;margin-bottom:3px">${esc(f.titulo)}</div><div style="font-size:10.5px;color:#94a3b8">${esc(f.texto)}</div></div>`;
+  });
+  return h || `<div class="empty">Sin novedades.</div>`;
+}
+
+// ================================================================
+// RELOJES SAR
+// ================================================================
+function parsearTimestamp(tsStr) {
+  if (!tsStr || typeof tsStr !== "string") return null;
+  const s = tsStr.trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (m) {
+    return new Date(Date.UTC(+m[3], +m[2]-1, +m[1], +m[4]+3, +m[5], +m[6]));
+  }
+  if (s.includes("T")) {
+    const conTZ = (s.endsWith("Z") || s.includes("+") || /\d-\d{2}:\d{2}$/.test(s))
+      ? s : s + "-03:00";
+    const ts = new Date(conTZ);
+    return isNaN(ts.getTime()) ? null : ts;
+  }
+  return null;
+}
+
+function iniciarRelojes() {
+  const LIMITE = 6 * 3600000;
+  function tick() {
+    document.querySelectorAll("[data-ts]").forEach(el => {
+      const ts = parsearTimestamp(el.getAttribute("data-ts"));
+      if (!ts) { el.textContent = "⏱ sin timestamp"; return; }
+      const diff = Date.now() - ts.getTime();
+      if (diff < 0) { el.textContent = "⏱ --:--:--"; return; }
+      const hh = String(Math.floor(diff/3600000)).padStart(2,"0");
+      const mm = String(Math.floor((diff%3600000)/60000)).padStart(2,"0");
+      const ss = String(Math.floor((diff%60000)/1000)).padStart(2,"0");
+      const card = el.closest(".item-card");
+      if (diff >= LIMITE) {
+        el.className = "caso-reloj vencido";
+        el.textContent = `⚠ VENCIDO: ${hh}:${mm}:${ss}`;
+        if (card) card.style.borderLeftColor = "var(--red)";
+      } else {
+        el.className = "caso-reloj";
+        el.textContent = `⏱ Sin actualizar: ${hh}:${mm}:${ss}`;
+        if (card) card.style.borderLeftColor = "var(--cyan)";
+      }
+    });
+  }
+  tick();
+  relojInterval = setInterval(tick, 1000);
+}
+
+function toggleImg(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle("open");
+}
+
+function recargarImagen(viewerId, url) {
+  const img = document.querySelector(`#${viewerId} img`);
+  if (!img) return;
+  const sep = url.includes("?") ? "&" : "?";
+  img.src = url + sep + "nocache=" + Date.now();
+}
+
+// ================================================================
+// PIN DE OPERADOR — ahora usa fetch en lugar de google.script.run
+// ================================================================
+function abrirUploader(id, fila, hojaId) {
+  if (pinVerificado) {
+    toggleUploaderPanel(id);
+    return;
+  }
+  pinCallbackFn = function() { toggleUploaderPanel(id); };
+  document.getElementById("pinInput").value = "";
+  document.getElementById("pinError").textContent = "";
+  document.getElementById("modalPin").classList.add("activo");
+  setTimeout(() => document.getElementById("pinInput").focus(), 100);
+}
+
+async function confirmarPin() {
+  const pin = document.getElementById("pinInput").value.trim();
+  if (!pin) return;
+  document.getElementById("pinError").textContent = "";
+
+  try {
+    const res = await llamarAPI("verificarPIN", { pin });
+    if (res.ok) {
+      pinVerificado = true;
+      document.getElementById("modalPin").classList.remove("activo");
+      document.querySelectorAll(".btn-operador").forEach(b => {
+        b.classList.add("autenticado");
+        b.textContent = "✅ Operador activo — Cargar imagen";
+      });
+      if (pinCallbackFn) { pinCallbackFn(); pinCallbackFn = null; }
+    } else {
+      document.getElementById("pinError").textContent = "PIN incorrecto. Intentá de nuevo.";
+      document.getElementById("pinInput").value = "";
+      document.getElementById("pinInput").focus();
+    }
+  } catch(err) {
+    document.getElementById("pinError").textContent = "Error de conexión: " + (err.message || err);
+  }
+}
+
+function cancelarPin() {
+  document.getElementById("modalPin").classList.remove("activo");
+  pinCallbackFn = null;
+}
+
+function toggleUploaderPanel(id) {
+  const wrap = document.getElementById("upwrap-" + id);
+  if (!wrap) return;
+  wrap.classList.toggle("open");
+}
+
+// ================================================================
+// DROPZONE
+// ================================================================
+function dzOver(event, id) {
+  event.preventDefault();
+  const dz = document.getElementById("dz-" + id);
+  if (dz) dz.classList.add("drag-over");
+}
+function dzLeave(id) {
+  const dz = document.getElementById("dz-" + id);
+  if (dz) dz.classList.remove("drag-over");
+}
+function dzDrop(event, id, fila, hojaId) {
+  event.preventDefault();
+  dzLeave(id);
+  const file = event.dataTransfer.files[0];
+  if (file) prepararArchivo(file, id, fila, hojaId);
+}
+function fileSelected(input, id, fila, hojaId) {
+  const file = input.files[0];
+  if (file) prepararArchivo(file, id, fila, hojaId);
+}
+
+const _archivos = {};
+
+function prepararArchivo(file, id, fila, hojaId) {
+  if (!file.type.startsWith("image/")) {
+    setStatus(id, "error", "❌ Solo se aceptan imágenes (JPG, PNG, GIF).");
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    setStatus(id, "error", "❌ La imagen supera el límite de 5 MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL("image/jpeg", 0.7);
+
+      _archivos[id] = { compressed, type: "image/jpeg" };
+
+      const prev    = document.getElementById("prev-" + id);
+      const prevImg = document.getElementById("previmg-" + id);
+      const name    = document.getElementById("prevname-" + id);
+      if (prev && prevImg && name) {
+        prevImg.src = compressed;
+        const kb = Math.round(compressed.length * 0.75 / 1024);
+        name.textContent = file.name + " (~" + kb + " KB comprimida)";
+        prev.style.display = "block";
+      }
+      const btn = document.getElementById("upbtn-" + id);
+      if (btn) btn.style.display = "block";
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function limpiarPreview(id) {
+  delete _archivos[id];
+  const prev = document.getElementById("prev-" + id);
+  const btn  = document.getElementById("upbtn-" + id);
+  const fi   = document.getElementById("fi-" + id);
+  if (prev) prev.style.display = "none";
+  if (btn)  btn.style.display  = "none";
+  if (fi)   fi.value = "";
+  setStatus(id, "", "");
+}
+
+// ── Subir imagen — ahora usa fetch en lugar de google.script.run ──
+async function subirImagen(id, fila, hojaId) {
+  const archivo = _archivos[id];
+  if (!archivo) { setStatus(id, "error", "❌ No hay imagen seleccionada."); return; }
+
+  const btn = document.getElementById("upbtn-" + id);
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Subiendo..."; }
+  setStatus(id, "loading", "⏳ Subiendo imagen...");
+
+  const base64Data = archivo.compressed.split(",")[1];
+  const mimeType   = "image/jpeg";
+  const nombreCaso = "CASO_FILA" + fila;
+
+  try {
+    const res = await llamarAPI("subirImagenSAR", {
+      base64Data,
+      mimeType,
+      nombreCaso,
+      filaSheet: parseInt(fila) || 0,
+      hojaId
+    });
+
+    if (btn) { btn.disabled = false; btn.textContent = "⬆ Subir imagen"; }
+
+    if (res && res.ok) {
+      setStatus(id, "ok", "✅ Imagen cargada correctamente.");
+      delete _archivos[id];
+
+      if (datosGlobales) {
+        datosGlobales.secciones.forEach(sec => {
+          (sec.filas || []).forEach(f => {
+            if (f && f.tipo === "caso_especial" && f.filaSheet === parseInt(fila)) {
+              f.imgUrl = res.url;
+            }
+          });
+        });
+      }
+
+      const viewerId = "imgv-" + id;
+      const viewer   = document.getElementById(viewerId);
+      if (viewer) {
+        const img = viewer.querySelector("img");
+        if (img) img.src = res.url;
+        viewer.classList.add("open");
+      } else {
+        const container = document.getElementById("card-" + id);
+        if (container) {
+          container.querySelectorAll("div").forEach(d => {
+            if (d.textContent.includes("Sin imagen")) d.remove();
+          });
+          const newViewer = document.createElement("div");
+          newViewer.innerHTML = `
+            <button class="img-toggle-btn" onclick="toggleImg('${viewerId}')">📷 Ver imagen de situación</button>
+            <div class="img-viewer open" id="${viewerId}">
+              <img src="${res.url}" alt="Imagen situación">
+              <div class="img-cap"><span>Imagen de situación</span></div>
+            </div>`;
+          const uploaderWrap = document.getElementById("upwrap-" + id);
+          if (uploaderWrap) uploaderWrap.before(newViewer);
+          else container.appendChild(newViewer);
+        }
+      }
+    } else {
+      setStatus(id, "error", "❌ Error: " + ((res && res.error) ? res.error : "desconocido"));
+    }
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.textContent = "⬆ Subir imagen"; }
+    setStatus(id, "error", "❌ Error de conexión: " + (err.message || err));
+  }
+}
+
+function setStatus(id, tipo, msg) {
+  const el = document.getElementById("upstatus-" + id);
+  if (!el) return;
+  el.className = "upload-status" + (tipo ? " " + tipo : "");
+  el.style.display = msg ? "block" : "none";
+  el.textContent = msg;
+}
+
+// ================================================================
+// BUSCADOR
+// ================================================================
+function filtrarPartes() {
+  const q = document.getElementById("buscador").value.toUpperCase().trim();
+  if (!datosGlobales || !q) return;
+  const resultados = [];
+  datosGlobales.secciones.forEach(sec => {
+    (sec.filas||[]).forEach(f => {
+      if (!f) return;
+      if (JSON.stringify(f).toUpperCase().includes(q)) resultados.push({ sec: sec.titulo, f });
+    });
+  });
+  const visor = document.getElementById("visor");
+  if (!resultados.length) { visor.innerHTML = `<div class="empty">Sin resultados para "${q}".</div>`; return; }
+  let h = `<div class="bloque-sub">🔍 Resultados: "${q}" <span class="badge cyan">${resultados.length}</span></div>`;
+  resultados.forEach(r => {
+    const f = r.f;
+    let txt = "";
+    if      (f.tipo==="partes")        txt = partesAHtml(f.partes);
+    else if (f.tipo==="fila")          txt = filaArrayAHtml(f.datos);
+    else if (f.tipo==="texto")         txt = esc(f.texto);
+    else if (f.tipo==="caso_especial") txt = `<b>${esc(f.buque)}</b> — ${esc(f.asunto)}`;
+    else if (f.tipo==="novedad")       txt = `<b>${esc(f.titulo)}</b>: ${esc(f.texto)}`;
+    else txt = esc(JSON.stringify(f));
+    h += `<div class="item-card">
+      <div style="font-size:9px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase">${esc(r.sec)}</div>
+      ${txt}
+    </div>`;
+  });
+  visor.innerHTML = h;
+}
+
+// ================================================================
+// MODO BRIEFING
+// ================================================================
+function toggleBriefing() {
+  const en = document.body.classList.toggle("briefing-mode");
+  document.getElementById("sidebar").style.display = en ? "none" : "";
+  document.getElementById("hamburger").style.display = en ? "none" : "";
+  if (en) {
+    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  }
+}
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && document.body.classList.contains("briefing-mode")) {
+    document.body.classList.remove("briefing-mode");
+    document.getElementById("sidebar").style.display = "";
+    document.getElementById("hamburger").style.display = "";
+  }
+});
+
+// ================================================================
+// LINKS EXTERNOS
+// ================================================================
+function abrirAviacion() {
+  if (!datosGlobales || !datosGlobales.urlAviacion) { alert("⚠ No se encontró el archivo de aviación de hoy."); return; }
+  window.open(datosGlobales.urlAviacion, "_blank");
+}
+function abrirNovedadPAPE() {
+  if (!datosGlobales || !datosGlobales.urlPAPE) { alert("⚠ No se encontró el archivo PAPE de hoy."); return; }
+  window.open(datosGlobales.urlPAPE, "_blank");
+}
+
+// ================================================================
+// DASHBOARD PORTUARIO
+// ================================================================
+function abrirDashboardGeneral() {
+  const ZONAS = [
+    { id:"MOV_BAJO_PARANA", label:"BAJO PARANÁ" },
+    { id:"MOV_DELTA",       label:"DELTA" },
+    { id:"MOV_ZONA3",       label:"RÍO DE LA PLATA" },
+    { id:"MOV_ZONA4",       label:"MAR NORTE" },
+  ];
+  function extraerTotales(zonaId) {
+    const sec = datosGlobales && datosGlobales.secciones.find(s => s.id === zonaId);
+    if (!sec) return null;
+    const fila = sec.filas.find(f => f && f.tipo==="buque" && (f.datos[0]||"").toUpperCase().includes("TOTAL"));
+    if (!fila) return null;
+    return { muelles:+fila.datos[2]||0, amarrados:+fila.datos[3]||0, libres:+fila.datos[4]||0, capRadas:+fila.datos[6]||0, fondeados:+fila.datos[7]||0, disponibles:+fila.datos[8]||0 };
+  }
+  const tot = ZONAS.reduce((acc, z) => {
+    const t = extraerTotales(z.id); if (!t) return acc;
+    Object.keys(acc).forEach(k => acc[k] += t[k]); return acc;
+  }, { muelles:0, amarrados:0, libres:0, capRadas:0, fondeados:0, disponibles:0 });
+  const pctM = tot.muelles > 0 ? Math.round(tot.amarrados/tot.muelles*100) : 0;
+
+  document.body.insertAdjacentHTML("beforeend", `
+  <div id="modalDash" style="position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:'Inter',sans-serif;padding:12px">
+  <div style="background:#051828;padding:20px;border-radius:10px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;border:1px solid rgba(0,229,255,0.25)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:800;color:#00e5ff;letter-spacing:1px;text-transform:uppercase">📊 Resumen Portuario General</div>
+      <button onclick="document.getElementById('modalDash').remove()" style="background:transparent;border:1px solid rgba(0,229,255,0.2);color:#64748b;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:10px">✕ Cerrar</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      ${[{lbl:"Muelles",val:tot.muelles,col:"#00e5ff"},{lbl:"Amarrados",val:tot.amarrados,col:"#f97316"},{lbl:"Libres",val:tot.libres,col:"#4ade80"},{lbl:"Cap. Radas",val:tot.capRadas,col:"#00e5ff"},{lbl:"Fondeados",val:tot.fondeados,col:"#60a5fa"},{lbl:"Disponibles",val:tot.disponibles,col:"#10b981"}]
+        .map(k=>`<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:10px 8px;text-align:center"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">${k.lbl}</div><div style="font-size:22px;font-weight:800;color:${k.col}">${k.val}</div></div>`).join("")}
+    </div>
+    <div style="background:rgba(255,255,255,0.04);border-radius:6px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-size:9px;color:#64748b;margin-bottom:5px;text-transform:uppercase">Ocupación Muelles</div>
+      <div style="background:rgba(255,255,255,0.07);border-radius:3px;height:6px;overflow:hidden;margin-bottom:3px">
+        <div style="height:100%;background:#f97316;width:${pctM}%;border-radius:3px"></div>
+      </div>
+      <div style="font-size:9px;color:#94a3b8;text-align:right">${pctM}% ocupado</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:10px">
+      <tr>${["ZONA","MLL","AMAR","LIBR","CAP","FOND","DISP"].map(h=>`<th style="background:rgba(0,229,255,0.08);color:#00e5ff;padding:5px 6px;border:1px solid rgba(0,229,255,0.15);text-align:center;font-size:9px">${h}</th>`).join("")}</tr>
+      ${ZONAS.map(z => {
+        const t = extraerTotales(z.id);
+        if (!t) return `<tr><td colspan="7" style="text-align:center;color:#64748b;padding:6px;border:1px solid rgba(255,255,255,0.06)">${z.label} — sin datos</td></tr>`;
+        return `<tr><td style="padding:5px 6px;border:1px solid rgba(255,255,255,0.06);font-weight:700;color:#fff">${z.label}</td>${[t.muelles,t.amarrados,t.libres,t.capRadas,t.fondeados,t.disponibles].map((v,i)=>`<td style="padding:5px 6px;border:1px solid rgba(255,255,255,0.06);text-align:center;font-weight:700;color:${['#00e5ff','#f97316','#4ade80','#00e5ff','#60a5fa','#10b981'][i]}">${v}</td>`).join("")}</tr>`;
+      }).join("")}
+    </table>
+  </div></div>`);
+}
+
+// ================================================================
+// MODAL EXPORTAR
+// ================================================================
+function abrirModalExport()  { document.getElementById("modalExport").classList.add("activo"); }
+function cerrarModalExport() { document.getElementById("modalExport").classList.remove("activo"); }
+document.getElementById("modalExport").addEventListener("click", function(e) { if (e.target===this) cerrarModalExport(); });
+
+// ── Exportar PDF — ahora usa fetch en lugar de google.script.run ──
+async function exportarPDF() {
+  const btn = document.getElementById("btnPDF");
+  btn.textContent = "Generando PDF..."; btn.disabled = true;
+  try {
+    const res = await llamarAPI("generarPDFenDrive");
+    btn.textContent = "📕 Descargar PDF"; btn.disabled = false;
+    cerrarModalExport();
+    window.open(res.url, "_blank");
+  } catch(err) {
+    btn.textContent = "📕 Descargar PDF"; btn.disabled = false;
+    alert("Error al generar el PDF: " + (err.message || err));
+  }
+}
+
+function exportarWord() {
+  if (!datosGlobales) { alert("Sin datos cargados."); return; }
+  const btn = document.getElementById("btnWord");
+  btn.textContent = "Generando..."; btn.disabled = true;
+  const fecha = datosGlobales.fecha ? datosGlobales.fecha.replace(/\//g,"-") : "hoy";
+  let cuerpo = "";
+  datosGlobales.secciones.forEach(sec => {
+    let contenido = "";
+    (sec.filas||[]).forEach(f => {
+      if (!f) return;
+      if      (f.tipo==="subtitulo")     contenido += `<div style="font-weight:700;color:#003366;margin:6px 0 2px;font-size:8pt">${f.texto}</div>`;
+      else if (f.tipo==="partes")        { const t=(f.partes||[]).map(p=>(p.prefijo||"")+(p.negrita?`<b>${p.texto}</b>`:p.texto)).join(" | "); if(t) contenido+=`<div style="font-size:8.5pt;border-bottom:1px dotted #ddd;padding:2px 0">${t}</div>`; }
+      else if (f.tipo==="fila")          { const t=(f.datos||[]).filter(v=>v).join(" | "); if(t) contenido+=`<div style="font-size:8.5pt;border-bottom:1px dotted #ddd;padding:2px 0">${t}</div>`; }
+      else if (f.tipo==="caso_especial") contenido+=`<div style="font-size:8.5pt;border-bottom:1px dotted #ddd;padding:3px 0"><b>${f.buque}</b><br>ASUNTO: ${f.asunto}<br>POSICIÓN: ${f.posicion}<br>NOVEDAD: ${f.novedad}<br>SITUACIÓN: ${f.situacion}</div>`;
+      else if (f.tipo==="texto"&&f.texto) contenido+=`<div style="font-size:8.5pt;border-bottom:1px dotted #ddd;padding:2px 0">${f.texto}</div>`;
+      else if (f.tipo==="novedad")       contenido+=`<div style="font-size:8.5pt;border-bottom:1px dotted #ddd;padding:2px 0"><b>${f.titulo}</b>: ${f.texto}</div>`;
+    });
+    if (!contenido.trim()) contenido = `<div style="font-size:8.5pt;font-style:italic;color:#666">Sin novedades.</div>`;
+    cuerpo += `<div style="margin-bottom:10pt;page-break-inside:avoid">
+      <div style="font-size:9pt;font-weight:700;background:#003366;color:#fff;padding:3pt 7pt;text-transform:uppercase">${sec.titulo}</div>
+      <div style="border:1pt solid #ccc;padding:4pt 6pt">${contenido}</div></div>`;
+  });
+  const docHTML = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"><style>@page{size:210mm 297mm;margin:18mm 15mm}body{font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a}</style></head>
+<body><div style="border-bottom:2.5px solid #003366;padding-bottom:8px;margin-bottom:16px">
+  <div style="font-size:13pt;font-weight:800;color:#003366">PREFECTURA NAVAL ARGENTINA</div>
+  <div style="font-size:8pt;color:#555;text-transform:uppercase">Servicio de Tráfico Marítimo</div>
+  <div style="font-size:12pt;font-weight:800;color:#003366;margin-top:4pt">PARTE DE NOVEDADES — ${fecha.replace(/-/g,'/')}</div>
+</div>${cuerpo}</body></html>`;
+  const blob = new Blob(["\ufeff", docHTML], { type:"application/msword" });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = `Parte_PNA_${fecha}.doc`;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  btn.textContent = "📘 Descargar Word (.doc)"; btn.disabled = false; cerrarModalExport();
+}
+
+// ================================================================
+// INICIO — ahora usa fetch en lugar de google.script.run
+// ================================================================
+window.onload = async function() {
+  try {
+    const data = await llamarAPI("obtenerDatosPNA");
+    if (data && data.error) {
+      document.getElementById("loader").innerHTML = "ERROR AL CARGAR DATOS: " + data.error;
+      return;
+    }
+    renderizar(data);
+  } catch(err) {
+    document.getElementById("loader").innerHTML =
+      "ERROR AL CARGAR DATOS: " + ((err && err.message) ? err.message : String(err));
+  }
+};
+
+function abrirZoom(src) {
+  document.getElementById("imgZoomSrc").src = src;
+  document.getElementById("imgZoomModal").classList.add("activo");
+}
+function cerrarZoom() {
+  document.getElementById("imgZoomModal").classList.remove("activo");
+  document.getElementById("imgZoomSrc").src = "";
+}
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") cerrarZoom();
+});
+
+function abrirAnpyn() {
+  var win = window.open();
+  win.location = "https://www.argentina.gob.ar/economia/agencia-nacional-de-puertos-y-navegacion/planillas-de-determinantes";
+}
+
+// ==================== MEJORAS MÓVIL (Mínimas) ====================
+function adaptarMobile() {
+  // Evitar zoom en inputs en iOS
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (meta) meta.setAttribute("content", "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no");
+
+  // Mejorar scroll táctil
+  const mainBody = document.getElementById("main-body");
+  if (mainBody) mainBody.style.webkitOverflowScrolling = "touch";
+}
+
+// Ejecutar cuando cargue
+window.addEventListener("load", adaptarMobile);
+
+// Mejorar cierre de sidebar al hacer clic fuera
+document.getElementById("sidebar-overlay").addEventListener("click", cerrarSidebar);
+</script>
+</body>
+</html>
