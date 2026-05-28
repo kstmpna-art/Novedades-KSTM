@@ -759,19 +759,17 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   background: #1a2e48;              /* ← oscuro azul marino */
   border-radius: 14px;
   border: 1px solid #2a4a6e;       /* ← borde azul oscuro */
-  padding: 14px 10px;
+  padding: clamp (10px, 1.5vw, 24px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: clamp(4px, 0.8vw, 10px);
   cursor: pointer;
   transition: all .25s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   text-align: center;
-  box-shadow:
-    0 2px 8px rgba(0,0,0,0.25);
-  aspect-ratio: 1 / 1;  
+  box-shadow:  0 2px 8px rgba(0,0,0,0.25);
   justify-content: center;
 }
 
