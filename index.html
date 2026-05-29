@@ -235,11 +235,12 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .role-badge.visual{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(29,111,164,0.2)}
 
 /* ── BODY ─────────────────────────────────────────────────────── */
-#main-body{flex:1;overflow-y:auto;padding:16px;background:linear-gradient(rgba(244,247,251,0.92),rgba(244,247,251,0.92)),url('https://lh3.googleusercontent.com/d/1Pe-QqSMS-6LZoi4xpggN6C7yOYR4i2fq') center/cover fixed no-repeat;}
+#main-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;background:linear-gradient(rgba(244,247,251,0.92),rgba(244,247,251,0.92)),url('https://lh3.googleusercontent.com/d/1Pe-QqSMS-6LZoi4xpggN6C7yOYR4i2fq') center/cover fixed no-repeat;}
 #main-body::-webkit-scrollbar{width:5px}
 #main-body::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:3px}
 
 /* ── HOME / SERVICIOS ─────────────────────────────────────────── */
+#home-view.home-visible{display:flex !important;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
 .home-header{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);
   border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;
@@ -247,8 +248,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   box-shadow:var(--shadow-md);flex-wrap:wrap;
 }
 .home-header-left { flex-shrink: 0; }
-.home-header h2{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px;white-space:nowrap}
-.home-header p{font-size:13px;color:rgba(255,255,255,0.5);white-space:nowrap}
+.home-header h2{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
+.home-header p{font-size:13px;color:rgba(255,255,255,0.5)}
 .home-header-kpi{display:flex;gap:0;flex-wrap:wrap;justify-content:flex-end}
 .home-kpi{text-align:center;padding:4px 14px;border-right:1px solid rgba(255,255,255,0.12);flex-shrink:0}
 .home-kpi:last-child{border-right:none}
@@ -658,18 +659,35 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   .kpi-grid      { grid-template-columns: repeat(2, 1fr); }
   .charts-grid   { grid-template-columns: 1fr; }
   .home-header   { flex-direction: column; gap: 12px; align-items: flex-start; }
-  .home-header-kpi { gap: 0; }
+  .home-header-kpi {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding-bottom: 4px;
+    gap: 0;
+  }
+  .home-header-kpi::-webkit-scrollbar { height: 2px; }
+  .home-header-kpi::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+  .home-kpi {
+    flex-shrink: 0;
+    padding: 4px 10px;
+  }
+  .home-kpi .kpi-val { font-size: 18px; }
+  .home-kpi .kpi-lbl { font-size: 8px; white-space: nowrap; }
   .tb-section-sub  { display: none; }
   .tb-section-title { font-size: 13px; }
-  .home-dash-grid { grid-template-columns: repeat(2,1fr) !important; }
-  .home-dash-grid > div { grid-column: span 1 !important; }
+  .home-dash-grid { flex-direction: column; }
+  .home-dash-grid > div { min-width: 0 !important; }
+  .home-dash-grid > div:first-child { grid-template-columns: repeat(2,1fr) !important; }
 }
 @media (max-width: 480px) {
-  .home-dash-grid { grid-template-columns: 1fr !important; }
+  .home-dash-grid > div:first-child { grid-template-columns: 1fr !important; }
+  .home-dash-grid > div { min-width: 0; overflow: hidden; }
   .tb-section-title { font-size: 11px; }
-  .kpi-strip-item { padding: 4px 10px !important; min-width: 60px !important; }
-  .kpi-strip-val { font-size: 20px !important; }
-  .kpi-strip-lbl { font-size: 8px !important; }
+  .home-kpi .kpi-val { font-size: 16px; }
+  .home-kpi .kpi-lbl { white-space: nowrap; }
 }
 
 @media (max-width: 480px) {
@@ -1262,17 +1280,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       <input type="text" id="buscador" placeholder="🔍 Buscar en el parte..." onkeyup="filtrarPartes()">
     </div>
     <nav id="sb-nav">
-  <div class="sb-group-wrap">
-    <button class="sb-group-btn" onclick="toggleGrupo('g-inicio')">
-      <span>🏠 Inicio</span><span class="sb-arrow" id="arrow-g-inicio">▾</span>
+    <button class="sb-item" id="navbtn-HOME" onclick="mostrarHome()" style="font-weight:700;margin:4px 10px;border-radius:var(--radius);background:rgba(29,111,164,0.08);">
+      <span class="si-icon">🏠</span>
+      <span class="si-label">Inicio — Panel principal</span>
     </button>
-    <div class="sb-group-items open" id="g-inicio">
-      <button class="sb-item" id="navbtn-HOME" onclick="mostrarHome()">
-        <span class="si-icon">🏠</span>
-        <span class="si-label">Panel principal</span>
-      </button>
-    </div>
-  </div>
 
   <div class="sb-group-wrap">
     <button class="sb-group-btn" onclick="toggleGrupo('g-operaciones')">
@@ -1425,6 +1436,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <span class="role-badge" id="role-badge-display">...</span>
         <button class="tb-btn outline" onclick="actualizarSistema()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
         <span id="auto-refresh-indicator" style="font-size:11px;color:var(--navy);font-weight:700;font-family:'Outfit',sans-serif;letter-spacing:.3px;white-space:nowrap;background:var(--gray-100);border:1px solid var(--gray-200);padding:3px 8px;border-radius:6px"></span>
+        <button id="btn-auto-rotate" class="tb-btn outline" onclick="toggleAutoRotacion()" style="border-color:var(--gray-400);color:var(--text-lt);">▶ Auto</button>
         <button class="tb-btn outline" onclick="abrirModalExport()" style="background-color:lightcoral;">📄 Exportar</button>
         <button class="tb-btn outline" onclick="volverSelector()" style="background-color: lightblue;">🏠 Servicios</button>
         <button class="tb-logout" onclick="cerrarSesion()" title="Cerrar sesión">⬅ Salir</button>
@@ -1485,7 +1497,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbw9MW7Mvc2QW4iQ72fxbLbhNGKWyGzbPqUcHwFoB8Gn2qYT6djxF2qGM8W4Ci8xlc0h5A/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxxK_vR34h0T74B8GBpGqIrCcKtgvt4xRuAixnimNvyJhe-JyNt6qCofkAbExXiT6n9pg/exec";
 const USERS = {
   "admin": { pass: "admin", role: "admin",  name: "Operador KSTM",  initials: "OK" },
   "visual": { pass: "visual1",  role: "visual", name: "Usuario Visual", initials: "UV" },
@@ -1646,6 +1658,38 @@ const puertosNombres = {
   BCAM:"Bahía Camarones",RGAL:"Río Gallegos",LARG:"Lago Argentino",
   USHU:"Ushuaia",OLVA:"Caleta Olivia",RGRA:"Río Grande"
 };
+function initPuertosMap(containerId, closedCodes) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = "";
+  const map = L.map(el, { zoomControl:false, attributionControl:false }).setView([-40,-63], 4);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 }).addTo(map);
+  L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
+  const closedSet = new Set(closedCodes);
+  const bounds = [];
+  Object.keys(puertosCoords).forEach(code => {
+    const coords = puertosCoords[code];
+    if (!coords) return;
+    const name = puertosNombres[code] || code;
+    bounds.push(coords);
+    const isClosed = closedSet.has(code);
+    const color = isClosed ? "#dc2626" : "#22c55e";
+    const html = `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`;
+    const icon = L.divIcon({html, iconSize:[12,12], iconAnchor:[6,6], className:""});
+    const label = isClosed ? `🚫 ${name}<br><span style="color:#dc2626;font-weight:700">Puerto cerrado</span>` : `✅ ${name}<br><span style="color:#22c55e;font-weight:700">Puerto operativo</span>`;
+    L.marker(coords, {icon}).addTo(map).bindPopup(`<b>${label}</b>`);
+  });
+  if (bounds.length > 1) map.fitBounds(bounds, {padding:[20,20]});
+  setTimeout(() => map.invalidateSize(), 200);
+  const legend = L.control({position:"bottomright"});
+  legend.onAdd = function() {
+    const div = L.DomUtil.create("div","");
+    div.style.cssText = "background:#fff;padding:6px 10px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,0.15);font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;line-height:1.6;";
+    div.innerHTML = '<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1px solid #ccc;"></span> Operativo</div><div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;border:1px solid #ccc;"></span> Cerrado</div>';
+    return div;
+  };
+  legend.addTo(map);
+}
 function calcularDias(zarpada,regreso) {
   const ini=parseDate(zarpada),fin=parseDate(regreso);
   if (!ini||!fin) return {navegando:"?",restantes:"?"};
@@ -1794,139 +1838,184 @@ function renderHomeCards(data, sarN, masN) {
 
   const bloque = document.createElement("div");
   bloque.id = "home-graficos-bloque";
+  bloque.style.height = "100%";
   bloque.innerHTML = `
 
-    <!-- Grid de dashboards individuales — todos igual tamaño -->
-    <div class="home-dash-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+    <!-- Grid de dashboards: izquierda 6 cards (2 cols), derecha Puertos estirado -->
+    <div class="home-dash-grid" style="display:flex;gap:12px;flex-wrap:wrap;height:100%;">
 
-      <!-- SAR / MAS — 3 barras compactas -->
-      ${(()=>{const sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos,_c=sc+mc,_p=sp+mp,_t=_c+_p,_mx=Math.max(_c,_p,1);return `
-      <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);background:linear-gradient(135deg,#fff 0%,rgba(239,68,67,0.02) 100%);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <span style="font-size:11px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
-          <span style="font-size:20px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${_t}</span>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;font-size:9px;font-weight:700;">
-          <span style="display:flex;align-items:center;gap:2px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;"></span> SAR C</span>
-          <span style="display:flex;align-items:center;gap:2px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#7c3aed;"></span> MAS C</span>
-          <span style="display:flex;align-items:center;gap:2px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;"></span> SAR P</span>
-          <span style="display:flex;align-items:center;gap:2px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span> MAS P</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <div><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:var(--text-md);margin-bottom:2px;"><span>🔴 Cerrados</span><span>${_c}</span></div>
-          <div style="position:relative;height:28px;border-radius:14px;background:#f1f5f9;overflow:hidden;display:flex;">
-            ${sc?`<div class="bf" data-w="${(sc/_mx*100)}" style="height:100%;width:0%;min-width:16px;background:#dc2626;display:flex;align-items:center;justify-content:center;" title="SAR cerrados: ${sc}"><span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#dc2626;font-size:9px;font-weight:800;font-family:'Outfit',sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.2);">${sc}</span></div>`:""}
-            ${sc&&mc?`<div style="width:2px;height:100%;background:#fff;flex-shrink:0;"></div>`:""}
-            ${mc?`<div class="bf" data-w="${(mc/_mx*100)}" style="height:100%;width:0%;min-width:16px;background:#7c3aed;display:flex;align-items:center;justify-content:center;" title="MAS cerrados: ${mc}"><span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#7c3aed;font-size:9px;font-weight:800;font-family:'Outfit',sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.2);">${mc}</span></div>`:""}
-          </div></div>
-          <div><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:var(--text-md);margin-bottom:2px;"><span>🟢 Pendientes</span><span>${_p}</span></div>
-          <div style="position:relative;height:28px;border-radius:14px;background:#f1f5f9;overflow:hidden;display:flex;">
-            ${sp?`<div class="bf" data-w="${(sp/_mx*100)}" style="height:100%;width:0%;min-width:16px;background:#22c55e;display:flex;align-items:center;justify-content:center;" title="SAR pendientes: ${sp}"><span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#22c55e;font-size:9px;font-weight:800;font-family:'Outfit',sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.2);">${sp}</span></div>`:""}
-            ${sp&&mp?`<div style="width:2px;height:100%;background:#fff;flex-shrink:0;"></div>`:""}
-            ${mp?`<div class="bf" data-w="${(mp/_mx*100)}" style="height:100%;width:0%;min-width:16px;background:#f59e0b;display:flex;align-items:center;justify-content:center;" title="MAS pendientes: ${mp}"><span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#f59e0b;font-size:9px;font-weight:800;font-family:'Outfit',sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.2);">${mp}</span></div>`:""}
-          </div></div>
-        </div>
-      </div>`})()}
+      <div style="flex:2;min-width:280px;display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:1fr 1fr 1fr;gap:12px;height:100%;">
 
-      <!-- GC / ARA -->
-      <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
-        <div style="height:4px;background:linear-gradient(90deg,#1a9560,#34d399);"></div>
-        <div style="padding:12px 14px 8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">&#x1f6a2; GC / ARA</span>
-            <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#1a9560;line-height:1;">${totalGC+ara}</span>
+        <!-- SAR / MAS — dividido en 2 columnas: SAR | MAS -->
+        ${(()=>{const sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos,_t=sc+sp+mc+mp,_mx=Math.max(sc,sp,mc,mp,1);return `
+        <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:8px;box-shadow:0 2px 12px rgba(0,0,0,0.06);background:linear-gradient(135deg,#fff 0%,rgba(239,68,67,0.02) 100%);overflow:hidden;display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
+            <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${_t}</span>
           </div>
-          <div style="font-size:9px;color:var(--text-md);font-weight:600;">Total embarcaciones</div>
+          <div style="display:flex;gap:10px;flex:1;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid rgba(220,38,38,0.15);padding-bottom:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#dc2626;"></span> SAR</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🔴 Cerrados</span><span>${sc}</span></div>
+              <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;margin-bottom:3px;"><div class="bf" data-w="${(sc/_mx*100)}" style="height:100%;width:0%;background:#dc2626;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🟢 Pendientes</span><span>${sp}</span></div>
+              <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;"><div class="bf" data-w="${(sp/_mx*100)}" style="height:100%;width:0%;background:#22c55e;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
+            </div>
+            <div style="width:1px;background:var(--gray-200);flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid rgba(124,58,237,0.15);padding-bottom:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#7c3aed;"></span> MAS</div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🔴 Cerrados</span><span>${mc}</span></div>
+              <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;margin-bottom:3px;"><div class="bf" data-w="${(mc/_mx*100)}" style="height:100%;width:0%;background:#7c3aed;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🟢 Pendientes</span><span>${mp}</span></div>
+              <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;"><div class="bf" data-w="${(mp/_mx*100)}" style="height:100%;width:0%;background:#f59e0b;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
+            </div>
+          </div>
+        </div>`})()}
+        <!-- GC / ARA -->
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+          <div style="height:4px;background:linear-gradient(90deg,#1a9560,#34d399);"></div>
+          <div style="padding:8px 14px 6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">&#x1f6a2; GC / ARA</span>
+              <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#1a9560;line-height:1;">${totalGC+ara}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-md);font-weight:600;">Total embarcaciones</div>
+          </div>
+           <div style="display:flex;gap:6px;padding:0 14px 4px;">
+            <div style="width:100%;height:55px;flex-shrink:0;"><canvas id="hc-dash-gcara"></canvas></div>
+          </div>
+          <div style="display:flex;gap:8px;padding:0 14px 6px;font-size:10px;flex:1;overflow:hidden;">
+            <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+              <div style="font-weight:700;color:#1a9560;margin-bottom:2px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">&#x1f6a2; GC</div>
+              <div style="flex:1;overflow-y:auto;min-height:0;">${(function(){var r="";for(var i=0;i<gcActList.length;i++){r+='<div style="padding:1px 0">'+esc(gcActList[i])+'</div>';}return r||'<div style="color:var(--text-lt);font-style:italic">—</div>';})()}</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+              <div style="font-weight:700;color:#1d6fa4;margin-bottom:2px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">&#x2693; ARA</div>
+              <div style="flex:1;overflow-y:auto;min-height:0;">${(function(){var r="";for(var i=0;i<araList.length;i++){r+='<div style="padding:1px 0">'+esc(araList[i])+'</div>';}return r||'<div style="color:var(--text-lt);font-style:italic">\u2014</div>';})()}</div>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;gap:10px;padding:0 14px 6px;flex-wrap:wrap;">
-          <div style="width:100px;height:100px;flex-shrink:0;"><canvas id="hc-dash-gcara"></canvas></div>
-          <div style="flex:1;display:flex;flex-direction:column;gap:3px;font-size:10px;min-width:80px;">
-            <div style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1a9560;"></span><span><b style="font-size:13px;font-family:'Outfit',sans-serif;">${gcAct}</b> navegando</span></div>
-            <div style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span><span><b style="font-size:13px;font-family:'Outfit',sans-serif;">${gcPrev}</b> previstas</span></div>
-            <div style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1d6fa4;"></span><span><b style="font-size:13px;font-family:'Outfit',sans-serif;">${ara}</b> ARA</span></div>
+
+        <!-- Dragas → Cascada -->
+        ${(()=>{
+          const df = (dSec?.filas||[]).filter(f=>f&&f.tipo==="fila");
+          const maxW = Math.max(df.length,1);
+          return `
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+          <div style="height:4px;background:linear-gradient(90deg,#a86210,#f59e0b);"></div>
+          <div style="padding:8px 14px 4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">🚢 Dragas</span>
+              <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#a86210;line-height:1;">${df.length}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-md);font-weight:600;">Embarcaciones operando</div>
           </div>
-        </div>
-        <div style="display:flex;gap:8px;padding:0 14px 10px;font-size:10px;">
-          <div style="flex:1">
-            <div style="font-weight:700;color:#1a9560;margin-bottom:2px;font-size:8px;text-transform:uppercase;letter-spacing:.4px;">&#x1f6a2; GC</div>
-            ${(function(){var r="";for(var i=0;i<gcActList.length;i++){r+='<div style="padding:1px 0">'+esc(gcActList[i])+'</div>';}return r||'<div style="color:var(--text-lt);font-style:italic">—</div>';})()}
+          <div style="padding:0 14px 6px;display:flex;flex-direction:column;gap:5px;flex:1;overflow-y:auto;min-height:0;">
+              ${df.map((f,i)=>`
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+                <span style="flex:0 0 auto;font-weight:700;color:#a86210;width:22px;">${i+1}</span>
+                <span style="flex:0 0 auto;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.datos[0]||"")}</span>
+                ${f.datos[1]?`<span style="flex:0 0 auto;font-size:10px;color:var(--text-lt);">${esc(f.datos[1])}</span>`:''}
+                <div style="flex:1;height:14px;border-radius:7px;background:#f1f5f9;overflow:hidden;">
+                  <div style="height:100%;width:${((maxW-i)/maxW*100)}%;background:linear-gradient(90deg,#a86210,#f59e0b);border-radius:7px;opacity:${0.9-i*0.12};"></div>
+                </div>
+              </div>
+            `).join("")||'<div style="font-size:11px;color:var(--text-lt);font-style:italic;">Sin dragas registradas.</div>'}
           </div>
-          <div style="flex:1">
-            <div style="font-weight:700;color:#1d6fa4;margin-bottom:2px;font-size:8px;text-transform:uppercase;letter-spacing:.4px;">&#x2693; ARA</div>
-            ${(function(){var r="";for(var i=0;i<araList.length;i++){r+='<div style="padding:1px 0">'+esc(araList[i])+'</div>';}return r||'<div style="color:var(--text-lt);font-style:italic">\u2014</div>';})()}
+        </div>`})()}
+
+        <!-- Regatas → Anillo circular -->
+        ${(()=>{const _t=eventos;const _st=f=>{const v=(f.situacion||"").toLowerCase();return v.includes("continua")||v.includes("mañana");};const _p=rFilas.filter(_st).length;return `
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+          <div style="height:4px;background:linear-gradient(90deg,#5b3fa0,#a78bfa);"></div>
+          <div style="padding:8px 14px 4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">⛵ Regatas</span>
+              <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#5b3fa0;line-height:1;">${_t}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-md);font-weight:600;">Total regatas</div>
           </div>
-        </div>
+          ${(()=>{const _pct=_t>0?(_p/_t*100):0;return `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;justify-content:center;padding:0 14px 6px;">
+            <div style="position:relative;width:100px;height:100px;flex-shrink:0;">
+              <svg viewBox="0 0 120 120" style="transform:rotate(-90deg);width:100px;height:100px;">
+                <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(91,63,160,0.1)" stroke-width="10"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#5b3fa0" stroke-width="10" stroke-dasharray="${2*Math.PI*48}" stroke-dashoffset="${2*Math.PI*48*(1-_pct/100)}" stroke-linecap="round" style="transition:stroke-dashoffset .8s cubic-bezier(.22,1,.36,1);"/>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:26px;font-weight:800;color:#5b3fa0;font-family:'Outfit',sans-serif;line-height:1.1;">${_p}</span>
+                <span style="font-size:9px;color:var(--text-lt);font-weight:600;">de ${_t}</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;font-size:10px;flex-shrink:0;">
+              <span style="color:#5b3fa0;font-weight:600;">Previstas para mañana: ${_p}</span>
+              <span style="color:var(--text-lt);font-weight:600;">${_pct.toFixed(0)}% del total</span>
+            </div>
+          </div>`})()}
+        </div>`})()}
+
+        <!-- Pilotaje → Torta -->
+        ${(()=>{const kf = (kSec?.filas||[]).filter(f=>f&&f.tipo==="texto"&&f.texto);const kLbs = kf.map(f=>f.texto.split("|")[0].trim()).filter(Boolean);const colores = ["#0e7490","#22d3ee","#f59e0b","#3b82f6","#8b5cf6","#1a9560","#dc2626","#ec4899"];return `
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+          <div style="height:4px;background:linear-gradient(90deg,#0e7490,#22d3ee);"></div>
+          <div style="padding:8px 14px 4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">⚓ Pilotaje / Conserva</span>
+              <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#0e7490;line-height:1;">${kLbs.length}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text-md);font-weight:600;">Registros</div>
+          </div>
+          ${kLbs.length>0?`
+          <div style="display:flex;gap:8px;padding:4px 14px 6px;flex:1;align-items:flex-start;justify-content:center;">
+            <div style="width:100px;height:100px;flex-shrink:0;"><canvas id="hc-dash-kstm"></canvas></div>
+            <div style="flex:0 1 auto;display:flex;flex-direction:column;gap:2px;font-size:9px;justify-content:center;">
+              ${kLbs.slice(0,6).map((lb,i)=>`<div style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${colores[i%colores.length]};"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(lb)}</span></div>`).join("")}
+              ${kLbs.length>6?`<div style="font-size:8px;color:var(--text-lt);text-align:right;">+${kLbs.length-6} más</div>`:''}
+            </div>
+          </div>`:`
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 14px;gap:8px;">
+            <div style="font-size:48px;line-height:1;">🚢</div>
+            <div style="font-size:12px;color:var(--text-lt);font-style:italic;">Sin registros</div>
+          </div>`}
+        </div>`})()}
+
+        <!-- Ejercicios → Viñetas -->
+        ${(()=>{const af = (eSec?.filas||[]).filter(f=>f&&f.tipo==="arma");return `
+        <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+          <div style="height:4px;background:linear-gradient(90deg,#b5291f,#f87171);"></div>
+          <div style="padding:8px 14px 4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">⚔️ Ejerc. Armas</span>
+              <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#b5291f;line-height:1;">${af.length}</span>
+            </div>
+            <div style="font-size:9px;color:var(--text-md);font-weight:600;">Ejercicios registrados</div>
+          </div>
+          <div style="padding:0 14px 6px;display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;min-height:0;">
+            ${af.map(f=>{
+              const n = esc(f.datos[0]||"");
+              const s = esc(f.datos[1]||"");
+              const e = esc(f.datos[2]||"");
+              return `<div style="display:flex;align-items:flex-start;gap:6px;font-size:11px;padding:3px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="color:#b5291f;flex-shrink:0;">▸</span>
+                <div><span style="font-weight:700;color:var(--navy);">${n}</span>${s?`<br><span style="font-size:10px;color:var(--text-lt);">${s}${e?` — ${e}`:''}</span>`:''}</div>
+              </div>`;
+            }).join("")||`<div style="font-size:12px;color:var(--text-lt);font-style:italic;text-align:center;padding:20px 0;">Sin ejercicios registrados.</div>`}
+          </div>
+        </div>`})()}
+
       </div>
 
-      <!-- Puertos → Mapa interactivo -->
-      <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
+      <!-- Puertos → Mapa interactivo (derecha, estirado) -->
+      <div style="flex:1;min-width:240px;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
         <div style="height:4px;background:${puertos>0?'linear-gradient(90deg,#dc2626,#f87171)':'linear-gradient(90deg,#1a9560,#34d399)'};"></div>
         <div style="padding:12px 14px 6px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
             <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">${puertos>0?'🚫':'✅'} Puertos</span>
             <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:${puertos>0?'#dc2626':'#1a9560'};line-height:1;">${puertos}</span>
           </div>
-          <div style="font-size:9px;color:${puertos>0?'#dc2626':'var(--text-md)'};font-weight:600;">Cerrados / Disponibles</div>
+          <div style="font-size:9px;color:${puertos>0?'#dc2626':'var(--text-md)'};font-weight:600;">Cerrados</div>
         </div>
-        <div id="hc-dash-puertos" style="height:150px;margin:0;cursor:grab"></div>
-      </div>
-
-      <!-- Dragas → Medidor (semi-donut) -->
-      <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
-        <div style="height:4px;background:linear-gradient(90deg,#a86210,#f59e0b);"></div>
-        <div style="padding:12px 14px 6px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">🚢 Dragas</span>
-            <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#a86210;line-height:1;">${dragas}</span>
-          </div>
-          <div style="font-size:9px;color:var(--text-md);font-weight:600;">Embarcaciones operando</div>
-        </div>
-        <div style="height:68px;margin:0 14px 10px;"><canvas id="hc-dash-dragas"></canvas></div>
-      </div>
-
-      <!-- Regatas → Línea -->
-      <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
-        <div style="height:4px;background:linear-gradient(90deg,#5b3fa0,#a78bfa);"></div>
-        <div style="padding:12px 14px 6px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">⛵ Regatas</span>
-            <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#5b3fa0;line-height:1;">${eventos}</span>
-          </div>
-          <div style="font-size:9px;color:var(--text-md);font-weight:600;">Eventos por período</div>
-        </div>
-        <div style="height:68px;margin:0 14px 10px;"><canvas id="hc-dash-regatas"></canvas></div>
-      </div>
-
-      <!-- Ejercicios → Barra -->
-      <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
-        <div style="height:4px;background:linear-gradient(90deg,#b5291f,#f87171);"></div>
-        <div style="padding:12px 14px 6px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">⚔️ Ejerc. Armas</span>
-            <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#b5291f;line-height:1;">${ejerc}</span>
-          </div>
-          <div style="font-size:9px;color:var(--text-md);font-weight:600;">Ejercicios por tipo</div>
-        </div>
-        <div style="height:68px;margin:0 14px 10px;"><canvas id="hc-dash-ejerc"></canvas></div>
-      </div>
-
-      <!-- Pilotaje → Tabla -->
-      <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
-        <div style="height:4px;background:linear-gradient(90deg,#0e7490,#22d3ee);"></div>
-        <div style="padding:12px 14px 4px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">⚓ Pilotaje</span>
-            <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#0e7490;line-height:1;">${kstm}</span>
-          </div>
-          <div style="font-size:9px;color:var(--text-md);font-weight:600;">Últimos registros</div>
-        </div>
-        <div style="padding:0 10px 10px;font-size:10px;">
-          ${kTabla.length>0?`
-          <table style="width:100%;border-collapse:collapse;">
-            ${kTabla.map(fila=>`<tr>${fila.map((cel,j)=>`<td style="padding:1px 4px;border-bottom:1px solid #f1f5f9;${j===0?'font-weight:700;color:var(--navy);white-space:nowrap':'color:var(--text-md)'}">${esc(cel)}</td>`).join("")}</tr>`).join("")}
-          </table>`:`<div style="color:var(--text-lt);font-style:italic;text-align:center;padding:10px 0;">Sin registros</div>`}
-          ${kTabla.length>=4?`<div style="text-align:right;font-size:8px;color:var(--text-lt);margin-top:2px;">${kTabla.length}/${kstm}</div>`:''}
-        </div>
+        <div id="hc-dash-puertos" style="flex:1;min-height:200px;cursor:grab"></div>
       </div>
 
     </div>
@@ -1944,18 +2033,49 @@ function renderHomeCards(data, sarN, masN) {
     });
     try {
 
-      // GC/ARA → Donut con sombra y anillo más angosto
+      // GC/ARA → Barras verticales
       const c2 = document.getElementById("hc-dash-gcara");
       if (c2 && totalGC+ara>0) new Chart(c2, {
-        type: "doughnut",
+        type: "bar",
         data: {
-          labels: ["GC navegando","GC previstas","ARA"],
-          datasets: [{ data: [gcAct, gcPrev, ara], backgroundColor:["#1a9560","#f59e0b","#1d6fa4"], borderWidth:2, borderColor:"#fff" }]
+          labels: ["GC\nnavegando","GC\nprevistas","ARA"],
+          datasets: [{ data: [gcAct, gcPrev, ara], backgroundColor:["#1a9560","#f59e0b","#1d6fa4"], borderWidth:0, borderRadius:4, barPercentage:.7 }]
         },
         options: {
-          responsive:true, maintainAspectRatio:false, cutout:"75%",
-          plugins: { legend:{ display:false }, tooltip:{ enabled:false } }
-        }
+          responsive:true, maintainAspectRatio:false,
+          plugins: { legend:{ display:false }, tooltip:{ enabled:false } },
+          scales: {
+            x: { grid:{ display:false }, ticks:{ font:{ size:9, weight:"bold" }, color:"#6b7280" } },
+            y: { beginAtZero:true, grid:{ display:false }, ticks:{ display:false } }
+          }
+        },
+        plugins: [{
+          id:"barLabels",
+          afterDatasetsDraw(chart){
+            const ctx=chart.ctx;
+            const meta=chart.getDatasetMeta(0);
+            const colors=["#1a9560","#f59e0b","#1d6fa4"];
+            const area=chart.chartArea;
+            meta.data.forEach((bar,i)=>{
+              const val=chart.data.datasets[0].data[i];
+              if(val==null||val===0) return;
+              const x=bar.x;
+              const cy=Math.max(bar.y+4,area.top+6);
+              const r=10;
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(x,cy,r,0,2*Math.PI);
+              ctx.fillStyle=colors[i];
+              ctx.fill();
+              ctx.fillStyle="#fff";
+              ctx.font="bold 10px Outfit,sans-serif";
+              ctx.textAlign="center";
+              ctx.textBaseline="middle";
+              ctx.fillText(val,x,cy);
+              ctx.restore();
+            });
+          }
+        }]
       });
 
       // Puertos → Mapa interactivo
@@ -1964,96 +2084,30 @@ function renderHomeCards(data, sarN, masN) {
         const pSec = data.secciones.find(s => s.id === "PUERTOS");
         let closedList = [];
         if (pSec) closedList = (pSec.filas||[]).filter(f=>f&&f.tipo==="puerto").map(f=>f.datos[0]||"").filter(Boolean);
-        const map = L.map(c3, { zoomControl:false, attributionControl:false }).setView([-40,-63], 4);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 }).addTo(map);
-        L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
-        if (closedList.length) {
-          const bounds = [];
-          closedList.forEach(code => {
-            const coords = puertosCoords[code];
-            if (!coords) return;
-            const name = puertosNombres[code] || code;
-            bounds.push(coords);
-            const icon = L.divIcon({html:`<div style="width:14px;height:14px;border-radius:50%;background:#dc2626;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:""});
-            L.marker(coords, {icon}).addTo(map).bindPopup(`<b>🚫 ${name}</b><br>Puerto cerrado`);
-          });
-          if (bounds.length>1) map.fitBounds(bounds, {padding:[30,30]});
-        }
-        setTimeout(() => map.invalidateSize(), 200);
+        initPuertosMap("hc-dash-puertos", closedList);
       }
 
-      // Dragas → Medidor (semi-donut)
-      const dMax = Math.max(dragas, 5);
-      const c4 = document.getElementById("hc-dash-dragas");
-      if (c4) new Chart(c4, {
-        type: "doughnut",
-        data: {
-          datasets: [{
-            data: [Math.min(dragas,dMax), Math.max(dMax-dragas,0)],
-            backgroundColor:[dragas>3?"#a86210":dragas>0?"#f59e0b":"#e2e8f0","rgba(226,232,240,0.4)"],
-            borderWidth:0
-          }]
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          cutout:"65%", circumference:180, rotation:-90,
-          plugins: { legend:{ display:false }, tooltip:{ enabled:false } }
-        }
-      });
+      // Dragas → cascada (inline HTML, sin chart)
 
-      // Regatas → Línea
-      const c5 = document.getElementById("hc-dash-regatas");
-      const rPts = rFilas.length;
-      if (c5) new Chart(c5, {
-        type: "line",
-        data: {
-          labels: ["Ene","Feb","Mar","Abr"],
-          datasets: [{
-            label:"Eventos",
-            data: [Math.max(1,rPts), Math.max(0,rPts-1), Math.max(0,rPts-2), Math.max(0,rPts-1)],
-            borderColor:"#5b3fa0",
-            backgroundColor:"rgba(91,63,160,0.1)",
-            fill:true,
-            tension:0.4,
-            pointBackgroundColor:"#5b3fa0",
-            pointBorderColor:"#fff",
-            pointBorderWidth:2,
-            pointRadius:4
-          }]
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          plugins: { legend:{ display:false }, tooltip:{ enabled:false } },
-          scales: {
-            x: { grid:{ display:false }, ticks:{ font:{family:"DM Sans",size:9}, color:"#94a3b8" } },
-            y: { display:false, min:0, max:Math.max(rPts,3)*1.4 }
+      // Regatas → anillo circular (inline SVG, sin chart)
+      const c7 = document.getElementById("hc-dash-kstm");
+      if (c7) {
+        const kf = (kSec?.filas||[]).filter(f=>f&&f.tipo==="texto"&&f.texto);
+        const kLbs = kf.map(f=>f.texto.split("|")[0].trim()).filter(Boolean);
+        const colores = ["#0e7490","#22d3ee","#f59e0b","#3b82f6","#8b5cf6","#1a9560","#dc2626","#ec4899"];
+        if (kLbs.length) new Chart(c7, {
+          type:"doughnut",
+          data:{
+            labels:kLbs,
+            datasets:[{ data:kLbs.map(()=>1), backgroundColor:colores.slice(0,kLbs.length), borderWidth:1, borderColor:"#fff" }]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            cutout:"50%",
+            plugins:{ legend:{ display:false }, tooltip:{ enabled:false } }
           }
-        }
-      });
-
-      // Ejercicios → Barra
-      const c6 = document.getElementById("hc-dash-ejerc");
-      if (c6) new Chart(c6, {
-        type: "bar",
-        data: {
-          labels: ["Planif.","Ejecución","Finaliz.","Pend."],
-          datasets: [{
-            label:"Ejercicios",
-            data: [Math.max(1,ejerc), Math.max(0,ejerc-1), Math.max(0,ejerc-2), Math.max(0,ejerc-1)],
-            backgroundColor:["#3b82f6","#f59e0b","#1a9560","#6b7280"],
-            borderRadius:4,
-            borderSkipped:false
-          }]
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          plugins: { legend:{ display:false }, tooltip:{ enabled:false } },
-          scales: {
-            x: { grid:{ display:false }, ticks:{ font:{family:"DM Sans",size:9}, color:"#94a3b8" } },
-            y: { display:false, min:0, max:Math.max(ejerc,3)*1.3 }
-          }
-        }
-      });
+        });
+      }
 
     } catch(e) { console.error("Error gráficos home:", e); }
   }, 300);
@@ -2083,7 +2137,8 @@ function mostrarHome() {
   if (window.innerWidth >= 769) cerrarDropdowns();
   if (window.innerWidth <= 768) cerrarSidebar();
   const hv = document.getElementById("home-view");
-  hv.style.display = "block";
+  hv.style.display = "";
+  hv.classList.add("home-visible");
   document.getElementById("section-view").style.display   = "none";
   document.getElementById("dashboard-view").style.display = "none";
   document.getElementById("topbar-title").textContent = "Panel General — Novedades Diarias";
@@ -2093,10 +2148,15 @@ function mostrarHome() {
 
   // Conteos
   function cnt(id, tipo) { const s = datosGlobales.secciones.find(x => x.id === id); return s ? (s.filas||[]).filter(f => f && (!tipo || f.tipo === tipo)).length : 0; }
-  function cntCasos(id) { const s = datosGlobales.secciones.find(x => x.id === id); const f = (s?.filas||[]).filter(x => x?.tipo === "caso_especial"); return f.length; }
-  const sar = cntCasos("SAR"), mas = cntCasos("MAS"), gc = cnt("GC","fila");
+  function cntCasosPendientes(id) { const s = datosGlobales.secciones.find(x => x.id === id); const f = (s?.filas||[]).filter(x => x?.tipo === "caso_especial" && !((x.estado||"")+" "+(x.situacion||"")).toUpperCase().includes("CERRADO")); return f.length; }
+  const sar = cntCasosPendientes("SAR"), mas = cntCasosPendientes("MAS"), gc = cnt("GC","fila");
   const ara = cnt("ARA","fila"), puertos = cnt("PUERTOS","puerto"), dragas = cnt("DRAGAS");
   const eventos = cnt("REGATAS") - (datosGlobales.secciones.find(s=>s.id==="REGATAS")?.filas||[]).filter(f=>f&&["subtitulo","separador","html"].includes(f.tipo)).length;
+  const regatasPrev = (datosGlobales.secciones.find(s=>s.id==="REGATAS")?.filas||[]).filter(f=>{
+    if(!f||["subtitulo","separador","html"].includes(f.tipo))return false;
+    const v=(f.situacion||"").toLowerCase();
+    return v.includes("continua")||v.includes("mañana");
+  }).length;
   const ejerc = cnt("EJER.ARMAS","arma"), kstm = cnt("KSTM"), visitas = cnt("VISITAS","fila"), reserva = cnt("RESERVA");
 
   // Obtener GC activos/previstas
@@ -2113,7 +2173,7 @@ function mostrarHome() {
     { v:gprev,l:"GC previstas",sec:"GC", c:"#fff" },
     { v:puertos,l:"Puertos Cerrados",sec:"PUERTOS", c:"#fff" },
     { v:dragas,l:"Dragas",   sec:"DRAGAS", c:"#fff" },
-    { v:eventos,l:"Regatas", sec:"REGATAS", c:"#fff" },
+    { v:regatasPrev,l:"Regatas", sec:"REGATAS", c:"#fff" },
     { v:ejerc,l:"Ejercicios Armas",sec:"EJER.ARMAS", c:"#fff" },
     { v:kstm,l:"Pilotaje",   sec:"KSTM", c:"#fff" },
     { v:visitas,l:"Visitas", sec:"VISITAS", c:"#fff" },
@@ -2134,7 +2194,7 @@ function mostrarHome() {
           </div>`).join("")}
       </div>
     </div>
-    <div id="home-dash-wrap"></div>
+    <div id="home-dash-wrap" style="flex:1;overflow:hidden;"></div>
   `;
 
   renderHomeCards(datosGlobales, sar, mas);
@@ -2147,6 +2207,7 @@ function mostrarSeccion(id) {
   seccionDashActiva = id;
 
   // Mostrar/ocultar vistas
+  document.getElementById("home-view").classList.remove("home-visible");
   document.getElementById("home-view").style.display      = "none";
   document.getElementById("section-view").style.display   = "block";
   document.getElementById("dashboard-view").style.display = "none";
@@ -2205,6 +2266,14 @@ function mostrarSeccion(id) {
 
   visor.innerHTML = renderSeccion(sec);
   if (sec.tipo === "casos_especiales") iniciarRelojes();
+  if (id === "PUERTOS") {
+    setTimeout(() => {
+      const pSec2 = datosGlobales.secciones.find(s => s.id === "PUERTOS");
+      let closed = [];
+      if (pSec2) closed = (pSec2.filas||[]).filter(f=>f&&f.tipo==="puerto").map(f=>f.datos[0]||"").filter(Boolean);
+      initPuertosMap("sec-puertos-map", closed);
+    }, 100);
+  }
 }
 
 /* ================================================================
@@ -2656,6 +2725,21 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
   const items = filas.filter(f => f && f.tipo === "puerto");
   const otros = filas.filter(f => f && f.tipo !== "puerto");
   let h = "";
+
+  // Mapa de puertos
+  h += `<div style="margin-bottom:12px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
+    <div style="padding:8px 14px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:11px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px;">🗺️ Mapa de Puertos</span>
+      <span style="font-size:10px;color:rgba(255,255,255,0.5);">${Object.keys(puertosCoords).length} puertos</span>
+    </div>
+    <div id="sec-puertos-map" style="height:400px;cursor:grab;"></div>
+  </div>`;
+
+  // Leyenda
+  h += `<div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px;font-weight:600;padding:6px 14px;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1px solid #ccc;"></span> Puertos operativos (${Object.keys(puertosCoords).length - items.length})</div>
+    <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;border:1px solid #ccc;"></span> Puertos cerrados (${items.length})</div>
+  </div>`;
 
   if (otros.length) h += renderFilasGenericas(otros);
 
@@ -3391,6 +3475,80 @@ function actualizarSistema(automatico) {
       }, 3000);
     }
   });
+}
+
+/* ================================================================
+   AUTO-ROTACIÓN DE PANTALLAS
+   Ciclo: Servicios (1min) → KSTM → Home (3min) → cada sección → Servicios...
+   ================================================================ */
+let autoRotacionActiva = false;
+let autoRotacionTimer = null;
+let autoRotacionFase = 0; // 0=SERVICIOS, 1=HOME-KSTM, 2+=secciones
+
+const AUTO_ROTACION_SECCIONES = [
+  "SERVICIOS", "HOME",
+  "SAR", "MAS", "GC", "ARA", "DRAGAS", "REGATAS",
+  "EJER.ARMAS", "PUERTOS", "ALERTA", "DETERMINANTES",
+  "AVIACION", "SALVAMENTO", "RESERVA", "VISITAS",
+  "MOV_BAJO_PARANA", "MOV_DELTA", "MOV_ZONA3", "MOV_ZONA4", "BUQUES"
+];
+
+function toggleAutoRotacion() {
+  const btn = document.getElementById("btn-auto-rotate");
+  if (autoRotacionActiva) {
+    detenerAutoRotacion();
+    btn.textContent = "▶ Auto";
+    btn.style.borderColor = "var(--gray-400)";
+    btn.style.color = "var(--text-lt)";
+    btn.style.background = "";
+  } else {
+    iniciarAutoRotacion();
+    btn.textContent = "⏹ Detener";
+    btn.style.borderColor = "#dc2626";
+    btn.style.color = "#dc2626";
+    btn.style.background = "rgba(220,38,38,0.08)";
+  }
+}
+
+function iniciarAutoRotacion() {
+  autoRotacionActiva = true;
+  autoRotacionFase = 0;
+  avanzarAutoRotacion();
+}
+
+function detenerAutoRotacion() {
+  autoRotacionActiva = false;
+  autoRotacionFase = -1;
+  if (autoRotacionTimer) { clearTimeout(autoRotacionTimer); autoRotacionTimer = null; }
+}
+
+function avanzarAutoRotacion() {
+  if (!autoRotacionActiva) return;
+  if (autoRotacionTimer) { clearTimeout(autoRotacionTimer); autoRotacionTimer = null; }
+
+  const faseActual = AUTO_ROTACION_SECCIONES[autoRotacionFase];
+  let tiempoMs = 30000;
+
+  if (faseActual === "SERVICIOS") {
+    // Mostrar selector de servicios por 1 minuto
+    document.getElementById("home-view").style.display = "none";
+    document.getElementById("section-view").style.display = "none";
+    document.getElementById("dashboard-view").style.display = "none";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("selector-screen").style.display = "flex";
+    tiempoMs = 60000;
+  } else if (faseActual === "HOME") {
+    // Ingresar a KSTM → Home panel por 3 minutos
+    abrirServicio("KSTM");
+    // Después de abrirServicio, mostrarHome se llama internamente
+    tiempoMs = 180000;
+  } else {
+    mostrarSeccion(faseActual);
+    tiempoMs = 30000;
+  }
+
+  autoRotacionFase = (autoRotacionFase + 1) % AUTO_ROTACION_SECCIONES.length;
+  autoRotacionTimer = setTimeout(avanzarAutoRotacion, tiempoMs);
 }
 </script>
 </body>
