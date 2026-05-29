@@ -680,14 +680,27 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   .tb-section-title { font-size: 13px; }
   .home-dash-grid { flex-direction: column; }
   .home-dash-grid > div { min-width: 0 !important; }
-  .home-dash-grid > div:first-child { grid-template-columns: repeat(2,1fr) !important; }
+  .home-dash-grid > div:first-child { grid-template-columns: repeat(2,1fr) !important; grid-template-rows: auto !important; height: auto !important; gap: 10px; }
+  #hc-dash-puertos { min-height: 220px !important; }
+  #btn-auto-rotate { font-size: 11px; padding: 4px 8px; }
 }
 @media (max-width: 480px) {
-  .home-dash-grid > div:first-child { grid-template-columns: 1fr !important; }
+  .home-dash-grid > div:first-child { grid-template-columns: 1fr !important; grid-template-rows: auto !important; height: auto !important; }
   .home-dash-grid > div { min-width: 0; overflow: hidden; }
+  .home-dash-grid > div:first-child > div { min-height: 0 !important; }
   .tb-section-title { font-size: 11px; }
   .home-kpi .kpi-val { font-size: 16px; }
   .home-kpi .kpi-lbl { white-space: nowrap; }
+  #hc-dash-puertos { min-height: 180px !important; }
+  #sec-puertos-map { height: 250px !important; }
+  #btn-auto-rotate { font-size: 10px; padding: 4px 6px; }
+  #btn-actualizar { font-size: 10px; padding: 4px 6px; white-space: nowrap; }
+  #auto-refresh-indicator { font-size: 9px !important; padding: 2px 5px !important; display: none; }
+  #topbar .tb-right .role-badge { display: none; }
+  #topbar { padding: 0 8px 0 50px; gap: 4px; }
+  .tb-right { gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 0; }
+  .tb-right::-webkit-scrollbar { height: 2px; }
+  .tb-right::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 2px; }
 }
 
 @media (max-width: 480px) {
