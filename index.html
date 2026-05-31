@@ -2673,9 +2673,9 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
     return h;
   }
 
-  // Layout dos columnas: izquierda novedades, derecha mapa
+  // Layout dos columnas: mitad y mitad
   h += `<div style="display:flex;gap:14px;align-items:flex-start;">
-    <div style="flex:1;min-width:0;">`;
+    <div style="flex:1;min-width:0;width:50%;">`;
 
   h += `<div class="bloque-sub">
     🚫 Puertos cerrados
@@ -2703,7 +2703,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
 
   // Cerrar columna izquierda y abrir derecha con mapa
   h += `</div>
-    <div style="width:380px;flex-shrink:0;">
+    <div style="flex:1;min-width:0;width:50%;">
       <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
         <div style="padding:8px 14px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:11px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px;">🗺️ Mapa de Puertos</span>
