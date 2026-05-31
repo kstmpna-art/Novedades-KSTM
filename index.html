@@ -115,9 +115,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ── SIDEBAR ──────────────────────────────────────────────────── */
 #sidebar{
   width:var(--sidebar-w);min-width:var(--sidebar-w);
-  background:var(--navy);
+  background:var(--navy-lt);
   display:flex;flex-direction:column;overflow:hidden;
   box-shadow:2px 0 12px rgba(0,0,0,0.2);z-index:20;
+  border-radius:0 14px 14px 0;
   transition:transform .3s ease;
 }
 .sb-brand{
@@ -263,6 +264,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 @media (max-width:768px){
   .home-dash-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;height:100%;}
   .home-dash-grid > div{flex:0 0 100%;scroll-snap-align:start;overflow-y:auto;min-height:0;height:100%;}
+  .home-dash-grid #windy-iframe-home,.home-dash-grid #hc-dash-puertos{touch-action:pan-y;}
 }
 .services-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--text-lt);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
 .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
@@ -293,7 +295,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
 /* ── SECCIÓN DETALLE ──────────────────────────────────────────── */
 .section-view{display:none}
-.section-view.active{display:block}
+.section-view.active{display:block;min-height:0;}
+.section-view.active #visor{min-height:0;}
 .bloque-sub{
   font-family:'Outfit',sans-serif;
   font-size:13px;font-weight:700;color:var(--blue);
@@ -694,6 +697,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   .home-kpi .kpi-lbl { white-space: nowrap; }
   #hc-dash-puertos { min-height: 180px !important; }
   #sec-puertos-map { height: 250px !important; }
+
   #btn-auto-rotate { font-size: 10px; padding: 4px 6px; }
   #btn-actualizar { font-size: 10px; padding: 4px 6px; white-space: nowrap; }
   #auto-refresh-indicator { font-size: 9px !important; padding: 2px 5px !important; display: none; }
@@ -1051,7 +1055,9 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
 /* ── SIDEBAR DESPLEGABLES ──────────────────────────── */
 .sb-group-wrap {
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin: 4px 10px;
+  border-radius: 10px;
+  background: #23496b;
 }
 
 .sb-group-btn {
@@ -1060,9 +1066,9 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   align-items: center;
   justify-content: space-between;
   padding: 9px 16px;
-  background: #163f5c;
+  background: transparent;
   border: none;
-  color: rgba(255,255,255,0.75);
+  color: #fff;
   font-size: 12px;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
@@ -1072,11 +1078,11 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   letter-spacing: .8px;
 }
 
-.sb-group-btn:hover {background: rgba(255,255,255,0.08);color: #fff;}
+.sb-group-btn:hover {background: rgba(255,255,255,0.12);color: #fff;}
 
-.sb-group-btn.active{background:#17415f;color:#fff;}
+.sb-group-btn.active{background: #2a5a80;color: #fff;}
 
-.sb-group-btn.active:hover{background:#1d5277;color:#fff;}
+.sb-group-btn.active:hover{background: #326b96;color: #fff;}
 
 .sb-arrow {font-size: 11px;transition: transform .2s;color: rgba(255,255,255,0.4);}
 
@@ -1086,10 +1092,13 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   overflow: hidden;
   max-height: 600px;
   transition: max-height .25s ease;
+  background: #1d3d5a;
+  border-radius: 0 0 10px 10px;
 }
 
 .sb-group-items.cerrado {
   max-height: 0;
+  border-radius: 0;
 }
 </style>
 </head>
@@ -1450,12 +1459,12 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       </div>
       <div class="tb-right">
         <span class="role-badge" id="role-badge-display">...</span>
+        <button class="tb-btn outline" onclick="volverSelector()" title="Servicios">🏠</button>
+        <button class="tb-btn outline" onclick="toggleBriefing()" title="Pantalla completa">🖥️</button>
+        <button class="tb-btn outline" onclick="mostrarVistaCompleta()" title="Vista general">📋</button>
+        <button class="tb-btn outline" id="btn-auto-rotate" onclick="toggleAutoRotacion()">▶ Auto</button>
         <button class="tb-btn outline" onclick="actualizarSistema()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
         <span id="auto-refresh-indicator" style="font-size:11px;color:var(--navy);font-weight:700;font-family:'Outfit',sans-serif;letter-spacing:.3px;white-space:nowrap;background:var(--gray-100);border:1px solid var(--gray-200);padding:3px 8px;border-radius:6px"></span>
-        <button id="btn-auto-rotate" class="tb-btn outline" onclick="toggleAutoRotacion()" style="border-color:var(--gray-400);color:var(--text-lt);">▶ Auto</button>
-        <button class="tb-btn outline" onclick="abrirModalExport()" style="background-color:lightcoral;">📄 Exportar</button>
-        <button class="tb-btn outline" onclick="volverSelector()" style="background-color: lightblue;">🏠 Servicios</button>
-        <button class="tb-logout" onclick="cerrarSesion()" title="Cerrar sesión">⬅ Salir</button>
       </div>
     </div>
 
@@ -1485,12 +1494,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       <!-- SECTION VIEW -->
       <div id="section-view" style="display:none">
         <!-- Dashboard btn + content -->
-        <div id="dash-btn-wrap" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
-          
-          <button class="tb-btn outline" id="btn-fullscreen" onclick="toggleBriefing()">🖥️ Pantalla completa</button>
-        </div>
+        <div id="dash-btn-wrap" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
         <div id="visor"></div>
-      </div>
 
       <!-- DASHBOARD VIEW -->
       <div id="dashboard-view" style="display: none;"></div>
@@ -2186,8 +2191,20 @@ function mostrarSeccion(id) {
 }
 
 /* ================================================================
+   MAPA GIS PNA
+=============================================================== */
+function mapaGisHtml() {
+  const gisUrl = "https://gis.prefecturanaval.gob.ar/portal/apps/webappviewer/index.html?id=040254f910294105abd0adb9bd44c61f";
+  return `<div class="sep"></div>
+    <div class="bloque-sub" style="margin-top:12px">🗺️ Mapa GIS — PNA</div>
+    <a href="${gisUrl}" target="_blank" class="tb-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+      🌐 Abrir GC en nueva pestaña
+    </a>`;
+}
+
+/* ================================================================
    RENDER SECCIÓN
-================================================================ */
+=============================================================== */
 function renderSeccion(sec) {
   const filas = sec.filas||[];
 
@@ -2224,6 +2241,7 @@ function renderSeccion(sec) {
     h+=`<div class="sep"></div><div class="bloque-sub">📅 Previstas <span class="badge blue">${prev.length}</span></div>`;
     prev.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy)">${esc(f.datos[0])}</div><div style="font-size:12px">Zarpe: <b>${esc(f.datos[1])}</b> | ETA: <b>${esc(f.datos[2])}</b></div><div style="font-size:12px;color:var(--text-lt);margin-top:3px">${esc(f.datos[3]||"")}</div></div>`;});
     if(!prev.length) h+=`<div class="empty">Sin navegaciones previstas.</div>`;
+    h+=mapaGisHtml();
     return h;
   }
 
@@ -2235,8 +2253,9 @@ function renderSeccion(sec) {
   }
 
   if (sec.id==="CONVENIO") {
-    let h=`<div class="tbl-wrap"><table class="pna-table"><tr><th rowspan="2">Meses</th><th colspan="3">PNA</th><th colspan="3">ARA</th></tr><tr><th>Fecha Z-A</th><th>M/Superficie</th><th>Días Nav.</th><th>M/Superficie</th><th>Fecha Z-A</th><th>Días Nav.</th></tr>`;
-    filas.filter(f=>f&&f.tipo==="fila").forEach(f=>{h+=`<tr>${f.datos.map((v,i)=>`<td${i===0?' class="dep"':''} style="text-align:center">${esc(v)}</td>`).join("")}</tr>`;});
+    let h=`<div class="tbl-wrap"><table class="pna-table"><tr><th rowspan="2" style="background:#e2e8f0;color:#1e293b">Meses</th><th colspan="3" style="background:#bfdbfe;color:#1e3a5f">PNA</th><th colspan="3" style="background:#a7f3d0;color:#064e3b">ARA</th></tr><tr><th style="background:#dbeafe;color:#1e3a5f">M/Superficie</th><th style="background:#dbeafe;color:#1e3a5f">Fecha Z-A</th><th style="background:#dbeafe;color:#1e3a5f">Días Nav.</th><th style="background:#d1fae5;color:#064e3b">M/Superficie</th><th style="background:#d1fae5;color:#064e3b">Fecha Z-A</th><th style="background:#d1fae5;color:#064e3b">Días Nav.</th></tr>`;
+    const filasConv = filas.filter(f=>f&&f.tipo==="fila").slice(1);
+    filasConv.forEach((f,fi)=>{const colBg=i=>i===0?'':i<=3?'#dbeafe':'#d1fae5';h+=`<tr style="background:${fi%2===0?'#fff':'#f8fafc'}">${f.datos.map((v,i)=>`<td${i===0?' class="dep"':''} style="text-align:center;${colBg(i)?'background:'+colBg(i)+';':''}">${esc(v)}</td>`).join("")}</tr>`;});
     h+=`</table></div>`;
     return h;
   }
@@ -2245,7 +2264,7 @@ function renderSeccion(sec) {
     let h="";
     filas.forEach(f=>{
       if(!f) return;
-      if(f.tipo==="subtitulo"){const esPend=(f.texto||"").toUpperCase().includes("PENDIENTE");h+=`<div class="bloque-sub">${esPend?"🔴":"✅"} ${esc(f.texto)}</div>`;}
+      if(f.tipo==="subtitulo"){const esPend=(f.texto||"").toUpperCase().includes("PENDIENTE");h+=`<div class="bloque-sub">${esPend?"✅":"🔴"} ${esc(f.texto)}</div>`;}
       else if(f.tipo==="separador") h+=`<div class="sep"></div>`;
       else if(f.tipo==="html") h+=`<div class="empty">${f.texto}</div>`;
       else if(f.tipo==="caso_especial"){
@@ -2287,7 +2306,7 @@ function renderSeccion(sec) {
         </div>`;
       }
     });
-    return h||`<div class="empty">Sin casos.</div>`;
+    return (h||`<div class="empty">Sin casos.</div>`) + ((sec.id==="SAR"||sec.id==="MAS")?mapaGisHtml():"");
   }
 
   if (sec.id === "ALERTA") {
@@ -2635,22 +2654,10 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
   const otros = filas.filter(f => f && f.tipo !== "puerto");
   let h = "";
 
-  // Mapa de puertos
-  h += `<div style="margin-bottom:12px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
-    <div style="padding:8px 14px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:11px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px;">🗺️ Mapa de Puertos</span>
-      <span style="font-size:10px;color:rgba(255,255,255,0.5);">${Object.keys(puertosCoords).length} puertos</span>
-    </div>
-    <div id="sec-puertos-map" style="height:400px;cursor:grab;"></div>
-  </div>`;
-
-  // Leyenda
-  h += `<div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px;font-weight:600;padding:6px 14px;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
-    <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1px solid #ccc;"></span> Puertos operativos (${Object.keys(puertosCoords).length - items.length})</div>
-    <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;border:1px solid #ccc;"></span> Puertos cerrados (${items.length})</div>
-  </div>`;
-
-  if (otros.length) h += renderFilasGenericas(otros);
+  // Nombres de puertos cerrados
+  if (items.length) {
+    h += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${items.map(n => `<span style="font-size:10px;font-weight:600;color:#dc2626;background:#fef2f2;padding:2px 7px;border-radius:4px;white-space:nowrap;">🚫 ${esc(n.datos[0]||"")}</span>`).join('')}</div>`;
+  }
 
   if (!items.length) {
     h += `<div class="item-card green" style="text-align:center;padding:20px">
@@ -2665,6 +2672,10 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
     </div>`;
     return h;
   }
+
+  // Layout dos columnas: izquierda novedades, derecha mapa
+  h += `<div style="display:flex;gap:14px;align-items:flex-start;">
+    <div style="flex:1;min-width:0;">`;
 
   h += `<div class="bloque-sub">
     🚫 Puertos cerrados
@@ -2689,6 +2700,26 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
       </div>` : ""}
     </div>`;
   });
+
+  // Cerrar columna izquierda y abrir derecha con mapa
+  h += `</div>
+    <div style="width:380px;flex-shrink:0;">
+      <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
+        <div style="padding:8px 14px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px;">🗺️ Mapa de Puertos</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.5);">${Object.keys(puertosCoords).length} puertos</span>
+        </div>
+        <div id="sec-puertos-map" style="height:380px;cursor:grab;"></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;font-weight:600;padding:6px 14px;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
+        <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1px solid #ccc;"></span> Operativos (${Object.keys(puertosCoords).length - items.length})</div>
+        <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;border:1px solid #ccc;"></span> Cerrados (${items.length})</div>
+      </div>
+    </div>
+  </div>`;
+
+  if (otros.length) h += renderFilasGenericas(otros);
+
   return h;
 }
 
@@ -2765,6 +2796,9 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
 
   return h || `<div class="empty">Sin novedades de Pilotaje.</div>`;
 }
+
+  // ── Fallback para secciones no reconocidas ──
+  return renderFilasGenericas(filas);
 }
 
 function renderFilasGenericas(filas) {
@@ -3078,9 +3112,45 @@ function filtrarPartes(){
    BRIEFING / PANTALLA COMPLETA
 ================================================================ */
 function toggleBriefing(){
-  if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  const yaFull = !!document.fullscreenElement;
+  if (!yaFull) {
+    document.getElementById("sidebar").style.display = "none";
+    document.getElementById("topbar").style.display = "none";
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  } else {
+    document.getElementById("sidebar").style.display = "";
+    document.getElementById("topbar").style.display = "";
+    if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  }
 }
+document.addEventListener("fullscreenchange", function(){
+  if (!document.fullscreenElement) {
+    document.getElementById("sidebar").style.display = "";
+    document.getElementById("topbar").style.display = "";
+  }
+});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")cerrarZoom();});
+
+function mostrarVistaCompleta(){
+  if (!datosGlobales) return;
+  document.getElementById("home-view").classList.remove("home-visible");
+  document.getElementById("home-view").style.display = "none";
+  document.getElementById("section-view").style.display = "block";
+  document.getElementById("dashboard-view").style.display = "none";
+  document.getElementById("topbar-title").textContent = "Vista completa";
+  document.getElementById("topbar-sub").textContent = datosGlobales.fecha || "";
+  document.getElementById("dash-btn-wrap").innerHTML = '<button class="tb-btn outline" onclick="toggleBriefing()">🖥️ Pantalla completa</button>';
+  const ignorar = ["SEAV","SERS","SBGC"];
+  let html = "";
+  datosGlobales.secciones.forEach(sec => {
+    if (ignorar.includes(sec.id)) return;
+    if (!sec.filas || !sec.filas.length) return;
+    const titulo = sec.titulo || sec.id;
+    html += `<div class="bloque-sub" style="font-size:15px;margin:16px 0 8px 0;">${esc(titulo)}</div>`;
+    try { html += renderSeccion(sec) || ""; } catch(e) { html += `<div class="item-card" style="color:var(--red)">Error al cargar: ${esc(e.message)}</div>`; }
+  });
+  document.getElementById("visor").innerHTML = html || '<div class="empty">Sin datos.</div>';
+}
 
 /* ================================================================
    LINKS EXTERNOS
@@ -3466,12 +3536,12 @@ function avanzarAutoRotacion() {
     document.getElementById("dashboard-view").style.display = "none";
     document.getElementById("app").style.display = "none";
     document.getElementById("selector-screen").style.display = "flex";
-    tiempoMs = 60000;
+    tiempoMs = 30000;
   } else if (faseActual === "HOME") {
     // Ingresar a KSTM → Home panel por 3 minutos
     abrirServicio("KSTM");
     // Después de abrirServicio, mostrarHome se llama internamente
-    tiempoMs = 180000;
+    tiempoMs = 60000;
   } else {
     mostrarSeccion(faseActual);
     tiempoMs = 30000;
