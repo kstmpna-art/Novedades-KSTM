@@ -257,6 +257,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .home-kpi .kpi-lbl{font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.3px;line-height:1.3}
 .home-kpi.red .kpi-val{color:#f87171}
 .home-kpi.amber .kpi-val{color:var(--gold-lt)}
+.home-dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;height:100%;min-height:0;}
+.home-dash-grid > div{min-height:0;overflow:hidden;}
+@media (max-width:1100px){.home-dash-grid{grid-template-columns:1fr 1fr;}.home-dash-grid > div:first-child{overflow-y:auto;}}
+@media (max-width:768px){.home-dash-grid{grid-template-columns:1fr;}}
 .services-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--text-lt);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
 .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
 .service-card{
@@ -676,20 +680,12 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
     flex-shrink: 0;
     padding: 3px 12px;
   }
-  .home-kpi .kpi-val { font-size: 20px; }
-  .home-kpi .kpi-lbl { font-size: 8px; white-space: nowrap; }
   .tb-section-sub  { display: none; }
   .tb-section-title { font-size: 13px; }
-  .home-dash-grid { flex-direction: column; }
-  .home-dash-grid > div { min-width: 0 !important; }
-  .home-dash-grid > div:first-child { grid-template-columns: repeat(2,1fr) !important; grid-template-rows: auto !important; height: auto !important; gap: 10px; }
   #hc-dash-puertos { min-height: 220px !important; }
   #btn-auto-rotate { font-size: 11px; padding: 4px 8px; }
 }
 @media (max-width: 480px) {
-  .home-dash-grid > div:first-child { grid-template-columns: 1fr !important; grid-template-rows: auto !important; height: auto !important; }
-  .home-dash-grid > div { min-width: 0; overflow: hidden; }
-  .home-dash-grid > div:first-child > div { min-height: 0 !important; }
   .tb-section-title { font-size: 11px; }
   .home-kpi .kpi-val { font-size: 18px; }
   .home-kpi .kpi-lbl { white-space: nowrap; }
@@ -1871,22 +1867,22 @@ function renderHomeCards(data, sarN, masN) {
   bloque.style.height = "100%";
   bloque.innerHTML = `
 
-    <div class="home-dash-grid" style="display:flex;gap:12px;flex-wrap:wrap;height:100%;">
+    <div class="home-dash-grid">
 
-      <!-- LEFT COLUMN: flex:1, min-width:220px, flex-direction:column, gap:12px -->
-      <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:12px;">
+      <!-- LEFT COLUMN: stacked cards with equal height distribution -->
+      <div style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden;">
 
         <!-- TOP: SAR / MAS -->
         ${(()=>{const sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos,_t=Math.max(sc+sp+mc+mp,1);return `
-        <div class="dash-card" style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
+        <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#dc2626,#7c3aed);flex-shrink:0;"></div>
-          <div style="padding:6px 8px;flex:1;display:flex;flex-direction:column;">
+          <div style="padding:6px 8px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
               <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
               <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${_t}</span>
             </div>
-            <div style="display:flex;gap:10px;flex:1;">
-              <div style="flex:1;min-width:0;">
+            <div style="display:flex;gap:10px;flex:1;min-height:0;overflow:hidden;">
+              <div style="flex:1;min-width:0;min-height:0;">
                 <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid rgba(220,38,38,0.15);padding-bottom:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#dc2626;"></span> SAR</div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🔴 Cerrados</span><span>${sc}</span></div>
                 <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;margin-bottom:3px;"><div class="bf" data-w="${(sc/_t*100)}" style="height:100%;width:0%;background:#dc2626;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
@@ -1894,7 +1890,7 @@ function renderHomeCards(data, sarN, masN) {
                 <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;"><div class="bf" data-w="${(sp/_t*100)}" style="height:100%;width:0%;background:#22c55e;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
               </div>
               <div style="width:1px;background:var(--gray-200);flex-shrink:0;"></div>
-              <div style="flex:1;min-width:0;">
+              <div style="flex:1;min-width:0;min-height:0;">
                 <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid rgba(124,58,237,0.15);padding-bottom:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#7c3aed;"></span> MAS</div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🔴 Cerrados</span><span>${mc}</span></div>
                 <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;margin-bottom:3px;"><div class="bf" data-w="${(mc/_t*100)}" style="height:100%;width:0%;background:#7c3aed;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
@@ -1912,7 +1908,7 @@ function renderHomeCards(data, sarN, masN) {
           const df = (dSec?.filas||[]).filter(f=>f&&f.tipo==="fila");
           const maxW = Math.max(df.length,1);
           return `
-        <div class="dash-card" style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+        <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#a86210,#f59e0b);flex-shrink:0;"></div>
           <div style="padding:8px 14px 4px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
@@ -1936,7 +1932,7 @@ function renderHomeCards(data, sarN, masN) {
         </div>`})()}
 
         <!-- BOTTOM: GC / ARA -->
-        <div class="dash-card" style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+        <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#1a9560,#34d399);flex-shrink:0;"></div>
           <div style="padding:6px 10px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
