@@ -596,8 +596,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   
 }
 
-/* APP responsive — desktop: sidebar como barra superior con dropdowns */
-@media (min-width: 769px) {
+/* APP responsive — desktop grande: sidebar como barra superior con dropdowns */
+@media (min-width: 1101px) {
   #app { flex-direction: column; }
   #sidebar {
     width: 100% !important; min-width: 100% !important;
@@ -652,8 +652,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   #hamburger { display: none !important; }
   #topbar { padding: 0 20px; }
 }
-/* APP responsive — mobile/tablet */
-@media (max-width: 768px) {
+/* APP responsive — tablet y mobile: hamburger + slide-in */
+@media (max-width: 1100px) {
   #hamburger { display: block; }
   #sidebar {
     position: fixed;
@@ -662,9 +662,20 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
     min-width: 280px !important;
     z-index: 100;
     transition: left .3s ease;
+    border-radius: 0 14px 14px 0;
   }
   #sidebar.open       { left: 0; }
+  #sb-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 99;
+  }
   #sb-overlay.visible { display: block; }
+}
+/* APP responsive — mobile */
+@media (max-width: 768px) {
   #main-body  { padding: 8px 12px 80px; }
   #topbar     { padding: 0 12px 0 58px; }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1497,9 +1508,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <div id="dash-btn-wrap" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
         <div id="visor"></div>
 
-      <!-- DASHBOARD VIEW -->
-      <div id="dashboard-view" style="display: none;"></div>
     </div>
+
+      <!-- DASHBOARD VIEW (fuera de section-view) -->
+      <div id="dashboard-view" style="display: none;"></div>
 
     <div id="statusbar">
       <span><span class="sdot g"></span>SISTEMA ACTIVO</span>
@@ -2046,11 +2058,11 @@ function cerrarSidebar() {
 function cerrarDropdowns() {
   document.querySelectorAll(".sb-group-items").forEach(g => g.classList.add("cerrado"));
 }
-window.addEventListener("resize",()=>{ if(window.innerWidth>768) cerrarSidebar(); });
+window.addEventListener("resize",()=>{ if(window.innerWidth>1100) cerrarSidebar(); });
 
 function mostrarHome() {
-  if (window.innerWidth >= 769) cerrarDropdowns();
-  if (window.innerWidth <= 768) cerrarSidebar();
+  if (window.innerWidth >= 1101) cerrarDropdowns();
+  if (window.innerWidth <= 1100) cerrarSidebar();
   const hv = document.getElementById("home-view");
   hv.style.display = "";
   hv.classList.add("home-visible");
@@ -2115,8 +2127,8 @@ function mostrarHome() {
 }
 
 function mostrarSeccion(id) {
-  if (window.innerWidth >= 769) cerrarDropdowns();
-  if (window.innerWidth <= 768) cerrarSidebar();
+  if (window.innerWidth >= 1101) cerrarDropdowns();
+  if (window.innerWidth <= 1100) cerrarSidebar();
   seccionActiva = id;
   seccionDashActiva = id;
 
@@ -2492,7 +2504,11 @@ function renderSeccion(sec) {
     </a>
   </div>`;
 
-  // Filas normales de la planilla
+  // Contenedor dos columnas: items + mapa
+  h += `<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">`;
+
+  // Columna izquierda — items de determinantes
+  h += `<div style="flex:1;min-width:260px">`;
   filas.forEach(f => {
     if (!f) return;
     if (f.tipo === "subtitulo") {
@@ -2507,64 +2523,55 @@ function renderSeccion(sec) {
       </div>`;
     }
   });
-
   if (!filas.length) h += `<div class="empty">Sin determinantes.</div>`;
+  h += `</div>`; // fin columna izquierda
 
-  // Mapa INA
+  // Columna derecha — mapa INA
   h += `
-  <div style="margin-top:16px">
+  <div style="flex:1;min-width:300px">
     <div style="
-      background:#fff;
-      border-radius:var(--radius-lg);
-      border:1px solid var(--gray-200);
-      overflow:hidden;
+      background:#fff;border-radius:var(--radius-lg);
+      border:1px solid var(--gray-200);overflow:hidden;
       box-shadow:var(--shadow-sm);
     ">
-      <!-- Header -->
       <div style="
-        background:var(--navy);
-        padding:10px 16px;
+        background:var(--navy);padding:10px 16px;
         display:flex;align-items:center;
-        justify-content:space-between;
-        gap:8px;flex-wrap:wrap;
+        justify-content:space-between;flex-wrap:wrap;gap:8px;
       ">
         <span style="
           font-family:'Outfit',sans-serif;
           font-size:12px;font-weight:800;
-          color:#fff;text-transform:uppercase;
-          letter-spacing:.5px;
+          color:#fff;text-transform:uppercase;letter-spacing:.5px;
         ">🌊 Mapa Hidrológico — INA</span>
         <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-size:11px;color:rgba(255,255,255,0.5)">
-            Datos en tiempo real
-          </span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.5)">Datos en tiempo real</span>
+          <a href="https://alerta.ina.gob.ar/pub/mapa" target="_blank"
+            style="font-size:11px;color:#4a9fd4;font-weight:700;text-decoration:none">
+            Abrir en INA ↗
           </a>
         </div>
       </div>
-
-      <!-- Iframe -->
       <iframe
         src="https://alerta.ina.gob.ar/pub/mapa"
-        style="width:100%;height:550px;border:none;display:block"
+        style="width:100%;height:500px;border:none;display:block"
         title="Mapa hidrológico INA"
         loading="lazy"
         allowfullscreen>
       </iframe>
-
-      <!-- Footer -->
       <div style="
-        padding:8px 16px;
-        background:var(--gray-100);
+        padding:8px 16px;background:var(--gray-100);
         border-top:1px solid var(--gray-200);
         font-size:11px;color:var(--text-lt);
-        display:flex;justify-content:space-between;
-        flex-wrap:wrap;gap:6px;
+        display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;
       ">
         <span>Fuente: INA — Instituto Nacional del Agua</span>
         <span>Usá scroll para zoom · Arrastrá para mover</span>
       </div>
     </div>
   </div>`;
+
+  h += `</div>`; // fin contenedor dos columnas
 
   return h;
 }
@@ -2704,16 +2711,16 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
   // Cerrar columna izquierda y abrir derecha con mapa
   h += `</div>
     <div style="flex:1;min-width:0;width:50%;">
-      <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
+      <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);position:relative;">
         <div style="padding:8px 14px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:11px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px;">🗺️ Mapa de Puertos</span>
           <span style="font-size:10px;color:rgba(255,255,255,0.5);">${Object.keys(puertosCoords).length} puertos</span>
         </div>
+        <div style="position:absolute;top:44px;left:10px;z-index:1000;display:flex;gap:12px;font-size:11px;font-weight:600;padding:4px 10px;background:rgba(255,255,255,0.9);border-radius:6px;backdrop-filter:blur(4px);box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+          <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#22c55e;border:1px solid #bbb;"></span> Operativos (${Object.keys(puertosCoords).length - items.length})</div>
+          <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#dc2626;border:1px solid #bbb;"></span> Cerrados (${items.length})</div>
+        </div>
         <div id="sec-puertos-map" style="height:380px;cursor:grab;"></div>
-      </div>
-      <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;font-weight:600;padding:6px 14px;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);">
-        <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1px solid #ccc;"></span> Operativos (${Object.keys(puertosCoords).length - items.length})</div>
-        <div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;border:1px solid #ccc;"></span> Cerrados (${items.length})</div>
       </div>
     </div>
   </div>`;
@@ -2862,12 +2869,13 @@ function recargarImagen(vId,url){const img=document.querySelector(`#${vId} img`)
    DASHBOARD PORTUARIO GENERAL
 ================================================================ */
 function abrirDashboardGeneral() {
-    document.getElementById("home-view").style.display     = "none";
-    document.getElementById("section-view").style.display  = "none";
-    document.getElementById("dashboard-view").style.display = "block";
-    document.querySelectorAll(".sb-item").forEach(b => b.classList.remove("active"));
-    const btn = document.querySelector("[onclick=\"abrirDashboardGeneral()\"]");
-     if (btn) btn.classList.add("active");
+  document.getElementById("home-view").style.display     = "none";
+  document.getElementById("section-view").style.display  = "none";
+  document.getElementById("dashboard-view").style.display = "block";
+  document.querySelectorAll(".sb-item").forEach(b => b.classList.remove("active"));
+  const btn = document.querySelector("[onclick=\"abrirDashboardGeneral()\"]");
+  if (btn) btn.classList.add("active");
+  cerrarSidebar();
 
   const ZONAS=[{id:"MOV_BAJO_PARANA",label:"Bajo Paraná"},{id:"MOV_DELTA",label:"Delta"},{id:"MOV_ZONA3",label:"Río de la Plata"},{id:"MOV_ZONA4",label:"Mar Norte"}];
   function extraerTotales(zonaId) {
@@ -2875,51 +2883,120 @@ function abrirDashboardGeneral() {
     if(!sec) return null;
     const fila=sec.filas.find(f=>f&&f.tipo==="buque"&&(f.datos[0]||"").toUpperCase().includes("TOTAL"));
     if(!fila) return null;
-    return{muelles:+fila.datos[2]||0,amarrados:+fila.datos[3]||0,libres:+fila.datos[4]||0,capRadas:+fila.datos[6]||0,fondeados:+fila.datos[7]||0,disponibles:+fila.datos[8]||0};
+    return{muelles:+fila.datos[2]||0,amarrados:+fila.datos[3]||0,libres:+fila.datos[4]||0,radas:+fila.datos[5]||0,capRadas:+fila.datos[6]||0,fondeados:+fila.datos[7]||0,disponibles:+fila.datos[8]||0};
   }
-  const tot=ZONAS.reduce((acc,z)=>{const t=extraerTotales(z.id);if(!t)return acc;Object.keys(acc).forEach(k=>acc[k]+=t[k]);return acc;},{muelles:0,amarrados:0,libres:0,capRadas:0,fondeados:0,disponibles:0});
-  const pctM=tot.muelles>0?Math.round(tot.amarrados/tot.muelles*100):0;
+  const tot=(zId)=>{if(zId==="__TODAS"){return ZONAS.reduce((acc,z)=>{const t=extraerTotales(z.id);if(!t)return acc;Object.keys(acc).forEach(k=>acc[k]+=t[k]);return acc;},{muelles:0,amarrados:0,libres:0,radas:0,capRadas:0,fondeados:0,disponibles:0});}return extraerTotales(zId)||{muelles:0,amarrados:0,libres:0,radas:0,capRadas:0,fondeados:0,disponibles:0};};
 
   const dv=document.getElementById("dashboard-view");
-  document.getElementById("section-view").style.display="none";
-  document.getElementById("home-view").style.display="none";
   dv.style.display="block";
 
-  dv.innerHTML=`
-  <div class="dash-header">
-    <div><h2>🗂️ Resumen Portuario General</h2><p>Situación consolidada de todas las zonas portuarias</p></div>
-    <button class="dash-close-btn" onclick="document.getElementById('dashboard-view').style.display='none';mostrarHome()">← Inicio</button>
-  </div>
-  <div class="kpi-grid">
-    ${[{l:"Muelles",v:tot.muelles,cls:"accent-blue"},{l:"Amarrados",v:tot.amarrados,cls:"accent-amber"},{l:"Libres",v:tot.libres,cls:"accent-green"},{l:"Cap. Radas",v:tot.capRadas,cls:"accent-blue"},{l:"Fondeados",v:tot.fondeados,cls:"accent-amber"},{l:"Disponibles",v:tot.disponibles,cls:"accent-green"}].map(k=>`<div class="kpi-card ${k.cls}"><div class="kc-val">${k.v}</div><div class="kc-lbl">${k.l}</div></div>`).join("")}
-  </div>
-  <div class="charts-grid">
-    <div class="chart-card">
-      <h4>Ocupación de muelles</h4>
-      <canvas id="ch-muelles"></canvas>
-    </div>
-    <div class="chart-card">
-      <h4>Radas por zona</h4>
-      <canvas id="ch-radas"></canvas>
-    </div>
-  </div>
-  <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm)">
-    <div class="tbl-title">DETALLE POR ZONA</div>
-    <table class="pna-table">
-      <tr><th>ZONA</th><th>MLL</th><th>AMAR</th><th>LIBR</th><th>CAP</th><th>FOND</th><th>DISP</th></tr>
-      ${ZONAS.map(z=>{const t=extraerTotales(z.id);if(!t)return`<tr><td colspan="7" style="text-align:center;color:var(--text-lt);padding:8px">${z.label} — sin datos</td></tr>`;
-        return`<tr><td class="dep">${z.label}</td><td class="num-blue">${t.muelles}</td><td class="num-amber">${t.amarrados}</td><td>${t.libres}</td><td class="num-blue">${t.capRadas}</td><td class="num-amber">${t.fondeados}</td><td>${t.disponibles}</td></tr>`;}).join("")}
-    </table>
-  </div>`;
+  function renderDash(zonaSel){
+    const d=tot(zonaSel);
+    const diff=d.muelles-d.amarrados-d.libres;
+    const diffRadas=d.capRadas-d.fondeados-d.disponibles;
+    const zoneBtns=[{id:"__TODAS",label:"General"},...ZONAS];
+    const pctOcup=d.muelles>0?Math.round((d.amarrados/d.muelles)*100):0;
+    const pctRadas=d.capRadas>0?Math.round((d.fondeados/d.capRadas)*100):0;
 
-  setTimeout(()=>{
-    try{
-      const c1=document.getElementById("ch-muelles");
-      if(c1) new Chart(c1,{type:"bar",data:{labels:ZONAS.map(z=>z.label),datasets:[{label:"Amarrados",data:ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.amarrados:0;}),backgroundColor:"#e07b3b",borderRadius:4},{label:"Libres",data:ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.libres:0;}),backgroundColor:"#1a9560",borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{font:{family:"DM Sans",size:12}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{family:"DM Sans",size:11}}},y:{stacked:true,grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{family:"DM Sans",size:11}}}}}});
-      const c2=document.getElementById("ch-radas");
-      if(c2) new Chart(c2,{type:"doughnut",data:{labels:ZONAS.map(z=>z.label),datasets:[{data:ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.fondeados||1:1;}),backgroundColor:["#1d6fa4","#1a9560","#c07c1a","#8e44ad"],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{font:{family:"DM Sans",size:12},padding:12}}}}});
-    }catch(e){}
-  },100);
+    dv.innerHTML=`
+    <div class="dash-header">
+      <div><h2>🗂️ Resumen Portuario General</h2><p>Situación consolidada de zonas portuarias</p></div>
+      <button class="dash-close-btn" onclick="document.getElementById('dashboard-view').style.display='none';mostrarHome()">← Inicio</button>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+      ${zoneBtns.map(z=>`<button onclick="renderDashHijo('${z.id}')" style="padding:6px 18px;border-radius:8px;border:1px solid ${z.id===zonaSel?'#14b8a6':'var(--gray-400)'};font-family:'Outfit',sans-serif;font-size:12px;font-weight:${z.id===zonaSel?'700':'500'};background:${z.id===zonaSel?'#14b8a6':'transparent'};color:${z.id===zonaSel?'#fff':'var(--text-lt)'};cursor:pointer;transition:all .12s">${z.label}</button>`).join("")}
+    </div>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
+      <!-- MUELLES -->
+      <div style="flex:1;min-width:280px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;margin-bottom:12px">Muelles</div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+          <div style="border-left:3px solid #14b8a6;padding-left:8px"><div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:#14b8a6">${d.muelles}</div><div style="font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.3px">Total</div></div>
+          <div style="border-left:3px solid #e07b3b;padding-left:8px"><div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:700;color:#e07b3b">${d.amarrados}</div><div style="font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.3px">Amarrados</div></div>
+          <div style="border-left:3px solid #1a9560;padding-left:8px"><div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:700;color:#1a9560">${d.libres}</div><div style="font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.3px">Libres</div></div>
+        </div>
+        <div style="margin-top:14px;height:8px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;display:flex">
+          ${d.muelles>0?`<div style="height:100%;background:#e07b3b;border-radius:6px 0 0 6px;width:${d.amarrados/d.muelles*100}%"></div><div style="height:100%;background:#1a9560;width:${d.libres/d.muelles*100}%"></div>`:`<div style="height:100%;background:rgba(255,255,255,0.05);width:100%"></div>`}
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.4);font-family:'DM Sans',sans-serif">
+          ${d.muelles} muelles · ${d.amarrados} amarrados · ${d.libres} libres (${pctOcup}% ocupado)
+        </div>
+      </div>
+
+      <!-- RADAS -->
+      <div style="flex:1;min-width:280px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;font-family:'Outfit',sans-serif;margin-bottom:12px">Radas</div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:baseline">
+          <div style="border-left:3px solid #14b8a6;padding-left:8px"><div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:#14b8a6">${d.capRadas}</div><div style="font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.3px">Capacidad</div></div>
+          <div style="border-left:3px solid #e07b3b;padding-left:8px"><div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:700;color:#e07b3b">${d.fondeados}</div><div style="font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.3px">Fondeados</div></div>
+          <div style="border-left:3px solid #1a9560;padding-left:8px"><div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:700;color:#1a9560">${d.disponibles}</div><div style="font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.3px">Disponibles</div></div>
+        </div>
+        <div style="margin-top:14px;height:8px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;display:flex">
+          ${d.capRadas>0?`<div style="height:100%;background:#e07b3b;border-radius:6px 0 0 6px;width:${d.fondeados/d.capRadas*100}%"></div><div style="height:100%;background:#1a9560;width:${d.disponibles/d.capRadas*100}%"></div>`:`<div style="height:100%;background:rgba(255,255,255,0.05);width:100%"></div>`}
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.4);font-family:'DM Sans',sans-serif">
+          ${d.capRadas} capacidad · ${d.fondeados} fondeados · ${d.disponibles} disponibles (${pctRadas}% ocupado)
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div style="background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Ocupación de muelles por zona</h4>
+        <canvas id="ch-muelles"></canvas>
+      </div>
+      <div style="background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Radas — distribución</h4>
+        <canvas id="ch-radas"></canvas>
+      </div>
+    </div>
+
+    <div style="background:var(--navy-dk);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+      <div style="padding:10px 16px;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06)">
+        <span style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px">Detalle por zona</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.06)">
+          <th style="padding:8px 12px;text-align:left;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">ZONA</th>
+          <th style="padding:8px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">MLL</th>
+          <th style="padding:8px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">AMAR</th>
+          <th style="padding:8px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">LIBR</th>
+          <th style="padding:8px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">RADAS</th>
+          <th style="padding:8px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">CAP</th>
+          <th style="padding:8px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">FOND</th>
+          <th style="padding:8px 12px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase">DISP</th>
+        </tr>
+        ${ZONAS.map(z=>{const t=extraerTotales(z.id);if(!t)return`<tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td colspan="8" style="text-align:center;color:rgba(255,255,255,0.25);padding:10px">${z.label} — sin datos</td></tr>`;
+          return`<tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:7px 12px;color:#14b8a6;font-weight:600">${z.label}</td><td style="padding:7px 12px;text-align:center;color:#fff;font-weight:600">${t.muelles}</td><td style="padding:7px 12px;text-align:center;color:#e07b3b">${t.amarrados}</td><td style="padding:7px 12px;text-align:center;color:#1a9560">${t.libres}</td><td style="padding:7px 12px;text-align:center;color:rgba(255,255,255,0.5)">${t.radas}</td><td style="padding:7px 12px;text-align:center;color:#fff;font-weight:600">${t.capRadas}</td><td style="padding:7px 12px;text-align:center;color:#e07b3b">${t.fondeados}</td><td style="padding:7px 12px;text-align:center;color:#1a9560">${t.disponibles}</td></tr>`;}).join("")}
+        <tr style="background:rgba(255,255,255,0.04);font-weight:800"><td style="padding:8px 12px;color:#14b8a6">TOTAL</td><td style="padding:8px 12px;text-align:center;color:#fff">${tot("__TODAS").muelles}</td><td style="padding:8px 12px;text-align:center;color:#e07b3b">${tot("__TODAS").amarrados}</td><td style="padding:8px 12px;text-align:center;color:#1a9560">${tot("__TODAS").libres}</td><td style="padding:8px 12px;text-align:center;color:rgba(255,255,255,0.5)">${tot("__TODAS").radas}</td><td style="padding:8px 12px;text-align:center;color:#fff">${tot("__TODAS").capRadas}</td><td style="padding:8px 12px;text-align:center;color:#e07b3b">${tot("__TODAS").fondeados}</td><td style="padding:8px 12px;text-align:center;color:#1a9560">${tot("__TODAS").disponibles}</td></tr>
+      </table>
+    </div>`;
+
+    setTimeout(()=>{
+      try{
+        const c1=document.getElementById("ch-muelles");
+        if(c1){
+          const labels=ZONAS.map(z=>z.label);
+          const amarData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.amarrados:0;});
+          const libreData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.libres:0;});
+          const highlightIdx=zonaSel==="__TODAS"?-1:ZONAS.findIndex(z=>z.id===zonaSel);
+          new Chart(c1,{type:"bar",data:{labels,datasets:[{label:"Amarrados",data:amarData,backgroundColor:amarData.map((_,i)=>i===highlightIdx?"#f59e0b":"#e07b3b"),borderRadius:4},{label:"Libres",data:libreData,backgroundColor:libreData.map((_,i)=>i===highlightIdx?"#34d399":"#1a9560"),borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},boxWidth:14,padding:12}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}},y:{stacked:true,grid:{color:"rgba(255,255,255,0.06)"},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}}}}});
+        }
+        const c2=document.getElementById("ch-radas");
+        if(c2){
+          const donutLabels=ZONAS.map(z=>z.label);
+          const donutData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.capRadas||1:1;});
+          new Chart(c2,{type:"doughnut",data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:["#14b8a6","#e07b3b","#1a9560","#4a6480"],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},padding:12}}}}});
+        }
+      }catch(e){}
+    },100);
+  }
+
+  window.renderDashHijo=renderDash;
+
+  renderDash("__TODAS");
 }
 
 /* ================================================================
