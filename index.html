@@ -1447,7 +1447,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <span class="sb-badge blue" id="badge-NOVEDADES"></span>
       </button>
       <button class="sb-item" id="navbtn-PERSONAL_COSTERA" onclick="mostrarSeccion('PERSONAL_COSTERA')">
-        <span class="si-icon">👤</span><span class="si-label">Personal Costera</span>
+        <span class="si-icon">👤</span><span class="si-label">Personal Costera/DTRA</span>
       </button>
     </div>
   </div>
@@ -1494,8 +1494,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
             <p id="home-fecha-sub">Cargando...</p>
           </div>
           <div class="home-header-kpi">
-            <div class="home-kpi red"><div class="kpi-val" id="hkpi-sar">—</div><div class="kpi-lbl">Casos SAR</div></div>
-            <div class="home-kpi amber"><div class="kpi-val" id="hkpi-mas">—</div><div class="kpi-lbl">Casos MAS</div></div>
+            <div class="home-kpi red"><div class="kpi-val" id="hkpi-sar">—</div><div class="kpi-lbl">SAR Pendientes</div></div>
+            <div class="home-kpi amber"><div class="kpi-val" id="hkpi-mas">—</div><div class="kpi-lbl">MAS Pendientes</div></div>
             <div class="home-kpi"><div class="kpi-val" id="hkpi-gc">—</div><div class="kpi-lbl">Nav. GC</div></div>
           </div>
         </div>
@@ -2092,8 +2092,8 @@ function mostrarHome() {
   const gact = gf.filter(f=>{const d=new Date();d.setHours(0,0,0,0);const p=parseDate(f.datos[1]);return !p||p<=d;}).length;
 
   const todos = [
-    { v:sar, l:"Casos SAR",   sec:"SAR", c:sar?"#f87171":"#fff" },
-    { v:mas, l:"Casos MAS",   sec:"MAS", c:mas?"#f59e0b":"#fff" },
+    { v:sar, l:"SAR Pendientes", sec:"SAR", c:sar?"#f87171":"#fff" },
+    { v:mas, l:"MAS Pendientes", sec:"MAS", c:mas?"#f59e0b":"#fff" },
     { v:gact,l:"GC navegando",sec:"GC",  c:"#fff" },
     { v:ara, l:"Buques ARA",  sec:"ARA", c:"#fff" },
     { v:puertos,l:"Puertos Cerrados",sec:"PUERTOS", c:"#fff" },
@@ -2869,6 +2869,7 @@ function recargarImagen(vId,url){const img=document.querySelector(`#${vId} img`)
    DASHBOARD PORTUARIO GENERAL
 ================================================================ */
 function abrirDashboardGeneral() {
+  document.getElementById("home-view").classList.remove("home-visible");
   document.getElementById("home-view").style.display     = "none";
   document.getElementById("section-view").style.display  = "none";
   document.getElementById("dashboard-view").style.display = "block";
@@ -2876,6 +2877,7 @@ function abrirDashboardGeneral() {
   const btn = document.querySelector("[onclick=\"abrirDashboardGeneral()\"]");
   if (btn) btn.classList.add("active");
   cerrarSidebar();
+  cerrarDropdowns();
 
   const ZONAS=[{id:"MOV_BAJO_PARANA",label:"Bajo Paraná"},{id:"MOV_DELTA",label:"Delta"},{id:"MOV_ZONA3",label:"Río de la Plata"},{id:"MOV_ZONA4",label:"Mar Norte"}];
   function extraerTotales(zonaId) {
@@ -2942,13 +2944,13 @@ function abrirDashboardGeneral() {
       </div>
     </div>
 
-    <div class="charts-grid">
-      <div style="background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
-        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Ocupación de muelles por zona</h4>
+    <div style="display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;justify-content:center">
+      <div style="flex:1 1 300px;max-width:500px;min-width:260px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;text-align:center">Ocupación de muelles por zona</h4>
         <canvas id="ch-muelles"></canvas>
       </div>
-      <div style="background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
-        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Radas — distribución</h4>
+      <div style="flex:1 1 300px;max-width:500px;min-width:260px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;text-align:center">Radas — distribución</h4>
         <canvas id="ch-radas"></canvas>
       </div>
     </div>
@@ -2978,17 +2980,26 @@ function abrirDashboardGeneral() {
       try{
         const c1=document.getElementById("ch-muelles");
         if(c1){
-          const labels=ZONAS.map(z=>z.label);
-          const amarData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.amarrados:0;});
-          const libreData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.libres:0;});
-          const highlightIdx=zonaSel==="__TODAS"?-1:ZONAS.findIndex(z=>z.id===zonaSel);
-          new Chart(c1,{type:"bar",data:{labels,datasets:[{label:"Amarrados",data:amarData,backgroundColor:amarData.map((_,i)=>i===highlightIdx?"#f59e0b":"#e07b3b"),borderRadius:4},{label:"Libres",data:libreData,backgroundColor:libreData.map((_,i)=>i===highlightIdx?"#34d399":"#1a9560"),borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},boxWidth:14,padding:12}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}},y:{stacked:true,grid:{color:"rgba(255,255,255,0.06)"},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}}}}});
+          if (zonaSel==="__TODAS") {
+            const labels=ZONAS.map(z=>z.label);
+            const amarData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.amarrados:0;});
+            const libreData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.libres:0;});
+            new Chart(c1,{type:"bar",data:{labels,datasets:[{label:"Amarrados",data:amarData,backgroundColor:amarData.map(()=>"#e07b3b"),borderRadius:4},{label:"Libres",data:libreData,backgroundColor:libreData.map(()=>"#1a9560"),borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},boxWidth:14,padding:12}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}},y:{stacked:true,grid:{color:"rgba(255,255,255,0.06)"},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}}}}});
+          } else {
+            const t=extraerTotales(zonaSel);
+            const zLabel=ZONAS.find(z=>z.id===zonaSel)?.label||"";
+            new Chart(c1,{type:"bar",data:{labels:[zLabel],datasets:[{label:"Amarrados",data:[t?t.amarrados:0],backgroundColor:"#e07b3b",borderRadius:4},{label:"Libres",data:[t?t.libres:0],backgroundColor:"#1a9560",borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},boxWidth:14,padding:12}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}},y:{stacked:true,grid:{color:"rgba(255,255,255,0.06)"},ticks:{color:"rgba(255,255,255,0.3)",font:{family:"DM Sans",size:11}}}}}});
+          }
         }
         const c2=document.getElementById("ch-radas");
         if(c2){
-          const donutLabels=ZONAS.map(z=>z.label);
-          const donutData=ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.capRadas||1:1;});
-          new Chart(c2,{type:"doughnut",data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:["#14b8a6","#e07b3b","#1a9560","#4a6480"],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},padding:12}}}}});
+          if (zonaSel==="__TODAS") {
+            const donutLabels=ZONAS.map(z=>z.label);
+            new Chart(c2,{type:"doughnut",data:{labels:donutLabels,datasets:[{data:ZONAS.map(z=>{const t=extraerTotales(z.id);return t?t.capRadas||1:1;}),backgroundColor:["#14b8a6","#e07b3b","#1a9560","#4a6480"],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},padding:12}}}}});
+          } else {
+            const t=extraerTotales(zonaSel);
+            new Chart(c2,{type:"doughnut",data:{labels:["Ocupado","Disponible"],datasets:[{data:[t?t.fondeados:0,t?t.disponibles:0],backgroundColor:["#e07b3b","#1a9560"],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:"bottom",labels:{color:"rgba(255,255,255,0.5)",font:{family:"DM Sans",size:12},padding:12}}}}});
+          }
         }
       }catch(e){}
     },100);
