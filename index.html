@@ -261,6 +261,18 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .home-dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr;gap:12px;height:100%;min-height:0;}
 .home-dash-grid > div{min-height:0;overflow:hidden;}
 @media (max-width:1100px){.home-dash-grid{grid-template-columns:1fr 1fr;}.home-dash-grid > div:first-child{overflow-y:auto;}}
+:fullscreen .home-header,
+:-webkit-full-screen .home-header,
+:-moz-full-screen .home-header{padding:18px 28px}
+:fullscreen .home-header h2,
+:-webkit-full-screen .home-header h2,
+:-moz-full-screen .home-header h2{font-size:26px}
+:fullscreen .home-kpi .kpi-val,
+:-webkit-full-screen .home-kpi .kpi-val,
+:-moz-full-screen .home-kpi .kpi-val{font-size:34px}
+:fullscreen .home-kpi .kpi-lbl,
+:-webkit-full-screen .home-kpi .kpi-lbl,
+:-moz-full-screen .home-kpi .kpi-lbl{font-size:12px}
 @media (max-width:768px){
   .home-dash-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;height:100%;}
   .home-dash-grid > div{flex:0 0 100%;scroll-snap-align:start;overflow-y:auto;min-height:0;height:100%;}
@@ -1530,12 +1542,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxxK_vR34h0T74B8GBpGqIrCcKtgvt4xRuAixnimNvyJhe-JyNt6qCofkAbExXiT6n9pg/exec";
-const USERS = {
-  "admin": { pass: "admin", role: "admin",  name: "Operador KSTM",  initials: "OK" },
-  "visual": { pass: "visual1",  role: "visual", name: "Usuario Visual", initials: "UV" },
-  "kstm":  { pass: "kstm2024", role: "admin",  name: "KSTM Oficial",   initials: "KO" }
-};
+const API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
+const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
    ESTADO GLOBAL
@@ -1560,16 +1568,43 @@ function seleccionarRol(r) {
   document.getElementById("role-visual").classList.toggle("selected", r==="visual");
 }
 
-function intentarLogin() {
-  const usr = document.getElementById("usr-input").value.trim().toLowerCase();
+async function intentarLogin() {
+  const usr = document.getElementById("usr-input").value.trim();
   const pwd = document.getElementById("pwd-input").value;
-  const user = USERS[usr];
   const err = document.getElementById("login-error");
+  const btn = document.querySelector(".login-btn");
   if (!usr || !pwd) { err.style.display = "block"; err.textContent = "Completá usuario y contraseña."; return; }
-  if (!user || user.pass !== pwd) { err.style.display = "block"; err.textContent = "Usuario o contraseña incorrectos."; return; }
   err.style.display = "none";
-  const efectiveRole = (rolSeleccionado === "visual" || user.role === "visual") ? "visual" : "admin";
-  iniciarApp(user, efectiveRole);
+  btn.disabled = true;
+  btn.textContent = "⏳ Ingresando...";
+  try {
+    const url = new URL(LOGIN_API_URL);
+    url.searchParams.set("accion", "login");
+    url.searchParams.set("usuario", usr);
+    url.searchParams.set("password", pwd);
+    const r = await fetch(url.toString(), { method: "GET", redirect: "follow" });
+    const text = await r.text();
+    const res = JSON.parse(text);
+    if (!res || !res.ok) {
+      err.style.display = "block";
+      err.textContent = "Usuario o contraseña incorrectos.";
+      btn.disabled = false;
+      btn.textContent = "Ingresar al Sistema →";
+      return;
+    }
+    const user = {
+      name: res.nombre || usr,
+      role: (res.rol === "administrador") ? "admin" : "visual",
+      initials: (res.nombre || usr).split(" ").map(w => w[0]).filter(Boolean).join("").toUpperCase().slice(0, 2) || "OP"
+    };
+    const efectiveRole = (rolSeleccionado === "visual" || user.role === "visual") ? "visual" : "admin";
+    iniciarApp(user, efectiveRole);
+  } catch(e) {
+    err.style.display = "block";
+    err.textContent = "Error de conexión: " + (e.message || e);
+    btn.disabled = false;
+    btn.textContent = "Ingresar al Sistema →";
+  }
 }
 
 function iniciarApp(user, role) {
@@ -1723,6 +1758,87 @@ function initPuertosMap(containerId, closedCodes) {
   };
   legend.addTo(map);
 }
+function initDeterminantesMap(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = "";
+  const map = L.map(el, { zoomControl:false, attributionControl:false }).setView([-32,-60], 6);
+  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 });
+  osm.addTo(map);
+  const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 });
+  const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { maxZoom:17 });
+  L.control.layers({"Calles":osm,"Satélite":sat,"Topográfico":topo}, null, {position:"bottomright"}).addTo(map);
+  L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
+  const sec = datosGlobales?.secciones?.find(s => s.id === "DETERMINANTES");
+  const filas = (sec?.filas || []);
+  const filasDet = filas.filter(f => f && f.tipo === "fila");
+  const parseN = v => parseFloat(String(v).replace(",","."));
+  const calados = filasDet.map(f => parseN(f.datos[8])).filter(v => !isNaN(v));
+  const minCalado = calados.length ? Math.min(...calados) : null;
+  const bounds = [];
+  let minMarker = null;
+  const markers = [];
+  filasDet.forEach(f => {
+    let lat = NaN, lng = NaN;
+    const d = f.datos || [];
+    if (d.length >= 12) {
+      lat = parseN(d[11]); lng = parseN(d[12]);
+    }
+    if ((isNaN(lat)||isNaN(lng)) && d.length >= 4) {
+      for (let i = 0; i < d.length; i++) {
+        const v = parseN(d[i]);
+        if (!isNaN(v)) {
+          if (v >= -90 && v <= -10 && isNaN(lat)) lat = v;
+          else if (v >= -70 && v <= -40 && isNaN(lng)) lng = v;
+        }
+      }
+    }
+    if (isNaN(lat) || isNaN(lng)) return;
+    const coords = [lat, lng];
+    bounds.push(coords);
+    const cVal = parseN(f.datos[8]);
+    const esMin = minCalado !== null && cVal === minCalado;
+    const color = esMin ? "#d32f2f" : "#1d6fa4";
+    const icon = L.divIcon({html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:""});
+    const marker = L.marker(coords, {icon}).addTo(map).bindPopup(`
+      <b style="color:#0f2744;font-size:13px">${esc(d[13]||d[0]||"")}</b><br>
+      <span style="color:#4a6480">${esc(d[2]||d[1]||"")}</span><br>
+      <hr style="margin:4px 0;border:none;border-top:1px solid #eee">
+      <span style="font-weight:600">KM:</span> ${esc(d[3]||"-")}<br>
+      <span style="font-weight:600">Río:</span> ${esc(d[10]||"-")}<br>
+      <span style="font-weight:600">Calado:</span> <b style="color:${color}">${esc(d[8]||"-")}</b><br>
+      <span style="font-weight:600">Altura hidrom.:</span> <b style="color:#1d6fa4">${esc(d[6]||"-")}</b>
+    `);
+    if (esMin) minMarker = marker;
+    markers.push(marker);
+  });
+  window._detMap = { map, bounds, minMarker, markers };
+  const legendTexts = filasDet
+    .filter(f => {
+      const d = f.datos || [];
+      const lat = parseN(d[11]), lng = parseN(d[12]);
+      const hasText = d.some(v => v && String(v).trim());
+      return isNaN(lat) && isNaN(lng) && hasText;
+    })
+    .map(f => {
+      const d = f.datos || [];
+      return esc(d.filter(Boolean).join(" · ") || "");
+    })
+    .filter(Boolean);
+  if (legendTexts.length) {
+    const leg = L.control({position:"topleft"});
+    leg.onAdd = function() {
+      const div = L.DomUtil.create("div","info legend");
+      div.style.cssText = "background:rgba(255,255,255,0.85);padding:5px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.15);font-size:11px;line-height:1.4;margin-top:10px;max-width:400px";
+      div.innerHTML = legendTexts.map(t => `<div style="color:#444">${t}</div>`).join("");
+      return div;
+    };
+    leg.addTo(map);
+  }
+  if (bounds.length > 1) { map.fitBounds(bounds, {padding:[30,30]}); }
+  else if (bounds.length === 1) { map.setView(bounds[0], 8); }
+  setTimeout(() => map.invalidateSize(), 200);
+}
 function calcularDias(zarpada,regreso) {
   const ini=parseDate(zarpada),fin=parseDate(regreso);
   if (!ini||!fin) return {navegando:"?",restantes:"?"};
@@ -1749,8 +1865,12 @@ function renderizar(data) {
     const sarSec = data.secciones.find(s => s.id === "SAR");
     const masSec = data.secciones.find(s => s.id === "MAS");
     const gcSec  = data.secciones.find(s => s.id === "GC");
-    const sarN = (sarSec?.filas || []).filter(f => f?.tipo === "caso_especial").length;
-    const masN = (masSec?.filas || []).filter(f => f?.tipo === "caso_especial").length;
+    const sarFilas = (sarSec?.filas || []).filter(f => f?.tipo === "caso_especial");
+    const masFilas = (masSec?.filas || []).filter(f => f?.tipo === "caso_especial");
+    const sarCerrados = sarFilas.filter(f => ((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")).length;
+    const masCerrados = masFilas.filter(f => ((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")).length;
+    const sarN = sarFilas.length - sarCerrados;
+    const masN = masFilas.length - masCerrados;
     const gcN  = (gcSec?.filas  || []).filter(f => f?.tipo === "fila").length;
     const bKSTM = document.getElementById("sel-badge-KSTM");
     const bSBGC = document.getElementById("sel-badge-SBGC");
@@ -1889,7 +2009,28 @@ function renderHomeCards(data, sarN, masN) {
 
     <div class="home-dash-grid">
 
-      <!-- LEFT COLUMN: stacked cards with equal height distribution -->
+      <!-- LEFT COLUMN: Windy Map -->
+      <div class="dash-card" style="flex:1;min-width:280px;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
+        <div style="height:4px;background:linear-gradient(90deg,#1d6fa4,#2d8bc8);flex-shrink:0;"></div>
+        <div style="background:var(--navy);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px;text-transform:uppercase;">🗺️ Mapa Meteorológico — Windy</span>
+        </div>
+        <div style="background:var(--gray-100);border-bottom:1px solid var(--gray-200);padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:11px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px">Capa:</span>
+          <button onclick="cambiarCapaWindyHome('wind')" class="smn-map-btn active" id="btn-wind-home">💨 Viento</button>
+          <button onclick="cambiarCapaWindyHome('rain')" class="smn-map-btn" id="btn-rain-home">🌧️ Lluvia</button>
+          <button onclick="cambiarCapaWindyHome('temp')" class="smn-map-btn" id="btn-temp-home">🌡️ Temperatura</button>
+          <button onclick="cambiarCapaWindyHome('clouds')" class="smn-map-btn" id="btn-clouds-home">☁️ Nubes</button>
+          <button onclick="cambiarCapaWindyHome('waves')" class="smn-map-btn" id="btn-waves-home">🌊 Oleaje</button>
+        </div>
+        <iframe id="windy-iframe-home" src="https://embed.windy.com/embed2.html?lat=-38.416&lon=-63.617&detailLat=-34.603&detailLon=-58.381&width=650&height=450&zoom=4&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1" style="flex:1;min-height:200px;border:none;display:block;width:100%;" title="Mapa meteorológico Windy" loading="lazy" allowfullscreen></iframe>
+        <div style="padding:8px 16px;background:var(--gray-100);border-top:1px solid var(--gray-200);font-size:11px;color:var(--text-lt);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+          <span>Fuente: Windy.com — Datos ECMWF actualizados en tiempo real</span>
+          <span>Usá scroll para hacer zoom · Arrastrá para mover</span>
+        </div>
+      </div>
+
+      <!-- CENTER COLUMN: stacked cards SAR/MAS, Dragas, GC/ARA -->
       <div style="display:flex;flex-direction:column;gap:12px;min-height:0;">
 
         <!-- TOP: SAR / MAS -->
@@ -1975,27 +2116,6 @@ function renderHomeCards(data, sarN, masN) {
           </div>
         </div>
 
-      </div>
-
-      <!-- CENTER COLUMN: Windy Map -->
-      <div class="dash-card" style="flex:1;min-width:280px;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
-        <div style="height:4px;background:linear-gradient(90deg,#1d6fa4,#2d8bc8);flex-shrink:0;"></div>
-        <div style="background:var(--navy);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px;text-transform:uppercase;">🗺️ Mapa Meteorológico — Windy</span>
-        </div>
-        <div style="background:var(--gray-100);border-bottom:1px solid var(--gray-200);padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <span style="font-size:11px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px">Capa:</span>
-          <button onclick="cambiarCapaWindyHome('wind')" class="smn-map-btn active" id="btn-wind-home">💨 Viento</button>
-          <button onclick="cambiarCapaWindyHome('rain')" class="smn-map-btn" id="btn-rain-home">🌧️ Lluvia</button>
-          <button onclick="cambiarCapaWindyHome('temp')" class="smn-map-btn" id="btn-temp-home">🌡️ Temperatura</button>
-          <button onclick="cambiarCapaWindyHome('clouds')" class="smn-map-btn" id="btn-clouds-home">☁️ Nubes</button>
-          <button onclick="cambiarCapaWindyHome('waves')" class="smn-map-btn" id="btn-waves-home">🌊 Oleaje</button>
-        </div>
-        <iframe id="windy-iframe-home" src="https://embed.windy.com/embed2.html?lat=-38.416&lon=-63.617&detailLat=-34.603&detailLon=-58.381&width=650&height=450&zoom=4&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1" style="flex:1;min-height:200px;border:none;display:block;width:100%;" title="Mapa meteorológico Windy" loading="lazy" allowfullscreen></iframe>
-        <div style="padding:8px 16px;background:var(--gray-100);border-top:1px solid var(--gray-200);font-size:11px;color:var(--text-lt);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-          <span>Fuente: Windy.com — Datos ECMWF actualizados en tiempo real</span>
-          <span>Usá scroll para hacer zoom · Arrastrá para mover</span>
-        </div>
       </div>
 
       <!-- RIGHT COLUMN: Puerto map -->
@@ -2198,6 +2318,12 @@ function mostrarSeccion(id) {
       let closed = [];
       if (pSec2) closed = (pSec2.filas||[]).filter(f=>f&&f.tipo==="puerto").map(f=>f.datos[0]||"").filter(Boolean);
       initPuertosMap("sec-puertos-map", closed);
+    }, 100);
+  }
+  if (id === "DETERMINANTES") {
+    setTimeout(() => {
+      const dSec = datosGlobales.secciones.find(s => s.id === "DETERMINANTES");
+      if (dSec) initDeterminantesMap("sec-determinantes-map");
     }, 100);
   }
 }
@@ -2484,8 +2610,15 @@ function renderSeccion(sec) {
   }
 
   if (sec.id === "DETERMINANTES") {
+  const parseNum = v => parseFloat(String(v).replace(",","."));
+  const filasDet = filas.filter(f => f && f.tipo === "fila" && f.datos && f.datos.some(v => v && String(v).trim()));
+  const filasData = filasDet.filter(f => {
+    const d = f.datos || [];
+    return !isNaN(parseNum(d[11])) && !isNaN(parseNum(d[12]));
+  });
+  const calados = filasData.map(f => parseNum(f.datos[8])).filter(v => !isNaN(v));
+  const minCalado = calados.length ? Math.min(...calados) : null;
   let h = `
-  <!-- BOTONES -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
     <a href="https://www.argentina.gob.ar/economia/agencia-nacional-de-puertos-y-navegacion/planillas-de-determinantes"
       target="_blank" class="tb-btn primary"
@@ -2502,77 +2635,56 @@ function renderSeccion(sec) {
       style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
       📊 Ver determinantes
     </a>
-  </div>`;
-
-  // Contenedor dos columnas: items + mapa
-  h += `<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">`;
-
-  // Columna izquierda — items de determinantes
-  h += `<div style="flex:1;min-width:260px">`;
-  filas.forEach(f => {
-    if (!f) return;
-    if (f.tipo === "subtitulo") {
-      h += `<div class="bloque-sub">${esc(f.texto || "")}</div>`;
-    } else if (f.tipo === "fila") {
-      h += `<div class="item-card">
-        <span style="font-size:12.5px;color:var(--text-md)">${esc(f.datos[0]||"")}</span>
-      </div>`;
-    } else if (f.tipo === "texto") {
-      h += `<div class="item-card">
-        <span style="font-size:12.5px;color:var(--text-md)">${esc(f.texto||"")}</span>
-      </div>`;
-    }
-  });
-  if (!filas.length) h += `<div class="empty">Sin determinantes.</div>`;
-  h += `</div>`; // fin columna izquierda
-
-  // Columna derecha — mapa INA
-  h += `
-  <div style="flex:1;min-width:300px">
-    <div style="
-      background:#fff;border-radius:var(--radius-lg);
-      border:1px solid var(--gray-200);overflow:hidden;
-      box-shadow:var(--shadow-sm);
-    ">
-      <div style="
-        background:var(--navy);padding:10px 16px;
-        display:flex;align-items:center;
-        justify-content:space-between;flex-wrap:wrap;gap:8px;
-      ">
-        <span style="
-          font-family:'Outfit',sans-serif;
-          font-size:12px;font-weight:800;
-          color:#fff;text-transform:uppercase;letter-spacing:.5px;
-        ">🌊 Mapa Hidrológico — INA</span>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-size:11px;color:rgba(255,255,255,0.5)">Datos en tiempo real</span>
-          <a href="https://alerta.ina.gob.ar/pub/mapa" target="_blank"
-            style="font-size:11px;color:#4a9fd4;font-weight:700;text-decoration:none">
-            Abrir en INA ↗
-          </a>
+  </div>
+  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:400px">
+        <div class="tbl-wrap">
+          <table class="pna-table">
+            <tr>
+              <th>Centro VTS</th>
+              <th>Denominación</th>
+              <th>KM crítico</th>
+              <th>Río</th>
+              <th>Calado</th>
+              <th>Altura hidrom.</th>
+            </tr>`;
+  if (!filasData.length) {
+    h += `<tr><td colspan="6" style="text-align:center;font-style:italic;color:var(--text-lt);padding:16px">Sin determinantes.</td></tr>`;
+  } else {
+    filasData.forEach((f, fi) => {
+      const cVal = parseNum(f.datos[8]);
+      const esMin = minCalado !== null && cVal === minCalado;
+      const rowBg = esMin ? 'style="background:#fef9c3;border-left:4px solid #eab308"' : '';
+      const cColor = esMin ? 'color:#a16207' : '';
+      h += `<tr ${rowBg} onclick="var m=window._detMap;if(m&&m.markers[${fi}]){m.markers[${fi}].openPopup();m.map.flyTo(m.markers[${fi}].getLatLng(),10)}" style="cursor:pointer">
+        <td style="font-weight:700;color:var(--navy);text-align:left">${esc(f.datos[13]||"")}</td>
+        <td style="text-align:left">${esc(f.datos[2]||"")}</td>
+        <td style="text-align:center;font-weight:600">${esc(f.datos[3]||"-")}</td>
+        <td>${esc(f.datos[10]||"-")}</td>
+        <td style="font-weight:700;${cColor}">${esc(f.datos[8]||"-")}</td>
+        <td style="font-weight:700;${cColor}">${esc(f.datos[6]||"-")}</td>
+      </tr>`;
+    });
+  }
+  h += `</table></div></div>
+      <div style="flex:1;min-width:320px">
+        <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm)">
+          <div style="background:var(--navy);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+            <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px">🗺️ Mapa de Determinantes</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <button onclick="var d=window._detMap;if(d&&d.minMarker){d.map.flyTo(d.minMarker.getLatLng(),10)}" style="font-size:10px;padding:3px 8px;border:none;border-radius:4px;background:#d32f2f;color:#fff;cursor:pointer;font-weight:600">🔴 Determinante</button>
+              <button onclick="var d=window._detMap;if(d&&d.bounds.length>1){d.map.fitBounds(d.bounds,{padding:[30,30]})}else if(d&&d.bounds.length===1){d.map.setView(d.bounds[0],8)}" style="font-size:10px;padding:3px 8px;border:none;border-radius:4px;background:rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-weight:600">Todos</button>
+              <span style="font-size:11px;color:rgba(255,255,255,0.5);margin-left:4px">${filasData.length} puntos</span>
+            </div>
+          </div>
+          <div id="sec-determinantes-map" style="height:450px;cursor:grab;"></div>
+          <div style="padding:8px 16px;background:var(--gray-100);border-top:1px solid var(--gray-200);font-size:11px;color:var(--text-lt);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+            <span>Puntos críticos de navegación — Fuente: ANPYN</span>
+            <span>Usá scroll para hacer zoom · Arrastrá para mover</span>
+          </div>
         </div>
       </div>
-      <iframe
-        src="https://alerta.ina.gob.ar/pub/mapa"
-        style="width:100%;height:500px;border:none;display:block"
-        title="Mapa hidrológico INA"
-        loading="lazy"
-        allowfullscreen>
-      </iframe>
-      <div style="
-        padding:8px 16px;background:var(--gray-100);
-        border-top:1px solid var(--gray-200);
-        font-size:11px;color:var(--text-lt);
-        display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;
-      ">
-        <span>Fuente: INA — Instituto Nacional del Agua</span>
-        <span>Usá scroll para zoom · Arrastrá para mover</span>
-      </div>
-    </div>
   </div>`;
-
-  h += `</div>`; // fin contenedor dos columnas
-
   return h;
 }
 
