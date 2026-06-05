@@ -261,18 +261,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .home-dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr;gap:12px;height:100%;min-height:0;}
 .home-dash-grid > div{min-height:0;overflow:hidden;}
 @media (max-width:1100px){.home-dash-grid{grid-template-columns:1fr 1fr;}.home-dash-grid > div:first-child{overflow-y:auto;}}
-:fullscreen .home-header,
-:-webkit-full-screen .home-header,
-:-moz-full-screen .home-header{padding:18px 28px}
-:fullscreen .home-header h2,
-:-webkit-full-screen .home-header h2,
-:-moz-full-screen .home-header h2{font-size:26px}
-:fullscreen .home-kpi .kpi-val,
-:-webkit-full-screen .home-kpi .kpi-val,
-:-moz-full-screen .home-kpi .kpi-val{font-size:34px}
-:fullscreen .home-kpi .kpi-lbl,
-:-webkit-full-screen .home-kpi .kpi-lbl,
-:-moz-full-screen .home-kpi .kpi-lbl{font-size:12px}
+.fs-active .home-header{padding:18px 28px}
+.fs-active .home-header h2{font-size:26px}
+.fs-active .home-kpi .kpi-val{font-size:34px}
+.fs-active .home-kpi .kpi-lbl{font-size:12px}
 @media (max-width:768px){
   .home-dash-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;height:100%;}
   .home-dash-grid > div{flex:0 0 100%;scroll-snap-align:start;overflow-y:auto;min-height:0;height:100%;}
@@ -2038,11 +2030,11 @@ function renderHomeCards(data, sarN, masN) {
         <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#dc2626,#7c3aed);flex-shrink:0;"></div>
           <div style="padding:6px 8px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-shrink:0;">
               <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
               <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${_t}</span>
             </div>
-            <div style="display:flex;gap:10px;flex:1;min-height:0;overflow:hidden;">
+            <div style="display:flex;gap:10px;flex:1;min-height:0;overflow-y:auto;padding-right:4px;">
               <div style="flex:1;min-width:0;min-height:0;">
                 <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid rgba(220,38,38,0.15);padding-bottom:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#dc2626;"></span> SAR</div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🔴 Cerrados</span><span>${sc}</span></div>
@@ -2064,10 +2056,20 @@ function renderHomeCards(data, sarN, masN) {
           <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;margin:0 8px 6px 8px;flex-shrink:0;"><div class="bf" data-w="100" style="height:100%;width:0%;background:#0891b2;border-radius:5px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
         </div>`})()}
 
-        <!-- MIDDLE: Dragas -->
+        <!-- MIDDLE: Dragas (barra vertical) -->
         ${(()=>{
           const df = (dSec?.filas||[]).filter(f=>f&&f.tipo==="fila");
-          const maxW = Math.max(df.length,1);
+          const hoy = new Date(); hoy.setHours(0,0,0,0);
+          const barras = df.map(f => {
+            const d = parseFechaDraga(f.datos[3]);
+            const rawDatos = (f.datos||[]).filter(v=>v&&v.trim());
+            const dias = d ? Math.floor((hoy - d) / 86400000) : -1;
+            return { nom: esc(rawDatos[0]||""), dep: esc(rawDatos[1]||""), full: rawDatos.map(esc).join(" — "), dias, d };
+          });
+          const maxDias = Math.max(1, ...barras.map(x => x.dias > 0 ? x.dias : 0));
+          const colorDias = d => d <= 0 ? "#22c55e" : d <= 5 ? "#22c55e" : d <= 15 ? "#f59e0b" : "#ef4444";
+          const anchoBar = Math.max(30, Math.min(60, 400 / Math.max(barras.length,1)));
+          const alto = 140;
           return `
         <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#a86210,#f59e0b);flex-shrink:0;"></div>
@@ -2076,45 +2078,80 @@ function renderHomeCards(data, sarN, masN) {
               <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">🚢 Dragas</span>
               <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#a86210;line-height:1;">${df.length}</span>
             </div>
-            <div style="font-size:10px;color:var(--text-md);font-weight:600;">Embarcaciones operando</div>
+            <div style="font-size:10px;color:var(--text-md);font-weight:600;">Días operando</div>
           </div>
-          <div style="padding:0 14px 6px;display:flex;flex-direction:column;gap:5px;flex:1;overflow-y:auto;min-height:0;">
-              ${df.map((f,i)=>`
-              <div style="display:flex;align-items:center;gap:6px;font-size:11px;">
-                <span style="flex:0 0 auto;font-weight:700;color:#a86210;width:22px;">${i+1}</span>
-                <span style="flex:0 0 auto;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.datos[0]||"")}</span>
-                ${f.datos[1]?`<span style="flex:0 0 auto;font-size:10px;color:var(--text-lt);">${esc(f.datos[1])}</span>`:''}
-                <div style="flex:1;height:14px;border-radius:7px;background:#f1f5f9;overflow:hidden;">
-                  <div style="height:100%;width:${((maxW-i)/maxW*100)}%;background:linear-gradient(90deg,#a86210,#f59e0b);border-radius:7px;opacity:${0.9-i*0.12};"></div>
-                </div>
+          <div style="padding:0 14px 6px;flex:1;overflow-y:auto;min-height:0;">
+            ${barras.length ? `
+            <div style="display:flex;align-items:flex-end;gap:4px;height:${alto}px;padding:12px 2px 0;">
+              ${barras.map(x => {
+                const h = Math.max(8, x.dias > 0 ? x.dias / maxDias * (alto-20) : 8);
+                const c = colorDias(x.dias);
+                return `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+              ${x.dias > 0 ? `<span style="font-size:8px;font-weight:800;color:${c};margin-bottom:2px;line-height:1;">${x.dias}d</span>` : '<span style="font-size:7px;color:var(--text-lt);margin-bottom:2px;line-height:1;">—</span>'}
+              <div style="width:100%;max-width:${anchoBar}px;height:${h}px;background:${c};border-radius:4px 4px 0 0;min-height:8px;transition:height .4s;" title="${x.full}"></div>
+              <div style="text-align:center;margin-top:3px;max-width:${anchoBar}px;cursor:default;" title="${x.full}">
+                <div style="font-size:7px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.nom||'—'}</div>
+                ${x.full.length > (x.nom||'').length ? `<div style="font-size:6px;color:var(--text-lt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.full}</div>` : ''}
               </div>
-            `).join("")||'<div style="font-size:11px;color:var(--text-lt);font-style:italic;">Sin dragas registradas.</div>'}
+            </div>`}).join("")}
+            </div>` : '<div style="font-size:11px;color:var(--text-lt);font-style:italic;text-align:center;padding:20px;">Sin dragas registradas.</div>'}
+          </div>
+          <div style="display:flex;gap:10px;padding:4px 12px 6px;border-top:1px solid var(--gray-200);flex-shrink:0;font-size:9px;font-weight:600;">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#22c55e;margin-right:3px;"></span>0–5d</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#f59e0b;margin-right:3px;"></span>6–15d</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#ef4444;margin-right:3px;"></span>&gt;15d</span>
           </div>
         </div>`})()}
 
-        <!-- BOTTOM: GC / ARA -->
+        <!-- BOTTOM: GC / ARA (Pie) -->
+        ${(()=>{
+          const gcActive = gcFilas.filter(f => { const d = parseDate(f.datos[1]); return !d || d <= hoy; });
+          const gcSched = gcFilas.filter(f => { const d = parseDate(f.datos[1]); return d && d > hoy; });
+          const araVessels = (araSec?.filas||[]).filter(f=>f&&f.tipo==="fila");
+          const total = gcActive.length + gcSched.length + araVessels.length;
+          const slices = [
+            { v: gcActive.length, color: "#22c55e", label: "GC Navegando" },
+            { v: araVessels.length, color: "#1d6fa4", label: "ARA" },
+            { v: gcSched.length, color: "#f59e0b", label: "GC Previstas" },
+          ];
+          const sum = slices.reduce((a,s) => a + s.v, 0);
+          const svgPie = (() => {
+            if (!sum) return "";
+            const cx=60, cy=60, r=50, ir=30;
+            let acc = -90, parts = "";
+            slices.forEach(s => {
+              if (!s.v) return;
+              const a = s.v / sum * 360;
+              const sr = acc * Math.PI / 180;
+              const er = (acc + a) * Math.PI / 180;
+              const x1 = cx + r * Math.cos(sr), y1 = cy + r * Math.sin(sr);
+              const x2 = cx + r * Math.cos(er), y2 = cy + r * Math.sin(er);
+              const large = a > 180 ? 1 : 0;
+              parts += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${s.color}"><title>${s.label}: ${s.v}</title></path>`;
+              acc += a;
+            });
+            return `<svg width="120" height="120" viewBox="0 0 120 120" style="display:block;">${parts}<circle cx="${cx}" cy="${cy}" r="${ir}" fill="#fff"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="22" font-weight="800" fill="var(--text)">${total}</text></svg>`;
+          })();
+          const listHtml = (arr, color) => arr.map(f => `<span style="font-size:9px;font-weight:600;color:${color};background:${color}15;padding:1px 6px;border-radius:3px;white-space:nowrap;">${esc(f.datos[0])}</span>`).join("");
+          return `
         <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#1a9560,#34d399);flex-shrink:0;"></div>
           <div style="padding:6px 10px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-shrink:0;">
               <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">&#x1f6a2; GC / ARA</span>
-              <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:#1a9560;line-height:1;">${totalGC+ara}</span>
+              <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:#1a9560;line-height:1;">${total}</span>
             </div>
-            <div style="display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto;min-height:0;padding-right:2px;">
-              <div style="font-size:10px;font-weight:700;color:#1a9560;display:flex;align-items:center;gap:4px;white-space:nowrap;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#1a9560;"></span> GC Navegando <span style="font-weight:800;color:var(--text);font-size:11px;">${gcAct}</span></div>
-              <div>${_gcNombres}</div>
-              <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;"><div class="bf" data-w="${_gcPct}" style="height:100%;width:0%;background:#1a9560;border-radius:5px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
-              <div style="font-size:10px;font-weight:700;color:#1d6fa4;display:flex;align-items:center;gap:4px;white-space:nowrap;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#1d6fa4;"></span> ARA <span style="font-weight:800;color:var(--text);font-size:11px;">${ara}</span></div>
-              <div>${_araNombres}</div>
-              <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;"><div class="bf" data-w="${_araPct}" style="height:100%;width:0%;background:#1d6fa4;border-radius:5px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
-              <div style="font-size:10px;font-weight:700;color:#f59e0b;display:flex;align-items:center;gap:4px;white-space:nowrap;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#f59e0b;"></span> GC Previstas <span style="font-weight:800;color:var(--text);font-size:11px;">${gcPrev}</span></div>
-              <div>${_gprevNombres}</div>
-              <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;margin-bottom:2px;"><div class="bf" data-w="${_gprevPct}" style="height:100%;width:0%;background:#f59e0b;border-radius:5px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
+            <div style="display:flex;gap:8px;flex:1;min-height:0;">
+              <div style="flex:0 0 auto;display:flex;align-items:center;">${svgPie}</div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px;overflow-y:auto;min-height:0;">
+                ${slices.filter(s=>s.v).map(s => `
+                <div><div style="font-size:10px;font-weight:700;color:${s.color};display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${s.color};"></span> ${s.label} <span style="font-weight:800;color:var(--text);font-size:11px;">${s.v}</span></div><div style="display:flex;flex-wrap:wrap;gap:2px;">${s.label==="GC Navegando"?listHtml(gcActive,s.color):s.label==="ARA"?listHtml(araVessels,s.color):listHtml(gcSched,s.color)}</div></div>
+                `).join("")||'<div style="font-size:11px;color:var(--text-lt);font-style:italic;">Sin datos.</div>'}
+              </div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--text);margin-top:2px;padding:0 2px;"><span>Total</span><span style="font-size:13px;font-weight:800;">${totalGC+ara}</span></div>
-            <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;flex-shrink:0;"><div class="bf" data-w="100" style="height:100%;width:0%;background:#0891b2;border-radius:5px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
           </div>
-        </div>
+        </div>`})()}
 
       </div>
 
@@ -2287,9 +2324,20 @@ function mostrarSeccion(id) {
   document.getElementById("topbar-sub").textContent =
     (tituloSec && tituloSec !== (titleMap[id] || id)) ? tituloSec : "";
 
-  // Mostrar botón dashboard
+  // Mostrar botón dashboard + navegación entre secciones
+  const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
   const dashWrap = document.getElementById("dash-btn-wrap");
-  if (dashWrap) dashWrap.style.display = "flex";
+  if (dashWrap) {
+    dashWrap.style.display = "flex";
+    const idx = SECCIONES_ORDEN.indexOf(id);
+    const prev = idx > 0 ? SECCIONES_ORDEN[idx-1] : null;
+    const next = idx >= 0 && idx < SECCIONES_ORDEN.length-1 ? SECCIONES_ORDEN[idx+1] : null;
+    dashWrap.innerHTML = `
+      ${prev ? `<button class="tb-btn" onclick="navegarSeccion('${prev}')" style="font-size:12px;">◀ Anterior</button>` : '<div></div>'}
+      <button class="tb-btn primary" onclick="mostrarHome()" style="font-size:12px;">🏠 Panel principal</button>
+      ${next ? `<button class="tb-btn" onclick="navegarSeccion('${next}')" style="font-size:12px;">Siguiente ▶</button>` : '<div></div>'}
+    `;
+  }
 
   // Limpiar reloj SAR
   if (relojInterval) { clearInterval(relojInterval); relojInterval = null; }
@@ -2327,6 +2375,47 @@ function mostrarSeccion(id) {
     }, 100);
   }
 }
+
+function navegarSeccion(id) {
+  if (id) mostrarSeccion(id);
+}
+
+// ── Navegación por teclado y touch ──
+document.addEventListener("keydown", function(e) {
+  const sv = document.getElementById("section-view");
+  if (sv.style.display !== "block") return;
+  if (e.key === "ArrowLeft") {
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+    const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
+    if (idx > 0) mostrarSeccion(SECCIONES_ORDEN[idx-1]);
+  } else if (e.key === "ArrowRight") {
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+    const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
+    if (idx >= 0 && idx < SECCIONES_ORDEN.length-1) mostrarSeccion(SECCIONES_ORDEN[idx+1]);
+  }
+});
+
+(function() {
+  let touchX = 0, touchY = 0;
+  document.addEventListener("touchstart", function(e) {
+    const sv = document.getElementById("section-view");
+    if (sv.style.display !== "block") return;
+    touchX = e.changedTouches[0].screenX;
+    touchY = e.changedTouches[0].screenY;
+  }, { passive: true });
+  document.addEventListener("touchend", function(e) {
+    const sv = document.getElementById("section-view");
+    if (sv.style.display !== "block") return;
+    const dx = e.changedTouches[0].screenX - touchX;
+    const dy = e.changedTouches[0].screenY - touchY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+      const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
+      if (dx < 0 && idx >= 0 && idx < SECCIONES_ORDEN.length-1) mostrarSeccion(SECCIONES_ORDEN[idx+1]);
+      else if (dx > 0 && idx > 0) mostrarSeccion(SECCIONES_ORDEN[idx-1]);
+    }
+  }, { passive: true });
+})();
 
 /* ================================================================
    MAPA GIS PNA
@@ -2938,6 +3027,19 @@ function renderFilasGenericas(filas) {
   return h||`<div class="empty">Sin novedades.</div>`;
 }
 
+function parseFechaDraga(str) {
+  if (!str) return null;
+  const m = str.match(/FH\s*(\d{2})(\d{2})(\d{2})\/(\w{3})/i);
+  if (!m) return null;
+  const meses = { ENE:0, FEB:1, MAR:2, ABR:3, MAY:4, JUN:5, JUL:6, AGO:7, SEP:8, OCT:9, NOV:10, DIC:11 };
+  const mes = meses[m[4].toUpperCase()];
+  if (mes === undefined) return null;
+  let año = new Date().getFullYear();
+  const d = new Date(año, mes, +m[1], +m[2], +m[3]);
+  if (d > new Date()) d.setFullYear(año - 1);
+  return d;
+}
+
 /* ================================================================
    RELOJES SAR
 ================================================================ */
@@ -3316,10 +3418,12 @@ function toggleBriefing(){
   if (!yaFull) {
     document.getElementById("sidebar").style.display = "none";
     document.getElementById("topbar").style.display = "none";
+    document.body.classList.add("fs-active");
     if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
   } else {
     document.getElementById("sidebar").style.display = "";
     document.getElementById("topbar").style.display = "";
+    document.body.classList.remove("fs-active");
     if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   }
 }
@@ -3327,6 +3431,7 @@ document.addEventListener("fullscreenchange", function(){
   if (!document.fullscreenElement) {
     document.getElementById("sidebar").style.display = "";
     document.getElementById("topbar").style.display = "";
+    document.body.classList.remove("fs-active");
   }
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape")cerrarZoom();});
