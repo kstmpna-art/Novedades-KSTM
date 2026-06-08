@@ -261,8 +261,11 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .home-dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr;gap:12px;height:100%;min-height:0;}
 .home-dash-grid > div{min-height:0;overflow:hidden;}
 @media (max-width:1100px){.home-dash-grid{grid-template-columns:1fr 1fr;}.home-dash-grid > div:first-child{overflow-y:auto;}}
-.fs-active .home-header{padding:18px 28px}
-.fs-active .home-header h2{font-size:26px}
+.fs-active .home-header{flex-direction:column;text-align:center;padding:24px 32px}
+.fs-active .home-header-left{width:100%;text-align:center}
+.fs-active .home-header h2{font-size:30px}
+.fs-active .home-header p{font-size:14px}
+.fs-active .home-header-kpi{justify-content:center;margin-top:10px;width:100%}
 .fs-active .home-kpi .kpi-val{font-size:34px}
 .fs-active .home-kpi .kpi-lbl{font-size:12px}
 @media (max-width:768px){
@@ -1144,7 +1147,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
     <div>
       <label class="login-label" for="usr-input">Usuario</label>
-      <input type="text" class="login-input" id="usr-input" placeholder="usuario@pna.gob.ar" autocomplete="username">
+      <input type="text" class="login-input" id="usr-input" placeholder="USUARIO / DNI" autocomplete="username">
       <label class="login-label" for="pwd-input">Contraseña</label>
       <input type="password" class="login-input" id="pwd-input" placeholder="••••••••" autocomplete="current-password"
         onkeydown="if(event.key==='Enter')intentarLogin()">
@@ -1546,7 +1549,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyKg_m7tJFuk-b3PQhHez9SQkac85_zZq-r4q9UfoQOP6CpnXEEaqPLTOf2ZrzS32mxFw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzwHfG3h7BfSiPqjKCs5GjFOdzoEbu_nr-zbxQXRVEOGcXEFRWu7DGqLdXq4bzAR5fbRw/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -1688,6 +1691,22 @@ function parseDate(s) {
   return new Date(y,m-1,d);
 }
 
+/* ── DMS a decimal ──────────────────────────────────── */
+function dmsToDecimal(s) {
+  if (!s) return null;
+  var nums = s.match(/(\d+(?:\.\d+)?)/g);
+  var hems = s.match(/\b([NSEW])\b/gi);
+  if (!nums || nums.length < 3 || !hems) return null;
+  var lat = null, lon = null, hi = 0;
+  for (var i = 0; i + 2 < nums.length && hi < hems.length; i += 3) {
+    var val = parseFloat(nums[i]) + parseFloat(nums[i+1]) / 60 + parseFloat(nums[i+2]) / 3600;
+    var h = hems[hi++].toUpperCase();
+    if (h === 'S' || h === 'W') val = -val;
+    if (h === 'N' || h === 'S') lat = val; else lon = val;
+  }
+  return (lat !== null && lon !== null) ? [lat, lon] : null;
+}
+
 /* ── PUERTOS ────────────────────────────────────────── */
 const puertosCoords = {
   POSA:[-27.3557101,-55.9073985],IGUA:[-25.5941519,-54.5815701],PILC:[-25.3739289,-57.649358],
@@ -1710,7 +1729,8 @@ const puertosCoords = {
   SMAN:[-40.160476,-71.3641373],SCRU:[-50.0176219,-68.5182137],DESE:[-47.7531821,-65.9110188],
   CRIV:[-45.8606601,-67.4769313],CORD:[-45.7496177,-67.3759829],SJUL:[-49.3068619,-67.7221245],
   BCAM:[-44.8008695,-65.715702],RGAL:[-51.6150533,-69.2159367],LARG:[-50.3037512,-72.3057638],
-  USHU:[-54.8051392,-68.2986013],OLVA:[-46.4407159,-67.5153727],RGRA:[-53.7944709,-67.6874973]
+  USHU:[-54.8051392,-68.2986013],RECA: [-35.09, -55.865], OLVA:[-46.4407159,-67.5153727],
+  RGRA:[-53.7944709,-67.6874973],
 };
 const puertosNombres = {
   POSA:"Posadas",IGUA:"Iguazú",PILC:"Pilcomayo",BOUV:"Bouvier",FORM:"Formosa",
@@ -1728,7 +1748,7 @@ const puertosNombres = {
   SMAN:"San Martín de los Andes",SCRU:"Santa Cruz",DESE:"Deseado",
   CRIV:"Comodoro Rivadavia",CORD:"Caleta Córdoba",SJUL:"San Julián",
   BCAM:"Bahía Camarones",RGAL:"Río Gallegos",LARG:"Lago Argentino",
-  USHU:"Ushuaia",OLVA:"Caleta Olivia",RGRA:"Río Grande"
+  USHU:"Ushuaia",OLVA:"Caleta Olivia",RGRA:"Río Grande", RECA: "Pontón Recalada"
 };
 function initPuertosMap(containerId, closedCodes) {
   const el = document.getElementById(containerId);
@@ -1842,6 +1862,47 @@ function initDeterminantesMap(containerId) {
   if (bounds.length > 1) { map.fitBounds(bounds, {padding:[30,30]}); }
   else if (bounds.length === 1) { map.setView(bounds[0], 8); }
   setTimeout(() => map.invalidateSize(), 200);
+}
+function initEjercMap(containerId, cuadrantes) {
+  const el = document.getElementById(containerId);
+  if (!el || !cuadrantes || !cuadrantes.length) return;
+  const map = L.map(el, { zoomControl: true, attributionControl: false }).setView([-35, -60], 5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(map);
+  L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
+  const colors = ["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e"];
+  const bounds = [];
+  const polos = [];
+  cuadrantes.forEach(function(c, i) {
+    if (!c.pts || c.pts.length < 3) return;
+    const color = colors[i % colors.length];
+    const poly = L.polygon(c.pts, { color: color, weight: 2, fillOpacity: 0.15 }).addTo(map);
+    var popHtml = "<b>" + esc(c.name) + "</b>";
+    if (c.fecha) popHtml += "<br><span style='font-size:11px;color:#555'>" + esc(c.fecha) + "</span>";
+    if (c.obs) popHtml += "<br><span style='font-size:11px;color:#777'>" + esc(c.obs) + "</span>";
+    poly.bindPopup(popHtml, { maxWidth: 300 });
+    poly.on("mouseover", function(){ this.setStyle({fillOpacity:0.3, weight:3}); });
+    poly.on("mouseout", function(){ this.setStyle({fillOpacity:0.15, weight:2}); });
+    c.pts.forEach(function(p){ if (p) bounds.push(p); });
+    polos.push(poly);
+    const leg = document.getElementById("legend-" + containerId);
+    if (leg) leg.innerHTML += '<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:' + color + ';border-radius:2px;"></span> ' + esc(c.name) + '</span>';
+  });
+  var fitAll = function() {
+    if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30] });
+    else if (bounds.length === 1) map.setView(bounds[0], 10);
+  };
+  fitAll();
+  setTimeout(function(){ map.invalidateSize(); }, 200);
+  window._ejercMap = {
+    flyToCuadrante: function(idx) {
+      if (!polos[idx] || !cuadrantes[idx]) return;
+      var c = cuadrantes[idx];
+      var center = c.pts.reduce(function(a, p) { return [a[0]+p[0]/c.pts.length, a[1]+p[1]/c.pts.length]; }, [0,0]);
+      map.flyTo(center, 10);
+      polos[idx].openPopup();
+    },
+    fitAll: fitAll
+  };
 }
 function calcularDias(zarpada,regreso) {
   const ini=parseDate(zarpada),fin=parseDate(regreso);
@@ -2256,6 +2317,8 @@ function mostrarHome() {
   const ejerc = cnt("EJER.ARMAS","arma"), kstm = cnt("KSTM"), visitas = cnt("VISITAS","fila"), reserva = cnt("RESERVA");
   const novedades = cnt("NOVEDADES");
   const metPrev = (datosGlobales.secciones.find(s=>s.id==="METANEROS")?.filas||[]).filter(f=>f&&f.tipo==="fila"&&f.datos&&f.datos.length<=6).length;
+  const pbip = cnt("PBIP");
+  const veleros = cnt("VELEROS_OC");
 
   // Obtener GC activos/previstas
   const gf = (datosGlobales.secciones.find(s=>s.id==="GC")?.filas||[]).filter(f=>f&&f.tipo==="fila");
@@ -2271,10 +2334,12 @@ function mostrarHome() {
     { v:regatasPrev,l:"Regatas", sec:"REGATAS", c:"#fff" },
     { v:ejerc,l:"Ej. Armas",sec:"EJER.ARMAS", c:"#fff" },
     { v:kstm,l:"Pilotaje",   sec:"KSTM", c:"#fff" },
-    { v:visitas,l:"Visitas", sec:"VISITAS", c:"#fff" },
     { v:reserva,l:"Reserva Canal",sec:"RESERVA", c:"#fff" },
-    { v:novedades,l:"Nov. Varias",sec:"NOVEDADES", c:"#fff" },
     { v:metPrev,l:"Metaneros Prev.",sec:"METANEROS", c:"#fff" },
+    { v:pbip,l:"PBIP",sec:"PBIP", c:"#fff" },
+    { v:veleros,l:"Vel. Oc.",sec:"VELEROS_OC", c:"#fff" },
+    { v:novedades,l:"Nov. Varias",sec:"NOVEDADES", c:"#fff" },
+    { v:visitas,l:"Visitas", sec:"VISITAS", c:"#fff" },
   ];
 
   hv.innerHTML = `
@@ -2491,7 +2556,7 @@ function renderSeccion(sec) {
   if (sec.id==="ARA") {
     const ff=filas.filter(f=>f&&f.tipo==="fila");
     let h=ff.length?"":` <div class="empty">Sin datos.</div>`;
-    ff.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy)">🚢 ${esc(f.datos[0])}</div><div style="font-size:13px;color:var(--text-md)">${[f.datos[1],f.datos[2],f.datos[3]].filter(v=>v).join(" | ")}</div></div>`;});
+    ff.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy)">🚢 ${esc(f.datos[0])}</div><div style="font-size:13px;color:var(--text-md)">ZARPÓ ${[f.datos[1],f.datos[2],f.datos[3]].filter(v=>v).join(" | ")}</div></div>`;});
     return h;
   }
 
@@ -2541,7 +2606,7 @@ function renderSeccion(sec) {
           <div class="caso-title" style="color:${cerrado?'var(--text-lt)':esSAR?'var(--red)':'var(--navy)'}">${esc(f.buque)}</div>
           <div class="caso-line"><span><b> ASUNTO:</b> </span>${esc(f.asunto)}</div>
           <div class="caso-line"><span><b>POSICIÓN:</b> </span>${esc(f.posicion)}</div>
-          <div class="caso-line" style="color: #FF0000"><span><b>ÚLTIMA NOVEDAD:</b> </span>${esc(f.novedad)}</div>
+          <div class="caso-line" style="color: #FF0000"><span><b>NOVEDAD:</b> </span>${esc(f.novedad)}</div>
           <div class="caso-line"><span><b>CARACTERÍSTICAS:</b> </span>${esc(f.caracteristicas)}</div>
           <div class="caso-line"><span><b>SITUACIÓN:</b> </span>${esc(f.situacion)}</div>
           ${relojHtml}
@@ -2848,27 +2913,55 @@ if (sec.tipo === "tipo_armas" || sec.id === "EJER.ARMAS") {
     return h;
   }
 
+  h += `<div style="display:flex;gap:16px;align-items:flex-start;">
+    <div style="flex:1;min-width:0;">`;
+
   h += `<div class="bloque-sub">
     🎯 Ejercicios vigentes
     <span class="badge amber">${items.length}</span>
   </div>`;
 
-  items.forEach(f => {
+  const cuadrantes = [];
+  items.forEach(function(f) {
     const datos = f.datos || [];
-    h += `<div class="item-card amber">
-      <div style="font-weight:700;color:var(--navy);margin-bottom:4px;
-        font-family:'Outfit',sans-serif">
-        ${esc(datos[0] || "Sin nombre")}
-      </div>
-      ${datos[1] ? `<div class="caso-line">
-        <span class="lbl">INICIO/FIN: </span>${esc(datos[1])}
-        ${datos[2] ? " – " + esc(datos[2]) : ""}
-      </div>` : ""}
-      ${datos[3] ? `<div class="caso-line">
-        <span class="lbl">OBS: </span>${esc(datos[3])}
-      </div>` : ""}
-    </div>`;
+    const pts = [];
+    for (let i = 4; i <= 7; i++) {
+      if (datos[i]) { var c = dmsToDecimal(datos[i]); if (c) pts.push(c); }
+    }
+    if (pts.length >= 3) cuadrantes.push({ name: datos[0] || "Sin nombre", pts, fecha: datos[1] + (datos[2] ? " – " + datos[2] : ""), obs: datos[3] });
   });
+
+  items.forEach(function(f, idx) {
+    var datos = f.datos || [];
+    var cIdx = -1;
+    for (var ci = 0; ci < cuadrantes.length; ci++) {
+      if (cuadrantes[ci].name === (datos[0] || "Sin nombre")) { cIdx = ci; break; }
+    }
+    var clickAttr = cIdx >= 0 ? 'onclick="window._ejercMap && window._ejercMap.flyToCuadrante(' + cIdx + ')" style="cursor:pointer"' : '';
+    h += '<div class="item-card amber" ' + clickAttr + '>';
+    if (cIdx >= 0) h += '<span style="float:right;font-size:10px;color:var(--blue);font-weight:600">📍 Ver en mapa</span>';
+    h += '<div style="font-weight:700;color:var(--navy);margin-bottom:4px;font-family:\'Outfit\',sans-serif">' + esc(datos[0] || "Sin nombre") + '</div>';
+    if (datos[1]) h += '<div class="caso-line"><span class="lbl">INICIO/FIN: </span>' + esc(datos[1]) + (datos[2] ? " – " + esc(datos[2]) : "") + '</div>';
+    if (datos[3]) h += '<div class="caso-line"><span class="lbl">OBS: </span>' + esc(datos[3]) + '</div>';
+    h += '</div>';
+  });
+
+  h += `</div>`;
+
+  if (cuadrantes.length) {
+    const mapId = "map-ejerc-" + uid();
+    h += `<div style="flex:1;min-width:0;">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <div class="bloque-sub" style="margin:0">🗺️ Cuadrantes de ejercicio</div>
+        <button onclick="window._ejercMap && window._ejercMap.fitAll()" class="tb-btn outline" style="font-size:11px;padding:3px 10px;">Todos</button>
+      </div>
+      <div id="${mapId}" style="width:100%;height:460px;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);"></div>
+      <div id="legend-${mapId}" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;font-weight:600;padding:4px 0;"></div>
+    </div>`;
+    setTimeout(() => initEjercMap(mapId, cuadrantes), 150);
+  }
+
+  h += `</div>`;
   return h;
 }
 
@@ -3108,6 +3201,60 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
       h += `</table></div>`;
     }
     if (!h) h = `<div class="empty">Sin datos de Metaneros.</div>`;
+    return h;
+  }
+
+    // ── VELEROS OC ────────────────────────────────────
+  if (sec.id === "VELEROS_OC") {
+    const items = filas.filter(f => f && f.tipo === "velero");
+    const otros = filas.filter(f => f && f.tipo !== "velero");
+    let h = otros.length ? renderFilasGenericas(otros) : "";
+    if (!items.length) return h || `<div class="empty">Sin veleros oceánicos registrados.</div>`;
+    h += `<div class="tbl-wrap"><div class="tbl-title">VELEROS OCEÁNICOS</div><table class="pna-table">
+      <tr><th>Velero</th><th>Fecha ZR</th><th>ETA Amarre</th><th>Puerto ZR - PU</th><th>Novedad</th></tr>`;
+    items.forEach(f => { h += `<tr>${f.datos.map(v => `<td>${esc(v)}</td>`).join("")}</tr>`; });
+    h += `</table></div>`;
+    return h;
+  }
+
+  // ── PBIP ─────────────────────────────────────────
+      if (sec.id === "PBIP") {
+    const items = filas.filter(f => f && f.tipo === "pbip");
+    const otros = filas.filter(f => f && f.tipo !== "pbip");
+    let h = otros.length ? renderFilasGenericas(otros) : "";
+    if (!items.length) return h || `<div class="empty">Sin registros PBIP.</div>`;
+    h += `<div class="tbl-wrap"><div class="tbl-title">PBIP</div><table class="pna-table">
+      <tr><th>Buque</th><th>Identificación</th><th>Situación</th><th>Estado</th><th>Fecha inicio</th><th>Fecha cierre</th><th>Dependencia</th><th>Tipo Buque</th><th>Bandera</th><th>Novedades</th></tr>`;
+    items.forEach(f => {
+      var sit = (f.datos[2] || "").toUpperCase();
+      var color = "";
+      if (sit.includes("ALARMA SASS")) color = "#ECF757";
+      else if (sit.includes("EBOLA")) color = "#F02600";
+      else if (sit.includes("MEDIO ORIENTE")) color = "#b3d9ff";
+      else if (sit.includes("INCIDENTE DE PROTECCI")) color = "lightgreen";
+      var estilo = color ? "background-color:" + color : "";if (color === "#F02600") estilo += ";color:white";
+      h += `<tr${estilo ? ' style="'+estilo+'"' : ''}>${f.datos.map(v => color === "#F02600" ? `<td style="color:white">${esc(v)}</td>` : `<td>${esc(v)}</td>`).join("")}</tr>`;
+    });
+    h += `</table></div>`;
+    h += `<div class="ref-pbip" style="margin-top:8px;font-size:13px;display:flex;gap:16px;flex-wrap:wrap;">`;
+    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#ECF757;vertical-align:middle;margin-right:4px;"></span> Alarma SASS</span>`;
+    h += `<span><span style="display:inline-block;width:14px;height:14px;background:lightgreen;vertical-align:middle;margin-right:4px;"></span> Incidente de protección</span>`;
+    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#F02600;vertical-align:middle;margin-right:4px;"></span> Ebola</span>`;
+    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#b3d9ff;vertical-align:middle;margin-right:4px;"></span> Medio Oriente</span>`;
+    h += `</div>`;
+    return h;
+  }
+
+  // ── CRUCEROS ──────────────────────────────────────
+  if (sec.id === "CRUCEROS") {
+    const items = filas.filter(f => f && f.tipo === "crucero");
+    const otros = filas.filter(f => f && f.tipo !== "crucero");
+    let h = otros.length ? renderFilasGenericas(otros) : "";
+    if (!items.length) return h || `<div class="empty">Sin cruceros registrados.</div>`;
+    h += `<div class="tbl-wrap"><div class="tbl-title">CRUCEROS</div><table class="pna-table">
+      <tr><th>Buque</th><th>Col B</th><th>Col C</th><th>Col D</th><th>Col E</th><th>Col F</th><th>Col G</th><th>Col H</th><th>Col I</th><th>Col J</th><th>Col K</th></tr>`;
+    items.forEach(f => { h += `<tr>${f.datos.map(v => `<td>${esc(v)}</td>`).join("")}</tr>`; });
+    h += `</table></div>`;
     return h;
   }
 
@@ -3525,6 +3672,7 @@ function toggleBriefing(){
     document.getElementById("sidebar").style.display = "none";
     document.getElementById("topbar").style.display = "none";
     document.body.classList.add("fs-active");
+    mostrarHome();
     if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
   } else {
     document.getElementById("sidebar").style.display = "";
