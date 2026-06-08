@@ -324,6 +324,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .item-card.green{border-left-color:var(--green)}
 .item-card.amber{border-left-color:var(--amber)}
 .item-card.red{border-left-color:var(--red)}
+.item-card.brown{border-left-color:#8B5E3C}
+.item-card.brown .buque-name{color:#8B5E3C}
 
 .item-card b{color:var(--navy);font-weight:600}
 .item-card .lbl{color: #5a7a9a;font-size: 12px;font-weight: 700;text-transform: uppercase; letter-spacing: 0.5px;}
@@ -1458,7 +1460,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
     </button>
     <div class="sb-group-items cerrado" id="g-admin">
       <button class="sb-item" id="navbtn-VISITAS" onclick="mostrarSeccion('VISITAS')">
-        <span class="si-icon">📊</span><span class="si-label">Resumen Mov. Portuarios</span>
+        <span class="si-icon">📆</span><span class="si-label">Visitas previstas</span>
         <span class="sb-badge blue" id="badge-VISITAS"></span>
       </button>
       <button class="sb-item" id="navbtn-NOVEDADES" onclick="mostrarSeccion('NOVEDADES')">
@@ -2515,6 +2517,48 @@ function mapaGisHtml() {
 =============================================================== */
 function renderSeccion(sec) {
   const filas = sec.filas||[];
+
+  // ── VELEROS OC ────────────────────────────────────
+  if (sec.id === "VELEROS_OC") {
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var h = '<div class="tbl-wrap"><table class="pna-table">';
+    h += '<tr><th>Velero</th><th>Zarpó</th><th>ETA Amarre</th><th>Puertos</th><th>Novedad</th></tr>';
+
+    for (var fi = 0; fi < filas.length; fi++) {
+      var f = filas[fi];
+      if (!f) continue;
+      if (f.tipo === "subtitulo") { h += '<tr><td colspan="5" class="dep" style="text-align:center;font-weight:700;background:var(--sky);color:var(--blue)">'+esc(f.texto)+'</td></tr>'; continue; }
+      if (f.tipo === "separador") { continue; }
+      if (f.tipo === "html") { h += '<tr><td colspan="5">'+f.texto+'</td></tr>'; continue; }
+      if (f.tipo === "partes") { h += '<tr><td colspan="5">'+partesAHtml(f.partes)+'</td></tr>'; continue; }
+      if (!f.datos || f.datos.length < 3) continue;
+
+      var d = f.datos;
+      var etaRaw = (d[2]||"").trim();
+      var etaDate = parseDate(etaRaw);
+      var diff = etaDate ? Math.floor((etaDate - hoy) / 86400000) : null;
+      var bg = "";
+      if (diff !== null && diff >= 0) {
+        if (diff <= 1) { bg = ' style="background:#fdf0ef;font-weight:600"'; }
+        else if (diff <= 5) { bg = ' style="background:#f5ede4;font-weight:600"'; }
+      }
+      h += '<tr'+bg+'>';
+      h += '<td style="text-align:left;font-weight:700">'+esc(d[0]||"")+'</td>';
+      h += '<td>'+esc(d[1]||"")+'</td>';
+      h += '<td>'+esc(etaRaw)+(diff !== null && diff <= 1 ? ' <span style="color:var(--red);font-weight:700">⚠ Vence</span>' : diff !== null && diff <= 5 ? ' <span style="color:#8B5E3C;font-weight:600">⏳ Próximo</span>' : '')+'</td>';
+      h += '<td style="text-align:left">'+esc(d[3]||"")+'</td>';
+      h += '<td style="text-align:left;font-size:12px">'+esc(d[4]||"")+'</td>';
+      h += '</tr>';
+    }
+
+    h += '</table></div>';
+
+    h += '<div style="margin-top:10px;font-size:12px;display:flex;gap:16px;flex-wrap:wrap;font-weight:600;">';
+    h += '<span><span style="display:inline-block;width:12px;height:12px;background:#f5ede4;border:1px solid #8B5E3C;vertical-align:middle;margin-right:4px;"></span> 5 días (marrón)</span>';
+    h += '<span><span style="display:inline-block;width:12px;height:12px;background:#fdf0ef;border:1px solid var(--red);vertical-align:middle;margin-right:4px;"></span> 1 día (rojo)</span>';
+    h += '</div>';
+    return h;
+  }
 
   if (sec.id==="AVIACION") {
     let h=`<div style="margin-bottom:12px"><button class="tb-btn primary" onclick="abrirAviacion()">📂 Abrir archivo de Aviación del día</button></div>
