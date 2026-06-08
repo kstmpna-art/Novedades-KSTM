@@ -1549,7 +1549,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzwHfG3h7BfSiPqjKCs5GjFOdzoEbu_nr-zbxQXRVEOGcXEFRWu7DGqLdXq4bzAR5fbRw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwiTo10-vOQT4DHfxJ7_hrxgoey70K_dEsBDt4cEm15nf2vw4Pu6PJ01_r-XfM8NO5RXw/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -3086,9 +3086,25 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
     return `<div class="empty">Sin novedades de Pilotaje.</div>`;
   }
 
+  var filasKstm = filas.filter(function(f) { return f && f.tipo === "fila" && f.datos && f.datos.length >= 4; });
+  var otrosKstm = filas.filter(function(f) { return f && f.tipo !== "fila"; });
+
   let h = "";
 
-  filas.forEach(f => {
+  if (filasKstm.length) {
+    h += `<div class="tbl-wrap" style="margin-bottom:16px"><table class="pna-table">
+      <tr><th>Buque (Pto ZR - Pto PU)</th><th>Fecha ZR</th><th>Fecha PU</th><th>Situación - FH Amarre</th></tr>`;
+    filasKstm.forEach(function(f) {
+      var d = f.datos;
+      h += `<tr><td style="text-align:left;font-weight:600;">${esc(d[0]||"")}</td>
+        <td>${esc(d[1]||"")}</td>
+        <td>${esc(d[2]||"")}</td>
+        <td style="text-align:left">${esc(d[3]||"")}</td></tr>`;
+    });
+    h += `</table></div>`;
+  }
+
+  otrosKstm.forEach(function(f) {
     if (!f) return;
 
     if (f.tipo === "subtitulo") {
@@ -3100,11 +3116,9 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
     } else if (f.tipo === "texto") {
       if (!f.texto || !f.texto.trim()) return;
 
-      // Separar por | para mostrar más prolijo
-      const partes = f.texto.split("|").map(p => p.trim()).filter(p => p);
+      var partes = f.texto.split("|").map(function(p) { return p.trim(); }).filter(function(p) { return p; });
 
       if (partes.length > 1) {
-        // Tiene múltiples columnas — mostrar estructurado
         h += `<div class="item-card">
           <div style="font-weight:700;color:var(--navy);
             font-family:'Outfit',sans-serif;margin-bottom:4px">
@@ -3112,13 +3126,12 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
           </div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;
             font-size:12.5px;color:var(--text-md);font-weight:500">
-            ${partes.slice(1).map(p => `<span>${esc(p)}</span>`).join(
+            ${partes.slice(1).map(function(p) { return `<span>${esc(p)}</span>`; }).join(
               `<span style="color:var(--gray-400)">|</span>`
             )}
           </div>
         </div>`;
       } else {
-        // Texto simple
         h += `<div class="item-card">
           <span style="color:var(--text-md);font-size:13px">
             ${esc(f.texto)}
@@ -3128,9 +3141,6 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
 
     } else if (f.tipo === "partes") {
       h += `<div class="item-card">${partesAHtml(f.partes)}</div>`;
-
-    } else if (f.tipo === "fila") {
-      h += `<div class="item-card">${filaArrayAHtml(f.datos)}</div>`;
 
     } else if (f.tipo === "html") {
       h += `<div class="item-card">${f.texto}</div>`;
