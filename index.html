@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PNA — Sistema de Tráfico Marítimo</title>
+<title>DTRA — Novedades Diarias KSTM</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1458,7 +1458,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
     </button>
     <div class="sb-group-items cerrado" id="g-admin">
       <button class="sb-item" id="navbtn-VISITAS" onclick="mostrarSeccion('VISITAS')">
-        <span class="si-icon">👥</span><span class="si-label">Visitas Previstas</span>
+        <span class="si-icon">📊</span><span class="si-label">Resumen Mov. Portuarios</span>
         <span class="sb-badge blue" id="badge-VISITAS"></span>
       </button>
       <button class="sb-item" id="navbtn-NOVEDADES" onclick="mostrarSeccion('NOVEDADES')">
@@ -2390,7 +2390,7 @@ function mostrarSeccion(id) {
     DRAGAS:"Dragas Operando", DETERMINANTES:"Determinantes",
     MOV_BAJO_PARANA:"Mov. — Bajo Paraná", MOV_DELTA:"Mov. — Delta",
     MOV_ZONA3:"Mov. — Río de la Plata", MOV_ZONA4:"Mov. — Mar Norte",
-    BUQUES:"Buques Infracción", VISITAS:"Visitas Previstas",
+    BUQUES:"Buques Infracción", VISITAS:"Resumen Movimientos portuarios",
     NOVEDADES:"Novedades Varias", PERSONAL_COSTERA:"Personal Costera",
     METANEROS:"Metaneros", PBIP:"PBIP",
     VELEROS_OC:"Veleros Oceánicos", CRUCEROS:"Cruceros"
@@ -2771,11 +2771,37 @@ function renderSeccion(sec) {
   }
 
   if (sec.id==="VISITAS") {
+    var parseVisitaFechas = function(s) {
+      if (!s) return null;
+      var p = s.split("/");
+      if (p.length < 2) return null;
+      var mes = parseInt((p[1].match(/(\d+)/) || [])[1]);
+      if (isNaN(mes)) return null;
+      var dias = (p[0].match(/(\d+)/g) || []).map(function(d) { return parseInt(d); }).filter(function(d) { return !isNaN(d); });
+      return dias.length ? { dias: dias, mes: mes } : null;
+    };
+    var manana = new Date(); manana.setDate(manana.getDate() + 1);
+    var tDay = manana.getDate(), tMonth = manana.getMonth() + 1;
+    var esManana = function(f) {
+      var r = parseVisitaFechas(f.datos && f.datos[0]);
+      return r && r.dias.some(function(d) { return d === tDay && r.mes === tMonth; });
+    };
+
     let h=`<div class="tbl-wrap"><table class="pna-table"><tr><th>DÍA/HS</th><th>AUT./SOL.</th><th>ACTIVIDAD</th><th>S/MOZO</th><th>PERS.</th><th>PROYECCIÓN</th><th>AUT. EXT.</th></tr>`;
     const ff=filas.filter(f=>f&&f.tipo==="fila");
     if(!ff.length) h+=`<tr><td colspan="7" style="text-align:center;font-style:italic;color:var(--text-lt)">Sin visitas previstas.</td></tr>`;
-    ff.forEach(f=>{h+=`<tr>${f.datos.map(v=>`<td style="text-align:left">${esc(v)}</td>`).join("")}</tr>`;});
-    h+=`</table></div>`;
+    ff.forEach(function(f) {
+      var hoy = esManana(f);
+      var estilo = hoy ? ' style="background:#dcfce7;"' : '';
+      h += `<tr${estilo}>${f.datos.map(function(v) { return '<td style="text-align:left">' + esc(v) + '</td>'; }).join("")}</tr>`;
+    });
+    h += `</table></div>`;
+    var algunaManana = ff.some(esManana);
+    if (algunaManana) {
+      h += '<div style="display:flex;gap:12px;font-size:12px;font-weight:600;margin-top:6px;align-items:center;">';
+      h += '<span><span style="display:inline-block;width:12px;height:12px;background:#dcfce7;border:1px solid #86efac;vertical-align:middle;margin-right:4px;"></span> Prevista para mañana</span>';
+      h += '</div>';
+    }
     return h;
   }
 
@@ -3200,6 +3226,47 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
       });
       h += `</table></div>`;
     }
+    if (termRows.length) {
+      var sum = function(idx) { return termRows.reduce(function(a, r) { var v = parseFloat(String(r[idx]||"").replace(",",".")); return a + (isNaN(v) ? 0 : v); }, 0); };
+      var chartId = "ch-metaneros-" + uid();
+      h += `<div style="margin-top:20px;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:16px;box-shadow:var(--shadow-sm);">
+        <div style="font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--navy);text-align:center;margin-bottom:14px;">📊 Histórico de buques metaneros por año</div>
+        <canvas id="${chartId}" style="max-height:280px;width:100%;"></canvas>
+      </div>`;
+      setTimeout(function() {
+        var el = document.getElementById(chartId);
+        if (!el) return;
+        new Chart(el, {
+          type: "bar",
+          data: {
+            labels: ["2019/20","2021","2022","2023","2024","2025","2026"],
+            datasets: [{
+              label: "Buques",
+              data: [sum(1), sum(2), sum(3), sum(4), sum(5), sum(6), sum(7)],
+              backgroundColor: ["#1d6fa4","#2d8bc8","#4a9fd4","#6db5e0","#8fc9eb","#b0d9f2","#f0b430"],
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: "rgba(0,0,0,0.06)" },
+                ticks: { font: { family: "DM Sans" } }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { font: { family: "DM Sans", weight: "bold" } }
+              }
+            }
+          }
+        });
+      }, 100);
+    }
     if (!h) h = `<div class="empty">Sin datos de Metaneros.</div>`;
     return h;
   }
@@ -3412,12 +3479,12 @@ function abrirDashboardGeneral() {
     </div>
 
     <div style="display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;justify-content:center">
-      <div style="flex:1 1 300px;max-width:500px;min-width:260px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
-        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;text-align:center">Ocupación de muelles por zona</h4>
+      <div style="flex:1 1 260px;max-width:400px;min-width:200px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:12px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <h4 style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;text-align:center">Ocupación de muelles por zona</h4>
         <canvas id="ch-muelles"></canvas>
       </div>
-      <div style="flex:1 1 300px;max-width:500px;min-width:260px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
-        <h4 style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;text-align:center">Radas — distribución</h4>
+      <div style="flex:1 1 260px;max-width:400px;min-width:200px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:12px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <h4 style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;text-align:center">Radas — distribución</h4>
         <canvas id="ch-radas"></canvas>
       </div>
     </div>
