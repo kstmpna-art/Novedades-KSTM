@@ -1149,7 +1149,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
     <div>
       <label class="login-label" for="usr-input">Usuario</label>
-      <input type="text" class="login-input" id="usr-input" placeholder="USUARIO / DNI" autocomplete="username">
+      <input type="text" class="login-input" id="usr-input" placeholder="Usuario / DNI" autocomplete="username">
       <label class="login-label" for="pwd-input">Contraseña</label>
       <input type="password" class="login-input" id="pwd-input" placeholder="••••••••" autocomplete="current-password"
         onkeydown="if(event.key==='Enter')intentarLogin()">
@@ -1551,7 +1551,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwiTo10-vOQT4DHfxJ7_hrxgoey70K_dEsBDt4cEm15nf2vw4Pu6PJ01_r-XfM8NO5RXw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwaxg4LXqIvvEmTHTxTJrs3SiyW3W7-CWuPZoj-jayEOS8FdX8sFcleI4E-t0nkWfGTVg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -1567,6 +1567,8 @@ let pinCallbackFn  = null;
 let rolActual      = "visual";
 let seccionDashActiva = null;
 let rolSeleccionado = "admin";
+let preavisosUrl = null;
+let preavisosFileName = null;
 
 /* ================================================================
    LOGIN
@@ -1924,6 +1926,33 @@ function filaArrayAHtml(datos) { return (datos||[]).filter(v=>v).join(" <span st
 function renderizar(data) {
   if (!data||!data.secciones) { document.getElementById("loader").innerHTML = "Sin datos."; return; }
   datosGlobales = data;
+
+  // Preavisos: el backend guarda el link en la columna V de ALERT.MET
+  // y lo devuelve como imgUrl en la primera fila de la sección ALERTA
+  preavisosUrl = null;
+  preavisosFileName = null;
+  const _alertaSec = data.secciones && data.secciones.find(s => s.id === "ALERTA");
+  if (_alertaSec && _alertaSec.filas) {
+    for (const f of _alertaSec.filas) {
+      if (!f) continue;
+      if (f.imgUrl && String(f.imgUrl).trim()) {
+        preavisosUrl = String(f.imgUrl).trim();
+        preavisosFileName = "Preaviso";
+        break;
+      }
+      if (f.datos && Array.isArray(f.datos)) {
+        for (const v of f.datos) {
+          if (v && String(v).trim().startsWith("http")) {
+            preavisosUrl = String(v).trim();
+            preavisosFileName = "Preaviso";
+            break;
+          }
+        }
+        if (preavisosUrl) break;
+      }
+    }
+  }
+
   document.getElementById("loader").style.display = "none";
   document.getElementById("home-view").style.display = "block";
   document.getElementById("sb-fecha").textContent = "📅 " + (data.fecha||"");
@@ -1974,7 +2003,6 @@ function renderizar(data) {
   });
 
 }
-
 
 function isEnPrevistas(f) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -2121,7 +2149,12 @@ function renderHomeCards(data, sarN, masN) {
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--text);margin:0 8px 2px 8px;padding:0 2px;"><span>Total</span><span style="font-size:13px;font-weight:800;">${_t}</span></div>
-          <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;margin:0 8px 6px 8px;flex-shrink:0;"><div class="bf" data-w="100" style="height:100%;width:0%;background:#0891b2;border-radius:5px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
+          <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;margin:0 8px 6px 8px;flex-shrink:0;display:flex;">
+            ${sc>0?`<div class="bf" data-w="${(sc/_t*100)}" title="SAR Cerrados: ${sc}" style="height:100%;width:0%;background:#dc2626;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
+            ${sp>0?`<div class="bf" data-w="${(sp/_t*100)}" title="SAR Pendientes: ${sp}" style="height:100%;width:0%;background:#22c55e;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
+            ${mc>0?`<div class="bf" data-w="${(mc/_t*100)}" title="MAS Cerrados: ${mc}" style="height:100%;width:0%;background:#7c3aed;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
+            ${mp>0?`<div class="bf" data-w="${(mp/_t*100)}" title="MAS Pendientes: ${mp}" style="height:100%;width:0%;background:#f59e0b;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
+          </div>
         </div>`})()}
 
         <!-- MIDDLE: Dragas (barra vertical) -->
@@ -2301,7 +2334,7 @@ function mostrarHome() {
   document.getElementById("section-view").style.display   = "none";
   document.getElementById("dashboard-view").style.display = "none";
   document.getElementById("topbar-title").textContent = "Panel General";
-  document.getElementById("topbar-sub").textContent   = datosGlobales ? datosGlobales.fecha || "" : "";
+  
 
   if (!datosGlobales) return;
 
@@ -2347,8 +2380,8 @@ function mostrarHome() {
   hv.innerHTML = `
     <div class="home-header">
       <div class="home-header-left">
-        <h2>Novedades Diarias</h2>
-        <p id="home-fecha-sub">${datosGlobales.fecha || ""}</p>
+        <h2>Reporte de Novedades</h2>
+        
       </div>
       <div class="home-header-kpi">
         ${todos.map(t => `
@@ -2417,7 +2450,7 @@ function mostrarSeccion(id) {
     const next = idx >= 0 && idx < SECCIONES_ORDEN.length-1 ? SECCIONES_ORDEN[idx+1] : null;
     dashWrap.innerHTML = `
       ${prev ? `<button class="tb-btn" onclick="navegarSeccion('${prev}')" style="font-size:12px;">◀ Anterior</button>` : '<div></div>'}
-      <button class="tb-btn primary" onclick="mostrarHome()" style="font-size:12px;">🏠 Panel principal</button>
+      
       ${next ? `<button class="tb-btn" onclick="navegarSeccion('${next}')" style="font-size:12px;">Siguiente ▶</button>` : '<div></div>'}
     `;
   }
@@ -2726,6 +2759,40 @@ function renderSeccion(sec) {
 
   h += `</table></div>`;
 
+  // ── PREAVISOS VIGENTES ─────────────────────────
+  const preavPuede = rolActual === "admin";
+  h += `
+  <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;margin:16px 0;box-shadow:var(--shadow-sm);">
+    <div style="padding:8px 14px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px;">📋 Preavisos vigentes</span>
+    </div>
+    <div style="padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="tb-btn primary" id="btn-preav-ver" onclick="abrirPreavisos()"${!preavisosUrl?' disabled style="opacity:0.5;cursor:not-allowed"':''}>
+        📄 Abrir preaviso
+      </button>
+      ${preavisosUrl ? `<span style="font-size:11px;color:var(--green);font-weight:600;">✅ Archivo cargado</span>` : '<span style="font-size:11px;color:var(--text-lt);font-weight:600;">Sin archivo cargado</span>'}
+      ${preavPuede ? `
+      <span style="color:var(--gray-400);font-size:12px;">|</span>
+      <button class="btn-operador ${pinVerificado?'autenticado':''}" id="btn-preav-op" onclick="abrirUploadPreavisos()">
+        ${pinVerificado?'✅ Subir archivo':'🔒 Subir preaviso (operador)'}
+      </button>
+      <div class="uploader-wrap" id="upwrap-preav">
+        <div class="uploader-header">📁 Subir archivo de preaviso</div>
+        <div class="dropzone" id="dz-preav" ondragover="dzOver(event,'preav')" ondragleave="dzLeave('preav')" ondrop="dzDropPreav(event)" onclick="document.getElementById('fi-preav').click()">
+          <div class="dropzone-icon">📁</div>
+          <div class="dropzone-txt"><b>Arrastrá</b> un archivo aquí<br>o hacé clic para seleccionar<br><span style="font-size:11px">PDF · Word · JPG · PNG — máx. 10 MB</span></div>
+          <input type="file" id="fi-preav" accept=".pdf,.doc,.docx,image/*" style="display:none" onchange="fileSelectedPreav(this)">
+        </div>
+        <div class="upload-preview" id="prev-preav" style="display:none;padding:10px;text-align:center;">
+          <span style="font-size:24px">📄</span>
+          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-top:4px" id="prevname-preav"></div>
+        </div>
+        <div class="upload-status" id="upstatus-preav"></div>
+        <button class="upload-btn" id="upbtn-preav" onclick="subirPreavisos()" style="display:none">⬆ Subir archivo</button>
+      </div>` : ''}
+    </div>
+  </div>`;
+
   // MAPA INTERACTIVO WINDY
   h += `
   <div style="
@@ -2961,7 +3028,58 @@ if (sec.tipo === "tipo_sers" || sec.id === "SALVAMENTO") {
 
 // ── DRAGAS (tipo_dragas) ────────────────────────────
 if (sec.tipo === "tipo_dragas" || sec.id === "DRAGAS") {
-  return renderFilasGenericas(filas);
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const conFecha = filas.filter(f => f && f.tipo === "fila" && parseFechaDraga(f.datos && f.datos[3]) !== null);
+  const barras = conFecha.map(f => {
+    const d = parseFechaDraga(f.datos[3]);
+    const rawDatos = (f.datos||[]).filter(v=>v&&v.trim());
+    const dias = d ? Math.floor((hoy - d) / 86400000) : -1;
+    return { nom: esc(rawDatos[0]||""), dep: esc(rawDatos[1]||""), full: rawDatos.map(esc).join(" — "), dias, d };
+  });
+  const maxDias = Math.max(1, ...barras.map(x => x.dias > 0 ? x.dias : 0));
+  const colorDias = d => d <= 0 ? "#22c55e" : d <= 5 ? "#22c55e" : d <= 15 ? "#f59e0b" : "#ef4444";
+  const anchoBar = Math.max(30, Math.min(60, 400 / Math.max(barras.length,1)));
+  const alto = 140;
+
+  let h = `<div style="display:flex;gap:16px;align-items:flex-start;">
+    <div style="flex:1;min-width:0;">`;
+  h += renderFilasGenericas(filas) || '<div class="empty">Sin novedades.</div>';
+  h += `</div>
+    <div style="flex:1;min-width:0;">
+      <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+        <div style="height:4px;background:linear-gradient(90deg,#a86210,#f59e0b);flex-shrink:0;"></div>
+        <div style="padding:8px 14px 4px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">🚢 Dragas — Días operando</span>
+            <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:#a86210;line-height:1;">${conFecha.length}</span>
+          </div>
+        </div>
+        <div style="padding:0 14px 6px;flex:1;overflow-y:auto;min-height:0;">
+          ${barras.length ? `
+          <div style="display:flex;align-items:flex-end;gap:4px;height:${alto}px;padding:12px 2px 0;">
+            ${barras.map(x => {
+              const hh = Math.max(8, x.dias > 0 ? x.dias / maxDias * (alto-20) : 8);
+              const c = colorDias(x.dias);
+              return `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+              ${x.dias > 0 ? `<span style="font-size:8px;font-weight:800;color:${c};margin-bottom:2px;line-height:1;">${x.dias}d</span>` : '<span style="font-size:7px;color:var(--text-lt);margin-bottom:2px;line-height:1;">—</span>'}
+              <div style="width:100%;max-width:${anchoBar}px;height:${hh}px;background:${c};border-radius:4px 4px 0 0;min-height:8px;transition:height .4s;" title="${x.full}"></div>
+              <div style="text-align:center;margin-top:3px;max-width:${anchoBar}px;cursor:default;" title="${x.full}">
+                <div style="font-size:7px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.nom||'—'}</div>
+                ${x.full.length > (x.nom||'').length ? `<div style="font-size:6px;color:var(--text-lt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.full}</div>` : ''}
+              </div>
+            </div>`}).join("")}
+          </div>` : '<div style="font-size:11px;color:var(--text-lt);font-style:italic;text-align:center;padding:20px;">Sin dragas registradas.</div>'}
+        </div>
+        <div style="display:flex;gap:10px;padding:4px 12px 6px;border-top:1px solid var(--gray-200);flex-shrink:0;font-size:9px;font-weight:600;">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#22c55e;margin-right:3px;"></span>0–5d</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#f59e0b;margin-right:3px;"></span>6–15d</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:#ef4444;margin-right:3px;"></span>&gt;15d</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  return h;
 }
 
 // ── REGATAS / EVENTOS (eventos) ─────────────────────
@@ -3688,18 +3806,19 @@ async function subirImagen(id, fila, hojaId) {
   const base64Data = archivo.compressed.split(",")[1];
 
   try {
-    const formData = new FormData();
-    formData.append("accion",      "subirImagenSAR");
-    formData.append("base64Data",  base64Data);
-    formData.append("mimeType",    "image/jpeg");
-    formData.append("nombreCaso",  "CASO_FILA" + fila);
-    formData.append("filaSheet",   String(parseInt(fila) || 0));
-    formData.append("hojaId",      hojaId);
+    const params = new URLSearchParams();
+    params.set("accion",      "subirImagenSAR");
+    params.set("base64Data",  base64Data);
+    params.set("mimeType",    "image/jpeg");
+    params.set("nombreCaso",  "CASO_FILA" + fila);
+    params.set("filaSheet",   String(parseInt(fila) || 0));
+    params.set("hojaId",      hojaId);
 
     const response = await fetch(API_URL, {
       method: "POST",
       redirect: "follow",
-      body: formData          // sin Content-Type header — el browser lo pone solo
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString()
     });
 
     const text = await response.text();
@@ -3745,6 +3864,122 @@ function setStatus(id,tipo,msg){
   el.className="upload-status"+(tipo?" "+tipo:"");
   el.style.display=msg?"block":"none";
   el.textContent=msg;
+}
+
+/* ================================================================
+   PREAVISOS
+=============================================================== */
+let _preavArchivo = null;
+
+function abrirPreavisos() {
+  if (preavisosUrl) window.open(preavisosUrl, "_blank");
+}
+
+function abrirUploadPreavisos() {
+  if (pinVerificado) { toggleUploaderPanel("preav"); return; }
+  pinCallbackFn = function() { toggleUploaderPanel("preav"); };
+  document.getElementById("pinInput").value = "";
+  document.getElementById("pinError").textContent = "";
+  document.getElementById("modalPin").classList.add("activo");
+  setTimeout(() => document.getElementById("pinInput").focus(), 100);
+}
+
+function dzDropPreav(event) {
+  event.preventDefault();
+  dzLeave("preav");
+  const file = event.dataTransfer.files[0];
+  if (file) prepararArchivoPreav(file);
+}
+
+function fileSelectedPreav(input) {
+  const file = input.files[0];
+  if (file) prepararArchivoPreav(file);
+}
+
+function prepararArchivoPreav(file) {
+  if (file.size > 10 * 1024 * 1024) { setStatus("preav", "error", "❌ El archivo supera 10 MB."); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    let base64, mimeType = file.type || "application/octet-stream";
+    if (file.type.startsWith("image/")) {
+      const canvas = document.createElement("canvas");
+      const img = new Image();
+      img.onload = function() {
+        const MAX = 800; let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        base64 = canvas.toDataURL("image/jpeg", 0.7).split(",")[1];
+        mimeType = "image/jpeg";
+        _preavArchivo = { base64, mimeType, name: file.name };
+        mostrarPreavPreview(file.name);
+      };
+      img.src = e.target.result;
+    } else {
+      base64 = e.target.result.split(",")[1];
+      _preavArchivo = { base64, mimeType, name: file.name };
+      mostrarPreavPreview(file.name);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function mostrarPreavPreview(name) {
+  const prev = document.getElementById("prev-preav");
+  const nameEl = document.getElementById("prevname-preav");
+  const btn = document.getElementById("upbtn-preav");
+  if (prev) prev.style.display = "block";
+  if (nameEl) nameEl.textContent = name;
+  if (btn) btn.style.display = "block";
+  setStatus("preav", "", "");
+}
+
+async function subirPreavisos() {
+  if (!_preavArchivo) { setStatus("preav", "error", "❌ No hay archivo seleccionado."); return; }
+  const btn = document.getElementById("upbtn-preav");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Subiendo..."; }
+  setStatus("preav", "loading", "⏳ Subiendo archivo...");
+  try {
+    const params = new URLSearchParams();
+    params.set("accion", "subirImagenSAR");
+    params.set("base64Data", _preavArchivo.base64);
+    params.set("mimeType", _preavArchivo.mimeType);
+    params.set("nombreCaso", "PREAVISO");
+    params.set("filaSheet", "2");
+    params.set("hojaId", "ALERT.MET.");
+    const response = await fetch(API_URL, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString()
+    });
+    const text = await response.text();
+    const res = JSON.parse(text);
+    if (btn) { btn.disabled = false; btn.textContent = "⬆ Subir archivo"; }
+    if (res && res.ok) {
+      preavisosUrl = res.url;
+      preavisosFileName = _preavArchivo.name;
+      _preavArchivo = null;
+      // Actualizar localmente para que se vea sin recargar
+      if (datosGlobales) {
+        const sec = datosGlobales.secciones.find(s => s.id === "ALERTA");
+        if (sec && sec.filas) {
+          const target = sec.filas.find(f => f && f.tipo === "fila");
+          if (target) target.imgUrl = res.url;
+        }
+      }
+      setStatus("preav", "ok", "✅ Archivo subido correctamente.");
+      const verBtn = document.getElementById("btn-preav-ver");
+      if (verBtn) { verBtn.disabled = false; verBtn.style.opacity = ""; verBtn.style.cursor = ""; }
+      if (seccionActiva === "ALERTA") mostrarSeccion("ALERTA");
+    } else {
+      setStatus("preav", "error", "❌ Error: " + ((res && res.error) ? res.error : "desconocido"));
+    }
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = "⬆ Subir archivo"; }
+    setStatus("preav", "error", "❌ Error de conexión: " + (err.message || err));
+  }
 }
 
 /* ================================================================
@@ -4158,8 +4393,7 @@ function actualizarSistema(automatico) {
 }
 
 /* ================================================================
-   AUTO-ROTACIÓN DE PANTALLAS
-   Ciclo: Servicios (1min) → KSTM → Home (3min) → cada sección → Servicios...
+   AUTO-ROTACIÓN DE PANTALLAS   
    ================================================================ */
 let autoRotacionActiva = false;
 let autoRotacionTimer = null;
