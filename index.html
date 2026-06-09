@@ -2151,18 +2151,18 @@ function renderHomeCards(data, sarN, masN) {
         ${(()=>{
           var sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos;
           function gaugeSvg(pendientes,cerrados,label,lcolor){
-            var cx=80,cy=105,r=55,m=8,v=Math.min(pendientes,m);
+            var cx=80,cy=105,r=65,m=8,v=Math.min(pendientes,m);
             function pt(deg){var rad=Math.PI*deg/180;return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
             var g=pt(180),g1=pt(225),y1=pt(292.5),r2=pt(0);
-            var svg='<svg width="100%" height="100%" viewBox="0 0 160 165" style="display:block;max-height:155px;"><path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 1,1 '+r2.x+','+r2.y+'" fill="none" stroke="#f1f5f9" stroke-width="14" stroke-linecap="round"/>';
+            var svg='<svg width="100%" height="100%" viewBox="0 0 170 165" style="display:block;max-height:155px;"><path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 1,1 '+r2.x+','+r2.y+'" fill="none" stroke="#f1f5f9" stroke-width="14" stroke-linecap="round"/>';
             svg+='<path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 0,1 '+g1.x+','+g1.y+'" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round"/>';
             svg+='<path d="M '+g1.x+','+g1.y+' A '+r+','+r+' 0 0,1 '+y1.x+','+y1.y+'" fill="none" stroke="#f59e0b" stroke-width="14" stroke-linecap="round"/>';
             svg+='<path d="M '+y1.x+','+y1.y+' A '+r+','+r+' 0 0,1 '+r2.x+','+r2.y+'" fill="none" stroke="#dc2626" stroke-width="14" stroke-linecap="round"/>';
             var a=Math.PI*(1+v/m),nx=cx+r*0.65*Math.cos(a),ny=cy+r*0.65*Math.sin(a);
             svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+nx+'" y2="'+ny+'" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>';
             svg+='<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="#1e293b"/>';
-            svg+='<text x="'+cx+'" y="28" text-anchor="middle" font-size="32" font-weight="800" fill="var(--text)">'+pendientes+'</text>';
-            svg+='<text x="'+cx+'" y="43" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-lt)">Pendientes</text>';
+            svg+='<text x="'+cx+'" y="28" text-anchor="middle" font-size="42" font-weight="800" fill="var(--text)">'+pendientes+'</text>';
+            svg+='<text x="'+cx+'" y="43" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text-lt)">Pendientes</text>';
             svg+='</svg>';
             return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;min-height:0;">'+svg+'<div style="display:flex;gap:8px;margin-top:1px;font-size:12px;font-weight:700;"><span style="color:'+lcolor+';">'+label+'</span><span style="color:var(--text-lt);">Cerrados: <span style="color:var(--text);">'+cerrados+'</span></span></div></div>';
           }
