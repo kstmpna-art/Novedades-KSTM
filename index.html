@@ -2148,38 +2148,41 @@ function renderHomeCards(data, sarN, masN) {
       <div style="display:flex;flex-direction:column;gap:12px;min-height:0;">
 
         <!-- TOP: SAR / MAS -->
-        ${(()=>{const sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos,_t=Math.max(sc+sp+mc+mp,1);return `
+        ${(()=>{
+          var sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos;
+          function gaugeSvg(pendientes,cerrados,label,lcolor){
+            var cx=80,cy=105,r=55,m=8,v=Math.min(pendientes,m);
+            function pt(deg){var rad=Math.PI*deg/180;return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
+            var g=pt(180),gy=pt(135),yb=pt(67.5),r2=pt(0);
+            var svg='<svg width="100%" height="100%" viewBox="0 0 160 165" style="display:block;max-height:150px;"><path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 1,0 '+r2.x+','+r2.y+'" fill="none" stroke="#f1f5f9" stroke-width="14" stroke-linecap="round"/>';
+            svg+='<path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 0,0 '+gy.x+','+gy.y+'" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round"/>';
+            svg+='<path d="M '+gy.x+','+gy.y+' A '+r+','+r+' 0 0,0 '+yb.x+','+yb.y+'" fill="none" stroke="#f59e0b" stroke-width="14" stroke-linecap="round"/>';
+            svg+='<path d="M '+yb.x+','+yb.y+' A '+r+','+r+' 0 0,0 '+r2.x+','+r2.y+'" fill="none" stroke="#dc2626" stroke-width="14" stroke-linecap="round"/>';
+            var a=Math.PI*(1-v/m),nx=cx+r*0.65*Math.cos(a),ny=cy+r*0.65*Math.sin(a);
+            svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+nx+'" y2="'+ny+'" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>';
+            svg+='<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="#1e293b"/>';
+            svg+='<text x="'+cx+'" y="'+(cy-r+6)+'" text-anchor="middle" font-size="26" font-weight="800" fill="var(--text)">'+pendientes+'</text>';
+            svg+='<text x="'+cx+'" y="'+(cy-r+20)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-lt)">Pendientes</text>';
+            svg+='</svg>';
+            return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;min-height:0;">'+svg+'<div style="display:flex;gap:8px;margin-top:1px;font-size:12px;font-weight:700;"><span style="color:'+lcolor+';">'+label+'</span><span style="color:var(--text-lt);">Cerrados: <span style="color:var(--text);">'+cerrados+'</span></span></div></div>';
+          }
+          return `
         <div id="sarmas-dash-card" class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#dc2626,#7c3aed);flex-shrink:0;"></div>
           <div style="padding:6px 8px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-shrink:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;flex-shrink:0;">
               <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
-              <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${_t}</span>
+              <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${sc+sp+mc+mp}</span>
             </div>
-            <div style="display:flex;gap:10px;flex:1;min-height:0;overflow-y:auto;padding-right:4px;">
-              <div style="flex:1;min-width:0;min-height:0;">
-                <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid rgba(220,38,38,0.15);padding-bottom:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#dc2626;"></span> SAR</div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🔴 Cerrados</span><span>${sc}</span></div>
-                <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;margin-bottom:3px;"><div class="bf" data-w="${(sc/_t*100)}" style="height:100%;width:0%;background:#dc2626;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🟢 Pendientes</span><span>${sp}</span></div>
-                <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;"><div class="bf" data-w="${(sp/_t*100)}" style="height:100%;width:0%;background:#22c55e;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
-              </div>
-              <div style="width:1px;background:var(--gray-200);flex-shrink:0;"></div>
-              <div style="flex:1;min-width:0;min-height:0;">
-                <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid rgba(124,58,237,0.15);padding-bottom:2px;margin-bottom:4px;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#7c3aed;"></span> MAS</div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🔴 Cerrados</span><span>${mc}</span></div>
-                <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;margin-bottom:3px;"><div class="bf" data-w="${(mc/_t*100)}" style="height:100%;width:0%;background:#7c3aed;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-md);margin-bottom:1px;"><span>🟢 Pendientes</span><span>${mp}</span></div>
-                <div style="height:12px;border-radius:6px;background:#f1f5f9;overflow:hidden;"><div class="bf" data-w="${(mp/_t*100)}" style="height:100%;width:0%;background:#f59e0b;border-radius:6px;transition:width .6s cubic-bezier(.22,1,.36,1);"></div></div>
-              </div>
+            <div style="flex:1;display:flex;gap:6px;min-height:0;">
+              ${gaugeSvg(sp,sc,"SAR","#dc2626")}
+              ${gaugeSvg(mp,mc,"MAS","#7c3aed")}
             </div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;font-size:10px;font-weight:700;color:var(--text);margin:0 8px 2px 8px;padding:0 2px;"><span>Total</span><span style="font-size:13px;font-weight:800;">${_t}</span></div>
-          <div style="height:10px;border-radius:5px;background:#f1f5f9;overflow:hidden;margin:0 8px 6px 8px;flex-shrink:0;display:flex;">
-            ${sc>0?`<div class="bf" data-w="${(sc/_t*100)}" title="SAR Cerrados: ${sc}" style="height:100%;width:0%;background:#dc2626;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
-            ${sp>0?`<div class="bf" data-w="${(sp/_t*100)}" title="SAR Pendientes: ${sp}" style="height:100%;width:0%;background:#22c55e;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
-            ${mc>0?`<div class="bf" data-w="${(mc/_t*100)}" title="MAS Cerrados: ${mc}" style="height:100%;width:0%;background:#7c3aed;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
-            ${mp>0?`<div class="bf" data-w="${(mp/_t*100)}" title="MAS Pendientes: ${mp}" style="height:100%;width:0%;background:#f59e0b;transition:width .6s cubic-bezier(.22,1,.36,1);cursor:pointer;"></div>`:''}
+            <div style="display:flex;justify-content:center;gap:14px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--text-lt);margin-top:2px;padding-top:3px;border-top:1px solid var(--gray-200);">
+              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>≤&nbsp;2</span>
+              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>2–5</span>
+              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;margin-right:4px;"></span>&gt;&nbsp;5</span>
+            </div>
           </div>
         </div>`})()}
 
@@ -2233,49 +2236,74 @@ function renderHomeCards(data, sarN, masN) {
 
         <!-- BOTTOM: GC / ARA (Pie) -->
         ${(()=>{
+          const hoy = new Date(); hoy.setHours(0,0,0,0);
+          const gcFilas = (gcSec?.filas||[]).filter(f=>f&&f.tipo==="fila");
           const gcActive = gcFilas.filter(f => { const d = parseDate(f.datos[1]); return !d || d <= hoy; });
           const gcSched = gcFilas.filter(f => { const d = parseDate(f.datos[1]); return d && d > hoy; });
           const araVessels = (araSec?.filas||[]).filter(f=>f&&f.tipo==="fila");
-          const total = gcActive.length + gcSched.length + araVessels.length;
-          const slices = [
-            { v: gcActive.length, color: "#22c55e", label: "GC Navegando" },
-            { v: araVessels.length, color: "#1d6fa4", label: "ARA" },
-            { v: gcSched.length, color: "#f59e0b", label: "GC Previstas" },
-          ];
-          const sum = slices.reduce((a,s) => a + s.v, 0);
-          const svgPie = (() => {
-            if (!sum) return "";
-            const cx=60, cy=60, r=50, ir=30;
-            let acc = -90, parts = "";
-            slices.forEach(s => {
-              if (!s.v) return;
-              const a = s.v / sum * 360;
-              const sr = acc * Math.PI / 180;
-              const er = (acc + a) * Math.PI / 180;
-              const x1 = cx + r * Math.cos(sr), y1 = cy + r * Math.sin(sr);
-              const x2 = cx + r * Math.cos(er), y2 = cy + r * Math.sin(er);
-              const large = a > 180 ? 1 : 0;
-              parts += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${s.color}"><title>${s.label}: ${s.v}</title></path>`;
-              acc += a;
-            });
-            return `<svg width="120" height="120" viewBox="0 0 120 120" style="display:block;">${parts}<circle cx="${cx}" cy="${cy}" r="${ir}" fill="#fff"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="22" font-weight="800" fill="var(--text)">${total}</text></svg>`;
-          })();
-          const listHtml = (arr, color) => arr.map(f => `<span style="font-size:9px;font-weight:600;color:${color};background:${color}15;padding:1px 6px;border-radius:3px;white-space:nowrap;">${esc(f.datos[0])}</span>`).join("");
+          const araActive = araVessels.filter(f => { const d = parseDate(f.datos[1]); return !d || d <= hoy; });
+          function diasDesde(dato){
+            const d = parseDate(dato);
+            if(!d) return 0;
+            return Math.max(0, Math.floor((hoy - d) / 86400000));
+          }
+          function nombre(f){ return esc(f.datos[0]||""); }
+          function diasHasta(dato){
+            const d = parseDate(dato);
+            if(!d) return -1;
+            return Math.max(0, Math.floor((d - hoy) / 86400000));
+          }
+          var gcItems = gcActive.map(function(f){ return {nom:nombre(f), d:diasDesde(f.datos[1]), ret:diasHasta(f.datos[2])}; });
+          var araItems = araActive.map(function(f){ return {nom:nombre(f), d:diasDesde(f.datos[1])}; });
+          var allItems = gcItems.concat(araItems);
+          var maxDias = Math.max(1, ...allItems.map(function(x){ return x.d + (x.ret>0?x.ret:0); }));
+          var tickStep = 5;
+          while(maxDias/tickStep>8) tickStep*=2;
+          var total = gcItems.length + araItems.length + gcSched.length;
+          function ganttRow(item, color){
+            var pastPct = Math.max(1, item.d/maxDias*100);
+            var futurePct = item.ret>0 ? Math.max(1, item.ret/maxDias*100) : 0;
+            var bar = '<div style="display:flex;align-items:center;margin:2px 0;"><span style="font-size:9px;font-weight:600;min-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+item.nom+'</span>';
+            bar += '<div style="flex:1;height:16px;display:flex;border-radius:4px;overflow:hidden;">';
+            bar += '<div style="width:'+pastPct+'%;height:100%;background:'+color+';border-right:2px solid #dc2626;box-sizing:border-box;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);"><div style="height:100%;background:linear-gradient(180deg,rgba(255,255,255,0.2),transparent 50%,rgba(0,0,0,0.08));"></div></div>';
+            if(futurePct>0){
+              bar += '<div style="width:'+futurePct+'%;height:100%;background:'+color+'20;border-left:1px dashed '+color+'80;box-sizing:border-box;"></div>';
+            }
+            bar += '</div>';
+            bar += '<span style="font-size:9px;font-weight:700;min-width:22px;text-align:right;margin-left:4px;">'+item.d+'d</span>';
+            if(item.ret>0) bar += '<span style="font-size:7px;font-weight:700;color:#f59e0b;min-width:28px;text-align:right;">↩'+item.ret+'d</span>';
+            bar += '</div>';
+            return bar;
+          }
+          var html = '';
+          if(gcItems.length){
+            html += '<div style="font-size:10px;font-weight:700;color:#22c55e;margin:2px 0 1px;">GC</div>';
+            gcItems.forEach(function(x){ html += ganttRow(x,"#22c55e"); });
+          }
+          if(araItems.length){
+            html += '<div style="font-size:10px;font-weight:700;color:#1d6fa4;margin:4px 0 1px;">ARA</div>';
+            araItems.forEach(function(x){ html += ganttRow(x,"#1d6fa4"); });
+          }
+          // Eje X
+          html += '<div style="display:flex;margin:2px 0 0 50px;">';
+          for(var t=0;t<=maxDias;t+=tickStep){
+            html += '<div style="flex:1;text-align:center;font-size:7px;color:var(--text-lt);font-weight:600;border-left:1px solid var(--gray-200);">'+t+'</div>';
+          }
+          if((t-tickStep)<maxDias) html += '<div style="flex:1;text-align:center;font-size:7px;color:var(--text-lt);font-weight:600;">'+maxDias+'</div>';
+          html += '</div>';
+          if(gcSched.length){
+            html += '<div style="font-size:10px;font-weight:700;color:#f59e0b;margin-top:4px;margin-bottom:2px;">Previstas</div><div style="display:flex;flex-wrap:wrap;gap:2px;">'+gcSched.map(function(f){return '<span style="font-size:9px;font-weight:600;color:#f59e0b;background:#fef3c7;padding:1px 5px;border-radius:3px;">'+nombre(f)+'</span>';}).join("")+'</div>';
+          }
           return `
         <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#1a9560,#34d399);flex-shrink:0;"></div>
           <div style="padding:6px 10px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-shrink:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;flex-shrink:0;">
               <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">&#x1f6a2; GC / ARA</span>
               <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:#1a9560;line-height:1;">${total}</span>
             </div>
-            <div style="display:flex;gap:8px;flex:1;min-height:0;">
-              <div style="flex:0 0 auto;display:flex;align-items:center;">${svgPie}</div>
-              <div style="flex:1;display:flex;flex-direction:column;gap:4px;overflow-y:auto;min-height:0;">
-                ${slices.filter(s=>s.v).map(s => `
-                <div><div style="font-size:10px;font-weight:700;color:${s.color};display:flex;align-items:center;gap:4px;margin-bottom:2px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${s.color};"></span> ${s.label} <span style="font-weight:800;color:var(--text);font-size:11px;">${s.v}</span></div><div style="display:flex;flex-wrap:wrap;gap:2px;">${s.label==="GC Navegando"?listHtml(gcActive,s.color):s.label==="ARA"?listHtml(araVessels,s.color):listHtml(gcSched,s.color)}</div></div>
-                `).join("")||'<div style="font-size:11px;color:var(--text-lt);font-style:italic;">Sin datos.</div>'}
-              </div>
+            <div style="flex:1;min-height:0;overflow-y:auto;padding-right:2px;">
+              ${html || '<div style="font-size:11px;color:var(--text-lt);font-style:italic;text-align:center;padding:12px;">Sin datos.</div>'}
             </div>
           </div>
         </div>`})()}
