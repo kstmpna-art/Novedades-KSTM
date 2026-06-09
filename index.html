@@ -1551,7 +1551,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwaxg4LXqIvvEmTHTxTJrs3SiyW3W7-CWuPZoj-jayEOS8FdX8sFcleI4E-t0nkWfGTVg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxdgqeYTh2qvnIO2TECcL_0237LMlT1AHN9Zup9CudqUxaXPDO5TXxHMaoTJpmuevVFZA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -1967,6 +1967,32 @@ function renderizar(data) {
     const masCerrados = masFilas.filter(f => ((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")).length;
     const sarN = sarFilas.length - sarCerrados;
     const masN = masFilas.length - masCerrados;
+
+    function _calcDias(fecha){
+      if(!fecha)return -1;
+      var p=fecha.split("/");
+      if(p.length!==3)return -1;
+      var d=new Date(+p[2],+p[1]-1,+p[0]);
+      return isNaN(d)?-1:Math.floor((Date.now()-d.getTime())/86400000);
+    }
+    var _sarPendItems=[],_masPendItems=[];
+    sarFilas.forEach(function(f){
+      if(((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO"))return;
+      var d=_calcDias(f.fechaInicio);
+      if(d>=0)_sarPendItems.push({b:f.buque,d:d});
+    });
+    masFilas.forEach(function(f){
+      if(((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO"))return;
+      var d=_calcDias(f.fechaInicio);
+      if(d>=0)_masPendItems.push({b:f.buque,d:d});
+    });
+    var _pendHtml='<div style="padding:2px 8px;font-size:10px;color:var(--text-lt);font-style:italic">Sin pendientes</div>';
+    if(_sarPendItems.length||_masPendItems.length){
+      var _items=[];
+      _sarPendItems.forEach(function(x){_items.push('<span style="color:#dc2626;font-size:10px;font-weight:600;white-space:nowrap">🔴 '+esc(x.b)+' &mdash; '+x.d+'d</span>');});
+      _masPendItems.forEach(function(x){_items.push('<span style="color:#7c3aed;font-size:10px;font-weight:600;white-space:nowrap">🟣 '+esc(x.b)+' &mdash; '+x.d+'d</span>');});
+      _pendHtml='<div style="padding:0 8px 4px;display:flex;flex-wrap:wrap;gap:3px;max-height:52px;overflow-y:auto">'+_items.join("")+'</div>';
+    }
     const gcN  = (gcSec?.filas  || []).filter(f => f?.tipo === "fila").length;
     const bKSTM = document.getElementById("sel-badge-KSTM");
     const bSBGC = document.getElementById("sel-badge-SBGC");
@@ -2123,7 +2149,7 @@ function renderHomeCards(data, sarN, masN) {
 
         <!-- TOP: SAR / MAS -->
         ${(()=>{const sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos,_t=Math.max(sc+sp+mc+mp,1);return `
-        <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
+        <div id="sarmas-dash-card" class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#dc2626,#7c3aed);flex-shrink:0;"></div>
           <div style="padding:6px 8px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-shrink:0;">
@@ -2302,6 +2328,46 @@ function renderHomeCards(data, sarN, masN) {
       }
 
     } catch(e) { console.error("Error gráficos home:", e); }
+
+    // ── Pendientes SAR/MAS (días desde inicio) ──────────
+    try {
+      var _cCard = document.getElementById("sarmas-dash-card");
+      if (_cCard) {
+        function _cd(fecha) {
+          if (!fecha) return -1;
+          var p = fecha.split("/");
+          if (p.length !== 3) return -1;
+          var y = +p[2];
+          if (y < 100) y += 2000;
+          var d = new Date(y, +p[1] - 1, +p[0]);
+          return isNaN(d) ? -1 : Math.floor((Date.now() - d.getTime()) / 86400000);
+        }
+        var _secSAR = data.secciones.find(function(s) { return s.id === "SAR"; });
+        var _secMAS = data.secciones.find(function(s) { return s.id === "MAS"; });
+        var _fSAR = (_secSAR ? _secSAR.filas : []).filter(function(f) { return f && f.tipo === "caso_especial"; });
+        var _fMAS = (_secMAS ? _secMAS.filas : []).filter(function(f) { return f && f.tipo === "caso_especial"; });
+        var _pendItems = [];
+        _fSAR.forEach(function(f) {
+          if (((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")) return;
+          var d = _cd(f.fechaInicio);
+          if (d >= 0) _pendItems.push('<span style="color:#22c55e;font-size:10px;font-weight:600;white-space:nowrap">🟢 ' + esc(f.buque) + ' &mdash; ' + d + 'd</span>');
+        });
+        _fMAS.forEach(function(f) {
+          if (((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")) return;
+          var d = _cd(f.fechaInicio);
+          if (d >= 0) _pendItems.push('<span style="color:#f59e0b;font-size:10px;font-weight:600;white-space:nowrap">🟠 ' + esc(f.buque) + ' &mdash; ' + d + 'd</span>');
+        });
+        var _pd = document.createElement("div");
+        _pd.style.cssText = "padding:0 8px 4px;display:flex;flex-wrap:wrap;gap:3px;max-height:52px;overflow-y:auto;align-items:center";
+        _pd.innerHTML = '<span style="font-size:10px;font-weight:700;color:var(--text);margin-right:4px">Días pendientes:</span>';
+        if (_pendItems.length) {
+          _pd.innerHTML += _pendItems.join("");
+        } else {
+          _pd.innerHTML += '<span style="font-size:10px;color:var(--text-lt);font-style:italic">Sin pendientes</span>';
+        }
+        _cCard.appendChild(_pd);
+      }
+    } catch(e) { console.error("Error pendientes SAR/MAS:", e); }
   }, 100);
 }
 
