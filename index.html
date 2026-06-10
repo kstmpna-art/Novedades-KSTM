@@ -1572,7 +1572,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxdgqeYTh2qvnIO2TECcL_0237LMlT1AHN9Zup9CudqUxaXPDO5TXxHMaoTJpmuevVFZA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx9z3u5bCvida6MzU_BW85Ms_lF_Ic-TnFJf3MjX04NY0frv3NdGuNL1NXDPxe9gBbLEA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -2691,6 +2691,27 @@ function aisExtraerNombres(seccionId) {
 }
 
 var AIS_PALETTE = ["#22c55e","#3b82f6","#ef4444","#f59e0b","#8b5cf6","#ec4899","#14b8a6","#f97316","#06b6d4","#84cc16","#e11d48","#0ea5e9","#a855f7","#d946ef","#10b981","#f43f5e","#6366f1","#d97706","#059669","#7c3aed"];
+function _aisGuardarPins() {
+  var data = {};
+  _aisManualVessels.forEach(function(id) {
+    var e = _aisBuffer[id];
+    if (e) data[id] = { name: e.name, lat: e.lat, lon: e.lon };
+  });
+  llamarAPI("guardarPines", { pines: JSON.stringify(data) }).catch(function(e) { console.warn("[AIS] Error guardando pines:", e); });
+}
+async function _aisCargarPins() {
+  try {
+    var res = await llamarAPI("obtenerPines");
+    if (!res || !res.ok || !res.data) return;
+    Object.keys(res.data).forEach(function(id) {
+      var d = res.data[id];
+      if (_aisManualVessels.indexOf(id) === -1) _aisManualVessels.push(id);
+      if (!_aisBuffer[id]) {
+        _aisBuffer[id] = { name: d.name, lat: d.lat, lon: d.lon, ts: new Date().toISOString(), data: { MetaData: { MMSI: id, ShipName: d.name, latitude: d.lat, longitude: d.lon } }, manual: true };
+      }
+    });
+  } catch(e) { console.warn("[AIS] Error cargando pines:", e); }
+}
 function _aisVesselColor(id) {
   var h = 0;
   for (var i = 0; i < id.length; i++) h = ((h << 5) - h) + id.charCodeAt(i);
@@ -2831,8 +2852,10 @@ function aisStartBackground() {
   aisWsConnect();
 }
 
-function aisStartRefresh(seccionId) {
+async function aisStartRefresh(seccionId) {
   _aisCurrentSection = seccionId;
+  // restore manual pins from API
+  await _aisCargarPins();
   // destroy old map so it's recreated on fresh DOM element
   if (_aisMap) { try { _aisMap.remove(); } catch(e) {} _aisMap = null; }
   _aisMarkers = {};
@@ -2876,6 +2899,7 @@ function aisStartRefresh(seccionId) {
 function aisLimpiarManuales() {
   _aisManualVessels = [];
   _aisTrackedMMSIs = [];
+  llamarAPI("guardarPines", { pines: "{}" }).catch(function() {});
   // clear pin inputs
   ["ais-pin-name","ais-pin-lat","ais-pin-lon","ais-mmsi-input"].forEach(function(id) {
     var el = document.getElementById(id);
@@ -2901,6 +2925,7 @@ function aisEliminarVessel(id) {
   delete _aisBuffer[id];
   _aisManualVessels = _aisManualVessels.filter(function(v) { return v !== id; });
   _aisTrackedMMSIs = _aisTrackedMMSIs.filter(function(v) { return v !== id; });
+  _aisGuardarPins();
   _aisRenderLista();
 }
 
@@ -3017,6 +3042,7 @@ function aisPinManual() {
   latEl.value = "";
   lonEl.value = "";
   nameEl.focus();
+  _aisGuardarPins();
   if (_aisEditingId) {
     // update existing pin
     var oldId = _aisEditingId;
@@ -3035,6 +3061,7 @@ function aisPinManual() {
       aisProcessPosition(fakeData, _aisCurrentSection);
       _aisMap.setView([lat, lon], 7);
     }
+    _aisGuardarPins();
     return;
   }
   // create a fake data entry and plot it
@@ -3047,6 +3074,7 @@ function aisPinManual() {
     aisProcessPosition(fakeData, _aisCurrentSection);
     _aisMap.setView([lat, lon], 7);
   }
+  _aisGuardarPins();
 }
 
 function aisMapHtml() {
