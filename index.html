@@ -1776,7 +1776,7 @@ const puertosNombres = {
   BCAM:"Bahía Camarones",RGAL:"Río Gallegos",LARG:"Lago Argentino",
   USHU:"Ushuaia",OLVA:"Caleta Olivia",RGRA:"Río Grande", RECA: "Pontón Recalada"
 };
-function initPuertosMap(containerId, closedCodes) {
+function initPuertosMap(containerId, closedCodes, portFilas) {
   const el = document.getElementById(containerId);
   if (!el) return;
   el.innerHTML = "";
@@ -1784,6 +1784,19 @@ function initPuertosMap(containerId, closedCodes) {
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 }).addTo(map);
   L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
   const closedSet = new Set(closedCodes);
+  // build a lookup: code → { hora, motivo } from sheet data
+  var portLookup = {};
+  if (portFilas) {
+    portFilas.forEach(function(f) {
+      var d = f.datos || [];
+      var pName = (d[0] || "").trim().toLowerCase();
+      // try to match by code key or by full name
+      Object.keys(puertosNombres).forEach(function(k) {
+        var match = pName === k.toLowerCase() || pName === puertosNombres[k].toLowerCase();
+        if (match) portLookup[k] = { hora: d[2] || "", motivo: d[3] || "" };
+      });
+    });
+  }
   const bounds = [];
   Object.keys(puertosCoords).forEach(code => {
     const coords = puertosCoords[code];
@@ -1794,7 +1807,14 @@ function initPuertosMap(containerId, closedCodes) {
     const color = isClosed ? "#dc2626" : "#22c55e";
     const html = `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`;
     const icon = L.divIcon({html, iconSize:[12,12], iconAnchor:[6,6], className:""});
-    const label = isClosed ? `🚫 ${name}<br><span style="color:#dc2626;font-weight:700">Puerto cerrado</span>` : `✅ ${name}<br><span style="color:#22c55e;font-weight:700">Puerto operativo</span>`;
+    var extra = "";
+    if (isClosed && portLookup[code]) {
+      if (portLookup[code].hora) extra += '<br><span style="font-size:11px;color:#4a6480">🕐 ' + esc(portLookup[code].hora) + '</span>';
+      if (portLookup[code].motivo) extra += '<br><span style="font-size:11px;color:#4a6480">📌 ' + esc(portLookup[code].motivo) + '</span>';
+    }
+    const label = isClosed
+      ? `🚫 ${name}<br><span style="color:#dc2626;font-weight:700">Puerto cerrado</span>${extra}`
+      : `✅ ${name}<br><span style="color:#22c55e;font-weight:700">Puerto operativo</span>`;
     L.marker(coords, {icon}).addTo(map).bindPopup(`<b>${label}</b>`);
   });
   if (bounds.length > 1) map.fitBounds(bounds, {padding:[20,20]});
@@ -2381,9 +2401,12 @@ function renderHomeCards(data, sarN, masN) {
       const c3 = document.getElementById("hc-dash-puertos");
       if (c3) {
         const pSec = data.secciones.find(s => s.id === "PUERTOS");
-        let closedList = [];
-        if (pSec) closedList = (pSec.filas||[]).filter(f=>f&&f.tipo==="puerto").map(f=>f.datos[0]||"").filter(Boolean);
-        initPuertosMap("hc-dash-puertos", closedList);
+        let closedList = [], portFilas = [];
+        if (pSec) {
+          portFilas = (pSec.filas||[]).filter(f=>f&&f.tipo==="puerto");
+          closedList = portFilas.map(f=>f.datos[0]||"").filter(Boolean);
+        }
+        initPuertosMap("hc-dash-puertos", closedList, portFilas);
       }
 
     } catch(e) { console.error("Error gráficos home:", e); }
@@ -2599,9 +2622,12 @@ function mostrarSeccion(id) {
   if (id === "PUERTOS") {
     setTimeout(() => {
       const pSec2 = datosGlobales.secciones.find(s => s.id === "PUERTOS");
-      let closed = [];
-      if (pSec2) closed = (pSec2.filas||[]).filter(f=>f&&f.tipo==="puerto").map(f=>f.datos[0]||"").filter(Boolean);
-      initPuertosMap("sec-puertos-map", closed);
+      let closed = [], portFilas2 = [];
+      if (pSec2) {
+        portFilas2 = (pSec2.filas||[]).filter(f=>f&&f.tipo==="puerto");
+        closed = portFilas2.map(f=>f.datos[0]||"").filter(Boolean);
+      }
+      initPuertosMap("sec-puertos-map", closed, portFilas2);
     }, 100);
   }
   if (id === "DETERMINANTES") {
@@ -2632,6 +2658,7 @@ function navegarSeccion(id) {
 
 // ── Navegación por teclado y touch ──
 document.addEventListener("keydown", function(e) {
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) return;
   const sv = document.getElementById("section-view");
   if (sv.style.display !== "block") return;
   if (e.key === "ArrowLeft") {
@@ -2695,7 +2722,7 @@ function _aisGuardarPins() {
   var data = {};
   _aisManualVessels.forEach(function(id) {
     var e = _aisBuffer[id];
-    if (e) data[id] = { name: e.name, lat: e.lat, lon: e.lon };
+    if (e) data[id] = { name: e.name, lat: e.lat, lon: e.lon, createdAt: e.createdAt, ts: e.ts };
   });
   llamarAPI("guardarPines", { pines: JSON.stringify(data) }).catch(function(e) { console.warn("[AIS] Error guardando pines:", e); });
 }
@@ -2707,7 +2734,7 @@ async function _aisCargarPins() {
       var d = res.data[id];
       if (_aisManualVessels.indexOf(id) === -1) _aisManualVessels.push(id);
       if (!_aisBuffer[id]) {
-        _aisBuffer[id] = { name: d.name, lat: d.lat, lon: d.lon, ts: new Date().toISOString(), data: { MetaData: { MMSI: id, ShipName: d.name, latitude: d.lat, longitude: d.lon } }, manual: true };
+        _aisBuffer[id] = { name: d.name, lat: d.lat, lon: d.lon, ts: d.createdAt || d.ts || "", data: { MetaData: { MMSI: id, ShipName: d.name, latitude: d.lat, longitude: d.lon } }, manual: true, createdAt: d.createdAt || d.ts || "" };
       }
     });
   } catch(e) { console.warn("[AIS] Error cargando pines:", e); }
@@ -2823,9 +2850,18 @@ function aisProcessPosition(data, seccionId) {
     var shipType = data.shipType || "—";
 
     var isManualPin = String(id).indexOf("MANUAL_") === 0;
+    var fechaTexto = "";
+    if (isManualPin && _aisBuffer[id]) {
+      var src = _aisBuffer[id].createdAt || _aisBuffer[id].ts;
+      if (src) {
+        var d = new Date(src);
+        if (!isNaN(d)) fechaTexto = d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      }
+      if (!fechaTexto) fechaTexto = "—";
+    }
     var popup = '<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5;min-width:160px">' +
       '<b style="font-size:13px;color:#003366">' + esc(name) + '</b><br>' +
-      (isManualPin ? '<span style="color:#8b5cf6;font-weight:600">📍 Pin manual</span><br>' :
+      (isManualPin ? '<span style="color:#8b5cf6;font-weight:600">🕐 ' + esc(fechaTexto) + '</span><br>' :
       '<span style="color:#666">' + (data.imo ? "IMO " + data.imo : "MMSI " + meta.MMSI) + '</span><br>' +
       '<span>Tipo: ' + shipType + '</span><br>' +
       '<span>Vel: ' + speed + ' | Rumbo: ' + course + '</span><br>' +
@@ -2871,7 +2907,9 @@ async function aisStartRefresh(seccionId) {
       if (!_aisMarkers[v]) {
         var iconColor = _aisVesselColor(v);
         var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + iconColor + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(entry.name) + '</span></div>', iconSize: [14 + (entry.name.length * 6), 18], iconAnchor: [7, 9] });
-        var popup = '<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5;min-width:160px"><b style="font-size:13px;color:#003366">' + esc(entry.name) + '</b><br><span style="color:#8b5cf6;font-weight:600">📍 Pin manual</span></div>';
+        var _fts = entry.createdAt || entry.ts;
+        var _fecha = _fts ? new Date(_fts).toLocaleString("es-AR", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "—";
+        var popup = '<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5;min-width:160px"><b style="font-size:13px;color:#003366">' + esc(entry.name) + '</b><br><span style="color:#8b5cf6;font-weight:600">🕐 ' + esc(_fecha) + '</span></div>';
         var marker = L.marker([entry.lat, entry.lon], { icon }).addTo(_aisMap);
         marker.bindPopup(popup);
         _aisMarkers[v] = marker;
@@ -2920,7 +2958,9 @@ function aisLimpiarManuales() {
 }
 
 function aisEliminarVessel(id) {
-  if (!confirm("¿Está seguro que desea eliminar este pin?")) return;
+  var _e = _aisBuffer[id];
+  var _n = _e ? (_e.name || id) : id;
+  if (!confirm("¿Está seguro que desea eliminar " + _n + "?")) return;
   if (_aisMarkers[id] && _aisMap) { _aisMap.removeLayer(_aisMarkers[id]); delete _aisMarkers[id]; }
   delete _aisBuffer[id];
   _aisManualVessels = _aisManualVessels.filter(function(v) { return v !== id; });
@@ -3056,7 +3096,7 @@ function aisPinManual() {
     // create updated entry (keep same id)
     var fakeId = oldId;
     var fakeData = { MetaData: { MMSI: fakeId, ShipName: name, latitude: lat, longitude: lon } };
-    _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true };
+    _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true, createdAt: e.createdAt || new Date().toISOString() };
     if (_aisCurrentSection && _aisMap) {
       aisProcessPosition(fakeData, _aisCurrentSection);
       _aisMap.setView([lat, lon], 7);
@@ -3067,7 +3107,7 @@ function aisPinManual() {
   // create a fake data entry and plot it
   var fakeId = "MANUAL_" + Date.now();
   var fakeData = { MetaData: { MMSI: fakeId, ShipName: name, latitude: lat, longitude: lon } };
-  _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true };
+  _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true, createdAt: new Date().toISOString() };
   // add to manual vessels so it persists in the list
   _aisManualVessels.push(fakeId);
   if (_aisCurrentSection && _aisMap) {
@@ -3225,7 +3265,7 @@ function renderSeccion(sec) {
         const hojaId=f.hojaId||sec.id;
         const puedeCargar=rolActual==="admin";
         const relojHtml=esSAR&&!cerrado?`<div class="caso-reloj" id="reloj-${id}" data-ts="${f.ultimaActualizacion||''}">⏱ --:--:--</div>`:"";
-        const imgViewerHtml=hasImg?`<button class="img-toggle-btn" onclick="toggleImg('imgv-${id}')">📷 Ver imagen de situación</button>
+        const imgViewerHtml=hasImg?`<button class="img-toggle-btn" onclick="toggleImg('imgv-${id}')">📷 Ver imagen</button>
            <div class="img-viewer" id="imgv-${id}"><img src="${esc(f.imgUrl)}" alt="Imagen situación" style="cursor:zoom-in" onclick="abrirZoom(this.src)" onerror="this.src='';this.parentElement.style.display='none'">
            <div class="img-cap"><span>Imagen de situación</span><span style="cursor:pointer;color:var(--blue)" onclick="recargarImagen('imgv-${id}','${esc(f.imgUrl)}')">↺ Actualizar</span></div></div>`:`<div style="font-size:12px;color:var(--text-lt);margin-top:6px;font-style:italic">📷 Sin imagen cargada aún</div>`;
         const uploaderHtml=(!cerrado&&puedeCargar)?`
