@@ -490,6 +490,26 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 #imgZoomModal .cerrar-zoom{position:fixed;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;font-weight:700;opacity:.7;z-index:100000}
 #imgZoomModal .cerrar-zoom:hover{opacity:1}
 
+/* ── AIS MAP (SAR/MAS) ────────────────────────────────────────── */
+#ais-map-wrap{display:none;margin-top:16px;border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;background:#fff}
+#ais-map-wrap.activo{display:block}
+#ais-map{height:380px;width:100%}
+.ais-map-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--sky);border-bottom:1px solid var(--gray-200);flex-wrap:wrap;gap:6px}
+.ais-map-header h3{font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin:0}
+.ais-map-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ais-map-controls input{padding:4px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:11px;font-family:'DM Sans',sans-serif;width:130px;outline:none}
+.ais-map-controls input:focus{border-color:var(--blue)}
+.ais-map-controls button{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;border:1px solid var(--gray-200);background:#fff;color:var(--text-md);transition:all .15s;text-transform:uppercase;letter-spacing:.3px}
+.ais-map-controls button:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+.ais-map-footer{display:flex;justify-content:space-between;padding:5px 12px;font-size:10px;color:var(--text-lt);background:var(--gray-100);border-top:1px solid var(--gray-200);flex-wrap:wrap;gap:4px}
+.ais-map-legend{display:flex;gap:10px;align-items:center}
+.ais-legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:3px}
+.ais-legend-dot.sar{background:#dc2626}
+.ais-legend-dot.mas{background:#f59e0b}
+.ais-legend-dot.manual{background:#3b82f6}
+.ais-legend-dot.matched{background:#22c55e}
+.ais-map-msg{padding:8px;font-size:11px;color:var(--text-lt);text-align:center}
+
 /* ── STATUS BAR ───────────────────────────────────────────────── */
 #statusbar{
   padding:5px 20px;background:var(--navy-dk);
@@ -1494,6 +1514,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <button class="tb-btn outline" onclick="volverSelector()" title="Servicios">🏠</button>
         <button class="tb-btn outline" onclick="toggleBriefing()" title="Pantalla completa">🖥️</button>
         <button class="tb-btn outline" onclick="mostrarVistaCompleta()" title="Vista general">📋</button>
+        <button class="tb-btn outline" onclick="abrirModalExport()" title="Exportar Parte">📄</button>
         <button class="tb-btn outline" id="btn-auto-rotate" onclick="toggleAutoRotacion()">▶ Auto</button>
         <button class="tb-btn outline" onclick="actualizarSistema()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
         <span id="auto-refresh-indicator" style="font-size:11px;color:var(--navy);font-weight:700;font-family:'Outfit',sans-serif;letter-spacing:.3px;white-space:nowrap;background:var(--gray-100);border:1px solid var(--gray-200);padding:3px 8px;border-radius:6px"></span>
@@ -1593,7 +1614,8 @@ async function intentarLogin() {
     url.searchParams.set("accion", "login");
     url.searchParams.set("usuario", usr);
     url.searchParams.set("password", pwd);
-    const r = await fetch(url.toString(), { method: "GET", redirect: "follow" });
+    url.searchParams.set("_", Date.now());
+    const r = await fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store" });
     const text = await r.text();
     const res = JSON.parse(text);
     if (!res || !res.ok) {
@@ -2588,6 +2610,13 @@ function mostrarSeccion(id) {
       if (dSec) initDeterminantesMap("sec-determinantes-map");
     }, 100);
   }
+
+  // AIS Map for SAR/MAS
+  if (id === "SAR" || id === "MAS") {
+    setTimeout(() => aisStartRefresh(id), 200);
+  } else {
+    aisStopRefresh();
+  }
 }
 
 function navegarSeccion(id) {
@@ -2620,6 +2649,225 @@ function mapaGisHtml() {
     <a href="${gisUrl}" target="_blank" class="tb-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
       🌐 Abrir GC en nueva pestaña
     </a>`;
+}
+
+/* ── AIS MAP (Axiom API) ────────────────────────────────────── */
+let _aisMap = null, _aisMarkers = {}, _aisManualVessels = [], _aisRefreshTimer = null, _aisCurrentSection = null;
+const AXIOM_URL = "https://axiomoverwatch.io/api/v1/positions/latest";
+const ARG_BBOX = "west=-68&south=-60&east=-40&north=-20";
+
+function aisInitMap() {
+  const el = document.getElementById("ais-map");
+  if (!el) { console.warn("[AIS] #ais-map not in DOM yet"); return false; }
+
+  if (_aisMap) { _aisMap.invalidateSize(); return true; }
+
+  _aisMap = L.map("ais-map", { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(_aisMap);
+
+  L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(_aisMap);
+  return true;
+}
+
+function aisExtraerNombres(seccionId) {
+  const sec = datosGlobales && datosGlobales.secciones.find(s => s.id === seccionId);
+  if (!sec) return [];
+  const nombres = {};
+  (sec.filas || []).forEach(f => {
+    if (f && f.tipo === "caso_especial") {
+      const parts = [f.buque, f.mmsi, f.imo].filter(Boolean);
+      parts.forEach(p => { const k = String(p).trim().toLowerCase(); if (k) nombres[k] = String(p).trim(); });
+    }
+  });
+  // Add manual vessels
+  _aisManualVessels.forEach(v => { const k = v.trim().toLowerCase(); if (k) nombres[k] = v.trim(); });
+  return Object.values(nombres);
+}
+
+function aisCoincide(apiName, searchTerms) {
+  const an = String(apiName).toLowerCase().trim();
+  for (let i = 0; i < searchTerms.length; i++) {
+    const st = searchTerms[i].toLowerCase().trim();
+    if (st && (an === st || an.includes(st) || st.includes(an) || an.replace(/[^a-z0-9]/g, "") === st.replace(/[^a-z0-9]/g, ""))) return true;
+  }
+  return false;
+}
+
+async function _aisFetch(url) {
+  const PROXIES = [
+    null, // direct
+    "https://api.allorigins.win/raw?url=",
+    "https://corsproxy.org/?",
+  ];
+  for (let i = 0; i < PROXIES.length; i++) {
+    const target = PROXIES[i] ? PROXIES[i] + encodeURIComponent(url) : url;
+    try {
+      const res = await fetch(target);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.json();
+    } catch (e) {
+      const isHttpErr = String(e.message||"").startsWith("HTTP");
+      if (i === 0 && isHttpErr) throw e; // real HTTP error, don't retry
+      if (i >= PROXIES.length - 1) {
+        if (location.protocol === "file:") console.warn("[AIS] CORS blocked desde file://. Probá: `npx serve .` en la carpeta y abrí http://localhost:3000");
+        throw e;
+      }
+      if (!isHttpErr) console.warn("[AIS] Attempt " + i + " failed (" + e.message + "), trying next...");
+    }
+  }
+}
+
+async function aisFetchAndPlot(seccionId) {
+  const msg = document.getElementById("ais-map-msg");
+  const updateEl = document.getElementById("ais-last-update");
+  if (!msg) return;
+
+  msg.textContent = "Obteniendo posiciones...";
+
+  try {
+    const data = await _aisFetch(AXIOM_URL + "?" + ARG_BBOX);
+    const features = data.features || [];
+    const searchTerms = aisExtraerNombres(seccionId);
+    console.log("[AIS] Search terms:", searchTerms);
+    console.log("[AIS] API returned", features.length, "vessels. Sample:", features.slice(0,3).map(f => ({imo: f.properties?.imo, name: f.properties?.name, coords: f.geometry?.coordinates})));
+    const now = new Date();
+
+    // Track matched IMOs to remove stale markers
+    const matchedImos = new Set();
+
+    features.forEach(f => {
+      const props = f.properties || {};
+      const imo = props.imo;
+      const name = props.name || "";
+      const coords = f.geometry && f.geometry.coordinates;
+      if (!imo || !coords) return;
+
+      // Match by name or IMO
+      const matches = searchTerms.length === 0 || aisCoincide(name, searchTerms) || searchTerms.some(s => s === imo);
+      if (!matches) return;
+
+      matchedImos.add(imo);
+      const lat = coords[1], lon = coords[0];
+
+      if (_aisMarkers[imo]) {
+        _aisMarkers[imo].setLatLng([lat, lon]);
+      } else {
+        const iconColor = searchTerms.some(s => s === imo) ? "#3b82f6" : "#22c55e";
+        const icon = L.divIcon({
+          className: "",
+          html: `<div style="width:14px;height:14px;background:${iconColor};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+        const speed = props.speed != null ? props.speed + " kn" : "—";
+        const course = props.course != null ? props.course + "°" : "—";
+        const nav = props.nav_status || "—";
+        const dest = props.destination || "—";
+        const vesselType = props.vessel_type || "—";
+
+        const popup = `
+          <div style="font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.5;min-width:160px">
+            <b style="font-size:13px;color:#003366">${esc(name)}</b><br>
+            <span style="color:#666">IMO ${imo}</span><br>
+            <span>Tipo: ${vesselType}</span><br>
+            <span>Vel: ${speed} | Rumbo: ${course}</span><br>
+            <span>Destino: ${dest}</span><br>
+            <span>Estado: ${nav}</span>
+          </div>`;
+
+        const marker = L.marker([lat, lon], { icon }).addTo(_aisMap);
+        marker.bindPopup(popup);
+        _aisMarkers[imo] = marker;
+      }
+    });
+
+    // Remove stale markers
+    Object.keys(_aisMarkers).forEach(imo => {
+      if (!matchedImos.has(imo)) {
+        _aisMap.removeLayer(_aisMarkers[imo]);
+        delete _aisMarkers[imo];
+      }
+    });
+
+    const matchCount = matchedImos.size;
+    msg.textContent = matchCount === 0
+      ? "No se encontraron posiciones para los buques de esta sección."
+      : matchCount + " buque" + (matchCount !== 1 ? "s" : "") + " localizado" + (matchCount !== 1 ? "s" : "") + " en AIS.";
+    updateEl.textContent = "Actualizado: " + now.toLocaleTimeString("es-AR");
+
+    if (matchCount > 0 && _aisMap) {
+      const group = L.featureGroup(Object.values(_aisMarkers));
+      _aisMap.fitBounds(group.getBounds().pad(0.2), { maxZoom: 8 });
+    }
+
+  } catch (err) {
+    msg.textContent = "Error al obtener datos AIS: " + (err.message || err);
+  }
+}
+
+function aisStartRefresh(seccionId) {
+  aisStopRefresh();
+  _aisCurrentSection = seccionId;
+  if (!aisInitMap()) {
+    // Retry after DOM is ready
+    setTimeout(() => { if (_aisCurrentSection === seccionId) aisStartRefresh(seccionId); }, 300);
+    return;
+  }
+  aisFetchAndPlot(seccionId);
+  _aisRefreshTimer = setInterval(() => aisFetchAndPlot(seccionId), 300000); // 5 min
+}
+
+function aisStopRefresh() {
+  if (_aisRefreshTimer) { clearInterval(_aisRefreshTimer); _aisRefreshTimer = null; }
+}
+
+function aisAgregarManual() {
+  const input = document.getElementById("ais-mmsi-input");
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+  _aisManualVessels.push(val);
+  input.value = "";
+  if (_aisCurrentSection) aisFetchAndPlot(_aisCurrentSection);
+}
+
+function aisToggleFilter() {
+  // Toggle: currently just clears manual list on double-click, else show/hide
+  const btn = document.getElementById("ais-toggle-btn");
+  const input = document.getElementById("ais-mmsi-input");
+  if (!btn || !input) return;
+  if (input.style.display === "none") {
+    input.style.display = "inline-block";
+    btn.textContent = "Filtrar";
+  } else {
+    input.style.display = "none";
+    btn.textContent = "Mostrar filtro";
+  }
+}
+
+function aisMapHtml() {
+  return `<div id="ais-map-wrap" class="activo" style="display:block">
+    <div class="ais-map-header">
+      <h3>Posiciones AIS en vivo</h3>
+      <div class="ais-map-controls">
+        <input type="text" id="ais-mmsi-input" placeholder="IMO / MMSI / nombre" onkeydown="if(event.key==='Enter')aisAgregarManual()">
+        <button onclick="aisAgregarManual()" title="Agregar buque">+ Agregar</button>
+      </div>
+    </div>
+    <div id="ais-map" style="height:380px;width:100%"></div>
+    <div class="ais-map-msg" id="ais-map-msg">Inicializando mapa AIS...</div>
+    <div class="ais-map-footer">
+      <div class="ais-map-legend">
+        <span><span class="ais-legend-dot sar"></span>SAR</span>
+        <span><span class="ais-legend-dot mas"></span>MAS</span>
+        <span><span class="ais-legend-dot manual"></span>Manual</span>
+      </div>
+      <span id="ais-last-update">—</span>
+    </div>
+  </div>`;
 }
 
 /* ================================================================
@@ -2768,7 +3016,13 @@ function renderSeccion(sec) {
         </div>`;
       }
     });
-    return (h||`<div class="empty">Sin casos.</div>`) + ((sec.id==="SAR"||sec.id==="MAS")?mapaGisHtml():"");
+    if (sec.id==="SAR"||sec.id==="MAS") {
+      return `<div style="display:flex;gap:16px;align-items:flex-start;">
+        <div style="flex:1;min-width:0;">${h||`<div class="empty">Sin casos.</div>`}</div>
+        <div style="flex:1;min-width:0;position:sticky;top:10px">${aisMapHtml()}</div>
+      </div>`;
+    }
+    return (h||`<div class="empty">Sin casos.</div>`) + mapaGisHtml();
   }
 
   if (sec.id === "ALERTA") {
@@ -4152,50 +4406,406 @@ function abrirNovedadPAPE(){if(!datosGlobales||!datosGlobales.urlPAPE){alert("�
 function abrirAnpyn(){var win=window.open();win.location="https://www.argentina.gob.ar/economia/agencia-nacional-de-puertos-y-navegacion/planillas-de-determinantes";}
 
 /* ================================================================
-   EXPORT
-================================================================ */
+   EXPORT - WORD & PDF (formato Parte de Novedades PNA)
+=============================================================== */
 function abrirModalExport(){document.getElementById("modalExport").classList.add("activo");}
 function cerrarModalExport(){document.getElementById("modalExport").classList.remove("activo");}
 document.getElementById("modalExport").addEventListener("click",function(e){if(e.target===this)cerrarModalExport();});
 
 async function exportarPDF(){
-  const btn=document.getElementById("btnPDF");
+  var btn=document.getElementById("btnPDF");
   btn.textContent="Generando PDF...";btn.disabled=true;
   try{
-    const res=await llamarAPI("generarPDFenDrive");
-    btn.textContent="📕 Descargar PDF";btn.disabled=false;
+    var res=await llamarAPI("generarPDFenDrive");
+    btn.textContent="Descargar PDF";btn.disabled=false;
     cerrarModalExport();window.open(res.url,"_blank");
-  }catch(err){btn.textContent="📕 Descargar PDF";btn.disabled=false;alert("Error al generar PDF: "+(err.message||err));}
+  }catch(err){btn.textContent="Descargar PDF";btn.disabled=false;alert("Error al generar PDF: "+(err.message||err));}
+}
+
+function _fechaPalabras(fechaStr){
+  if(!fechaStr)return "S/F";
+  var p=fechaStr.split("/");
+  if(p.length!==3)return fechaStr;
+  var meses=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+  return p[0]+" DE "+meses[parseInt(p[1])-1]+" DE "+p[2];
+}
+
+function _pFecha(s){
+  if(!s)return null;
+  var p=s.split("/");
+  if(p.length!==3)return null;
+  var d=new Date(+p[2],+p[1]-1,+p[0]);
+  return isNaN(d)?null:d;
+}
+
+function _calcDias2(zarpada,regreso) {
+  var ini=_pFecha(zarpada),fin=_pFecha(regreso);
+  if(!ini||!fin) return {navegando:"?",restantes:"?"};
+  var hoy=new Date();hoy.setHours(0,0,0,0);
+  return {navegando:Math.max(0,Math.floor((hoy-ini)/86400000)),restantes:Math.max(0,Math.floor((fin-hoy)/86400000))};
+}
+
+function _renderFila(f){
+  if(!f)return "";
+  if(f.tipo==="subtitulo") return '<div style="font-weight:700;color:#1a3a5c;margin:5pt 0 2pt;font-size:9pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
+  if(f.tipo==="separador"||f.tipo==="html") return "";
+  if(f.tipo==="partes"){
+    var t=(f.partes||[]).map(function(p){return(p.prefijo||"")+(p.negrita?'<b>'+_esc(p.texto)+'</b>':_esc(p.texto));}).join(" | ");
+    return t?'<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+t+'</div>':"";
+  }
+  if(f.tipo==="fila"){
+    var t=(f.datos||[]).filter(function(v){return v&&String(v).trim();}).join(" | ");
+    return t?'<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+_esc(t)+'</div>':"";
+  }
+  if(f.tipo==="texto"&&f.texto) return '<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
+  if(f.tipo==="novedad") return '<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
+  if(f.tipo==="caso_especial") return '<div style="font-size:9pt;padding:2pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.buque)+'</b><br><b>ASUNTO:</b> '+_esc(f.asunto)+'<br><b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br><b>NOVEDAD:</b> '+_esc(f.novedad)+'<br><b>SITUACI\u00d3N:</b> '+_esc(f.situacion)+'</div>';
+  if(f.tipo==="arma"){
+    var d=f.datos||[];
+    return '<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">\ud83c\udfaf <b>'+_esc(d[0])+'</b> \u2014 '+_esc(d[1]||"")+(d[2]?' \u2013 '+_esc(d[2]):"")+'<br><span style="color:#555">'+_esc(d[3]||"")+'</span></div>';
+  }
+  return "";
+}
+
+function _renderFilas(sec){
+  if(!sec||!sec.filas) return '<div style="font-size:9pt;font-style:italic;color:#666">Sin datos.</div>';
+  var h="";
+  for(var i=0;i<sec.filas.length;i++){
+    var r=_renderFila(sec.filas[i]);
+    if(r) h+=r;
+  }
+  return h||'<div style="font-size:9pt;font-style:italic;color:#666">Sin novedades.</div>';
+}
+
+function _renderTabla(datos,headers){
+  if(!datos||!datos.length) return '<div style="font-size:9pt;font-style:italic;color:#666">Sin datos.</div>';
+  var h='<table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin:3pt 0">';
+  if(headers&&headers.length){
+    h+='<tr>';
+    for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#003366;color:#fff;font-weight:700;padding:2pt 4pt;text-align:center;font-size:8pt">'+headers[i]+'</td>';
+    h+='</tr>';
+  }
+  for(var i=0;i<datos.length;i++){
+    h+='<tr>';
+    for(var j=0;j<datos[i].length;j++) h+='<td style="border:1px solid #ccc;padding:1.5pt 3pt;text-align:'+(j===0?'left':'center')+'">'+_esc(datos[i][j])+'</td>';
+    h+='</tr>';
+  }
+  h+='</table>';
+  return h;
+}
+
+function _seccionTitulo(n,titulo){
+  return '<div style="font-size:10.5pt;font-weight:700;color:#003366;margin:10pt 0 3pt;padding:3pt 6pt;background:#eef3f8;border-left:3pt solid #003366">'+n+'. '+titulo+'</div>';
+}
+
+function _subTitulo(txt){
+  return '<div style="font-size:9pt;font-weight:700;color:#1a3a5c;margin:6pt 0 2pt;padding:1pt 0;border-bottom:1px solid #999">'+txt+'</div>';
+}
+
+function _esc(s){
+  if(s===null||s===undefined) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function _sec(id){
+  if(!datosGlobales||!datosGlobales.secciones) return null;
+  return datosGlobales.secciones.find(function(s){return s.id===id;});
+}
+
+function _filas(id,tipo){
+  var s=_sec(id);
+  if(!s) return [];
+  var f=s.filas||[];
+  if(tipo) return f.filter(function(x){return x&&x.tipo===tipo;});
+  return f.filter(function(x){return x;});
 }
 
 function exportarWord(){
   if(!datosGlobales){alert("Sin datos cargados.");return;}
-  const btn=document.getElementById("btnWord");
+  var btn=document.getElementById("btnWord");
   btn.textContent="Generando...";btn.disabled=true;
-  const fecha=datosGlobales.fecha?datosGlobales.fecha.replace(/\//g,"-"):"hoy";
-  let cuerpo="";
-  datosGlobales.secciones.forEach(sec=>{
-    let contenido="";
-    (sec.filas||[]).forEach(f=>{
-      if(!f)return;
-      if(f.tipo==="subtitulo")contenido+=`<div style="font-weight:700;color:#003366;margin:6px 0 2px;font-size:8pt">${f.texto}</div>`;
-      else if(f.tipo==="partes"){const t=(f.partes||[]).map(p=>(p.prefijo||"")+(p.negrita?`<b>${p.texto}</b>`:p.texto)).join(" | ");if(t)contenido+=`<div style="font-size:10pt;border-bottom:1px dotted #ddd;padding:2px 0">${t}</div>`;}
-      else if(f.tipo==="fila"){const t=(f.datos||[]).filter(v=>v).join(" | ");if(t)contenido+=`<div style="font-size:10pt;border-bottom:1px dotted #ddd;padding:2px 0">${t}</div>`;}
-      else if(f.tipo==="caso_especial")contenido+=`<div style="font-size:10pt;border-bottom:1px dotted #ddd;padding:3px 0"><b>${f.buque}</b><br>ASUNTO: ${f.asunto}<br>POSICIÓN: ${f.posicion}<br>NOVEDAD: ${f.novedad}<br>SITUACIÓN: ${f.situacion}</div>`;
-      else if(f.tipo==="texto"&&f.texto)contenido+=`<div style="font-size:10pt;border-bottom:1px dotted #ddd;padding:2px 0">${f.texto}</div>`;
-      else if(f.tipo==="novedad")contenido+=`<div style="font-size:10pt;border-bottom:1px dotted #ddd;padding:2px 0"><b>${f.titulo}</b>: ${f.texto}</div>`;
+  var fechaStr=datosGlobales.fecha||"";
+  var fechaFile=fechaStr.replace(/\//g,"-")||"hoy";
+  var fechaPalabras=_fechaPalabras(fechaStr);
+  var cuerpo="";
+
+  // 1. AVIACION
+  var avSec=_sec("AVIACION");
+  if(avSec){
+    cuerpo+=_seccionTitulo(1,"SERVICIO DE AVIACI\u00d3N");
+    cuerpo+='<div style="margin:2pt 0"><a href="'+(datosGlobales.urlAviacion||"#")+'" style="font-size:9pt;color:#1a6fa4">Ver archivo de aviaci\u00f3n del d\u00eda</a></div>';
+    cuerpo+=_renderFilas(avSec);
+  }
+
+  // 2. GUARDACOSTAS
+  var gcSec=_sec("GC");
+  var convSec=_sec("CONVENIO");
+  var araSec=_sec("ARA");
+  if(gcSec||convSec||araSec){
+    cuerpo+=_seccionTitulo(2,"SERVICIO DE BUQUES GUARDACOSTAS");
+    var gcFilas=_filas("GC","fila");
+    if(gcFilas.length){
+      var hoy=new Date();hoy.setHours(0,0,0,0);
+      var gcAct=gcFilas.filter(function(f){var d=_pFecha(f.datos[1]);return !d||d<=hoy;});
+      var gcPrev=gcFilas.filter(function(f){var d=_pFecha(f.datos[1]);return d&&d>hoy;});
+      if(gcAct.length){
+        cuerpo+=_subTitulo("Guardacostas en navegaci\u00f3n ("+gcAct.length+")");
+        gcAct.forEach(function(f){
+          var nav=_calcDias2(f.datos[1],f.datos[2]);
+          cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<b>'+_esc(f.datos[0])+'</b> \u2014 '+_esc(f.datos[3]||"SIN NOVEDADES")+' \u2014 Navegando: '+nav.navegando+'d | ETA: '+nav.restantes+'d';
+          cuerpo+='</div>';
+        });
+      }
+      if(gcPrev.length){
+        cuerpo+=_subTitulo("Previstas ("+gcPrev.length+")");
+        gcPrev.forEach(function(f){
+          cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<b>'+_esc(f.datos[0])+'</b> \u2014 Zarpe: '+_esc(f.datos[1])+' | ETA: '+_esc(f.datos[2])+' | '+_esc(f.datos[3]||"");
+          cuerpo+='</div>';
+        });
+      }
+    }else{
+      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin navegaciones activas.</div>';
+    }
+    if(convSec){
+      cuerpo+=_subTitulo("Convenio PNA-ARA");
+      var convFilas=_filas("CONVENIO","fila");
+      if(convFilas.length){
+        cuerpo+=_renderTabla(convFilas.map(function(f){return f.datos||[];}),["Meses","M/Superficie","Fecha Z-A","D\u00edas Nav.","M/Superficie","Fecha Z-A","D\u00edas Nav."]);
+      }else{
+        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+      }
+    }
+    if(araSec){
+      cuerpo+=_subTitulo("Buques ARA");
+      var araFilas=_filas("ARA","fila");
+      if(araFilas.length){
+        araFilas.forEach(function(f){
+          cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.datos[0])+'</b> \u2014 Zarp\u00f3 '+[_esc(f.datos[1]),_esc(f.datos[2]),_esc(f.datos[3])].filter(function(v){return v;}).join(" | ")+'</div>';
+        });
+      }else{
+        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+      }
+    }
+  }
+
+  // 3. SALVAMENTO
+  var salvSec=_sec("SALVAMENTO");
+  cuerpo+=_seccionTitulo(3,"SERVICIO DE SALVAMENTO, BUCEO Y DOTACIONES DE SEGURIDAD");
+  cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+
+  // 4. TRAFICO MARITIMO
+  var kstmSec=_sec("KSTM");
+  var resSec=_sec("RESERVA");
+  var sarSec=_sec("SAR");
+  var masSec=_sec("MAS");
+  var regSec=_sec("REGATAS");
+  var ejerSec=_sec("EJER.ARMAS");
+  if(kstmSec||resSec||sarSec||masSec||regSec||ejerSec){
+    cuerpo+=_seccionTitulo(4,"SERVICIO DE TR\u00c1FICO MAR\u00cdTIMO");
+    if(kstmSec){
+      cuerpo+=_subTitulo("Pilotaje / Conserva");
+      var kFilas=(kstmSec.filas||[]).filter(function(f){return f&&f.tipo==="texto"&&f.texto;});
+      if(kFilas.length){
+        kFilas.forEach(function(f){cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';});
+      }else{
+        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+      }
+    }
+    if(resSec){
+      cuerpo+=_subTitulo("Reserva de Canal");
+      cuerpo+=_renderFilas(resSec);
+    }
+    if(sarSec){
+      cuerpo+=_subTitulo("Casos SAR");
+      var sarCasos=_filas("SAR","caso_especial");
+      if(sarCasos.length){
+        sarCasos.forEach(function(f){
+          var cerrado=((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO");
+          cuerpo+='<div style="font-size:9pt;padding:2pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<b>'+_esc(f.buque)+'</b>'+(cerrado?' <span style="color:#666">[CERRADO]</span>':' <span style="color:#c0392b">[ACTIVO]</span>')+'<br>';
+          cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto)+'<br>';
+          cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br>';
+          cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad)+'<br>';
+          cuerpo+='<b>SITUACI\u00d3N:</b> '+_esc(f.situacion);
+          cuerpo+='</div>';
+        });
+      }else{
+        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
+      }
+    }
+    if(masSec){
+      cuerpo+=_subTitulo("Casos MAS");
+      var masCasos=_filas("MAS","caso_especial");
+      if(masCasos.length){
+        masCasos.forEach(function(f){
+          var cerrado=((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO");
+          cuerpo+='<div style="font-size:9pt;padding:2pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<b>'+_esc(f.buque)+'</b>'+(cerrado?' <span style="color:#666">[CERRADO]</span>':' <span style="color:#c0392b">[ACTIVO]</span>')+'<br>';
+          cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto)+'<br>';
+          cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br>';
+          cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad)+'<br>';
+          cuerpo+='<b>SITUACI\u00d3N:</b> '+_esc(f.situacion);
+          cuerpo+='</div>';
+        });
+      }else{
+        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
+      }
+    }
+    if(regSec){
+      cuerpo+=_subTitulo("Regatas / Eventos N\u00e1uticos");
+      cuerpo+=_renderFilas(regSec);
+    }
+    if(ejerSec){
+      cuerpo+=_subTitulo("Ejercicios de Armas");
+      var armas=_filas("EJER.ARMAS","arma");
+      if(armas.length){
+        armas.forEach(function(f){cuerpo+=_renderFila(f);});
+      }else{
+        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin ejercicios.</div>';
+      }
+    }
+  }
+
+  // 5. PUERTOS
+  var pSec=_sec("PUERTOS");
+  if(pSec){
+    cuerpo+=_seccionTitulo(5,"ESTADO DE PUERTOS");
+    var puertos=_filas("PUERTOS","puerto");
+    if(puertos.length){
+      cuerpo+='<ul style="margin:2pt 0;padding-left:16pt;font-size:9pt">';
+      puertos.forEach(function(f){
+        cuerpo+='<li style="padding:1pt 0"><b>'+_esc(f.datos[0])+'</b>'+(f.datos[1]?' \u2014 '+_esc(f.datos[1]):"")+'</li>';
+      });
+      cuerpo+='</ul>';
+    }else{
+      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
+    }
+  }
+
+  // 6. DETERMINANTES
+  var detSec=_sec("DETERMINANTES");
+  if(detSec){
+    cuerpo+=_seccionTitulo(6,"DETERMINANTES");
+    var detFilas=_filas("DETERMINANTES","fila");
+    if(detFilas.length){
+      cuerpo+=_renderTabla(detFilas.map(function(f){return f.datos||[];}),["Centro VTS","Denominaci\u00f3n","KM","R\u00edo","Calado","Altura Hidrom."]);
+    }else{
+      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin determinantes.</div>';
+    }
+  }
+
+  // 7. DRAGAS
+  var dragSec=_sec("DRAGAS");
+  if(dragSec){
+    cuerpo+=_seccionTitulo(7,"DRAGAS");
+    var dragFilas=(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";});
+    if(dragFilas.length){
+      dragFilas.forEach(function(f){
+        var raw=(f.datos||[]).filter(function(v){return v&&String(v).trim();});
+        cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(raw[0]||"")+'</b>'+(raw[1]?' \u2014 '+_esc(raw[1]):"")+' \u2014 '+raw.slice(2).map(function(v){return _esc(v);}).join(" \u2014 ")+'</div>';
+      });
+    }else{
+      var dragOtros=_renderFilas(dragSec);
+      if(!dragOtros||dragOtros==='<div style="font-size:9pt;font-style:italic;color:#666">Sin datos.</div>') dragOtros='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin dragas operando.</div>';
+      cuerpo+=dragOtros;
+    }
+  }
+
+  // 8. METANEROS
+  var metSec=_sec("METANEROS");
+  if(metSec){
+    cuerpo+=_seccionTitulo(8,"METANEROS");
+    cuerpo+=_renderFilas(metSec);
+  }
+
+  // 9. ALERTAS
+  var alSec=_sec("ALERTA");
+  if(alSec){
+    cuerpo+=_seccionTitulo(9,"ALERTAS METEOROL\u00d3GICAS");
+    cuerpo+='<div style="margin:2pt 0"><a href="https://www.smn.gob.ar" style="font-size:9pt;color:#1a6fa4">Servicio Meteorol\u00f3gico Nacional</a></div>';
+    var alFilas=_filas("ALERTA","fila");
+    if(alFilas.length){
+      cuerpo+=_renderTabla(alFilas.map(function(f){var d=f.datos||[];return [d[0]||"",d[1]||"",d[2]||"",d[3]||""];}),["Alerta N\u00b0","Zona","Fen\u00f3meno","MOI y destinos"]);
+    }else{
+      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
+    }
+  }
+
+  // 10. PBIP
+  var pbipSec=_sec("PBIP");
+  if(pbipSec){
+    cuerpo+=_seccionTitulo(10,"BUQUES EN INFRACCI\u00d3N (PBIP)");
+    cuerpo+=_renderFilas(pbipSec);
+  }
+
+  // 11. VISITAS
+  var visSec=_sec("VISITAS");
+  if(visSec){
+    cuerpo+=_seccionTitulo(11,"VISITAS");
+    var visFilas=_filas("VISITAS","fila");
+    if(visFilas.length){
+      cuerpo+=_renderTabla(visFilas.map(function(f){return f.datos||[];}),["D\u00eda/HS","Aut./Sol.","Actividad","S/Mozo","Pers.","Proyecci\u00f3n","Aut. Ext."]);
+    }else{
+      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin visitas previstas.</div>';
+    }
+  }
+
+  // 12. MOVIMIENTO PORTUARIO
+  var movIds=["MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4"];
+  var movSecs=movIds.map(function(id){return _sec(id);}).filter(function(s){return s;});
+  if(movSecs.length){
+    cuerpo+=_seccionTitulo(12,"MOVIMIENTO PORTUARIO");
+    movSecs.forEach(function(s){
+      cuerpo+=_subTitulo(s.titulo||s.id);
+      cuerpo+=_renderFilas(s);
     });
-    if(!contenido.trim())contenido=`<div style="font-size:10pt;font-style:italic;color:#666">Sin novedades.</div>`;
-    cuerpo+=`<div style="margin-bottom:10pt;page-break-inside:avoid"><div style="font-size:11pt;font-weight:700;background:#003366;color:#fff;padding:3pt 7pt;text-transform:uppercase">${sec.titulo}</div><div style="border:1pt solid #ccc;padding:4pt 6pt">${contenido}</div></div>`;
-  });
-  const docHTML=`<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>@page{size:210mm 297mm;margin:18mm 15mm}body{font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a}</style></head><body><div style="border-bottom:2.5px solid #003366;padding-bottom:8px;margin-bottom:16px"><div style="font-size:13pt;font-weight:800;color:#003366">PREFECTURA NAVAL ARGENTINA</div><div style="font-size:8pt;color:#555;text-transform:uppercase">Servicio de Tráfico Marítimo</div><div style="font-size:12pt;font-weight:800;color:#003366;margin-top:4pt">PARTE DE NOVEDADES — ${fecha.replace(/-/g,'/')}</div></div>${cuerpo}</body></html>`;
-  const blob=new Blob(["\ufeff",docHTML],{type:"application/msword"});
-  const url=URL.createObjectURL(blob);
-  const link=document.createElement("a");
-  link.href=url;link.download=`Parte_PNA_${fecha}.doc`;
+  }
+
+  // 13. CONFLICTO MEDIO ORIENTE
+  var confSec=_sec("CONFLICTO");
+  if(confSec){
+    cuerpo+=_seccionTitulo(13,"CONFLICTO MEDIO ORIENTE");
+    cuerpo+=_renderFilas(confSec);
+  }
+
+  // 14. NOVEDADES VARIAS
+  var novSec=_sec("NOVEDADES");
+  if(novSec){
+    cuerpo+=_seccionTitulo(14,"NOVEDADES VARIAS");
+    cuerpo+=_renderFilas(novSec);
+  }
+
+  // 15. PERSONAL
+  var persSec=_sec("PERSONAL_COSTERA");
+  if(persSec){
+    cuerpo+=_seccionTitulo(15,"PERSONAL");
+    cuerpo+=_renderFilas(persSec);
+  }
+
+  // Build final document
+  var estilo='@page{size:210mm 297mm;margin:20mm 15mm}';
+  estilo+='body{font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;line-height:1.35}';
+  estilo+='table{page-break-inside:avoid}';
+
+  var header='<div style="text-align:center;border-bottom:2.5px solid #003366;padding-bottom:10px;margin-bottom:16px">';
+  header+='<div style="font-size:14pt;font-weight:800;color:#003366;letter-spacing:.5px">PREFECTURA NAVAL ARGENTINA</div>';
+  header+='<div style="font-size:9pt;color:#666;font-weight:600;margin-top:1px">Autoridad Mar\u00edtima</div>';
+  header+='<div style="font-size:8pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
+  header+='<div style="font-size:13pt;font-weight:800;color:#003366;margin-top:6pt">PARTE DE NOVEDADES</div>';
+  header+='<div style="font-size:10pt;font-weight:700;color:#555;margin-top:2pt">'+fechaPalabras+'</div>';
+  header+='</div>';
+
+  var docHTML='<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'+estilo+'</style></head><body>'+header+cuerpo+'</body></html>';
+
+  var blob=new Blob(["\ufeff",docHTML],{type:"application/msword"});
+  var url=URL.createObjectURL(blob);
+  var link=document.createElement("a");
+  link.href=url;link.download="Parte_PNA_"+fechaFile+".doc";
   document.body.appendChild(link);link.click();document.body.removeChild(link);
-  setTimeout(()=>URL.revokeObjectURL(url),3000);
-  btn.textContent="📘 Descargar Word (.doc)";btn.disabled=false;cerrarModalExport();
+  setTimeout(function(){URL.revokeObjectURL(url);},3000);
+  btn.textContent="Descargar Word (.doc)";btn.disabled=false;cerrarModalExport();
 }
 
 /* ================================================================
