@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -2613,9 +2613,16 @@ function mostrarSeccion(id) {
 
   // AIS Map for SAR/MAS
   if (id === "SAR" || id === "MAS") {
-    setTimeout(() => aisStartRefresh(id), 200);
+    setTimeout(function() { aisStartRefresh(id); }, 200);
   } else {
-    aisStopRefresh();
+    // keep WebSocket in background, just hide map markers if any
+    if (_aisMarkers && _aisMap) {
+      Object.values(_aisMarkers).forEach(function(m) { if (m && _aisMap) _aisMap.removeLayer(m); });
+      _aisMarkers = {};
+    }
+    var vl = document.getElementById("ais-vessel-list");
+    if (vl) vl.innerHTML = "";
+    _aisCurrentSection = null;
   }
 }
 
@@ -2651,223 +2658,427 @@ function mapaGisHtml() {
     </a>`;
 }
 
-/* ── AIS MAP (Axiom API) ────────────────────────────────────── */
-let _aisMap = null, _aisMarkers = {}, _aisManualVessels = [], _aisRefreshTimer = null, _aisCurrentSection = null;
-const AXIOM_URL = "https://axiomoverwatch.io/api/v1/positions/latest";
-const ARG_BBOX = "west=-68&south=-60&east=-40&north=-20";
+/* ── AIS MAP (AISStream WebSocket) ──────────────────────────── */
+let _aisMap = null, _aisMarkers = {}, _aisManualVessels = [], _aisWs = null, _aisCurrentSection = null, _aisReconnectTimer = null, _aisBuffer = {};
 
 function aisInitMap() {
   const el = document.getElementById("ais-map");
   if (!el) { console.warn("[AIS] #ais-map not in DOM yet"); return false; }
-
   if (_aisMap) { _aisMap.invalidateSize(); return true; }
-
   _aisMap = L.map("ais-map", { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "&copy; OpenStreetMap contributors"
-  }).addTo(_aisMap);
-
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(_aisMap);
   L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(_aisMap);
   return true;
 }
 
 function aisExtraerNombres(seccionId) {
-  const sec = datosGlobales && datosGlobales.secciones.find(s => s.id === seccionId);
+  var sec = datosGlobales && datosGlobales.secciones.find(function(s) { return s.id === seccionId; });
   if (!sec) return [];
-  const nombres = {};
-  (sec.filas || []).forEach(f => {
+  var nombres = {}, seen = {};
+  (sec.filas || []).forEach(function(f) {
     if (f && f.tipo === "caso_especial") {
-      const parts = [f.buque, f.mmsi, f.imo].filter(Boolean);
-      parts.forEach(p => { const k = String(p).trim().toLowerCase(); if (k) nombres[k] = String(p).trim(); });
+      [f.buque, f.mmsi, f.imo].filter(Boolean).forEach(function(p) {
+        var k = String(p).trim().toLowerCase();
+        if (k && !seen[k]) { seen[k] = true; nombres[k] = String(p).trim(); }
+      });
     }
   });
-  // Add manual vessels
-  _aisManualVessels.forEach(v => { const k = v.trim().toLowerCase(); if (k) nombres[k] = v.trim(); });
+  _aisManualVessels.forEach(function(v) {
+    var k = v.trim().toLowerCase();
+    if (k && !seen[k]) { seen[k] = true; nombres[k] = v.trim(); }
+  });
   return Object.values(nombres);
 }
 
+var AIS_PALETTE = ["#22c55e","#3b82f6","#ef4444","#f59e0b","#8b5cf6","#ec4899","#14b8a6","#f97316","#06b6d4","#84cc16","#e11d48","#0ea5e9","#a855f7","#d946ef","#10b981","#f43f5e","#6366f1","#d97706","#059669","#7c3aed"];
+function _aisVesselColor(id) {
+  var h = 0;
+  for (var i = 0; i < id.length; i++) h = ((h << 5) - h) + id.charCodeAt(i);
+  return AIS_PALETTE[Math.abs(h) % AIS_PALETTE.length];
+}
+var _aisEditingId = null;
+
 function aisCoincide(apiName, searchTerms) {
-  const an = String(apiName).toLowerCase().trim();
-  for (let i = 0; i < searchTerms.length; i++) {
-    const st = searchTerms[i].toLowerCase().trim();
-    if (st && (an === st || an.includes(st) || st.includes(an) || an.replace(/[^a-z0-9]/g, "") === st.replace(/[^a-z0-9]/g, ""))) return true;
+  var an = String(apiName).toLowerCase().trim();
+  for (var i = 0; i < searchTerms.length; i++) {
+    var st = searchTerms[i].toLowerCase().trim();
+    if (!st) continue;
+    if (an === st) return true;
+    if (an.replace(/[^a-z0-9]/g, "") === st.replace(/[^a-z0-9]/g, "")) return true;
   }
   return false;
 }
 
-async function _aisFetch(url) {
-  const PROXIES = [
-    null, // direct
-    "https://api.allorigins.win/raw?url=",
-    "https://corsproxy.org/?",
-  ];
-  for (let i = 0; i < PROXIES.length; i++) {
-    const target = PROXIES[i] ? PROXIES[i] + encodeURIComponent(url) : url;
-    try {
-      const res = await fetch(target);
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return await res.json();
-    } catch (e) {
-      const isHttpErr = String(e.message||"").startsWith("HTTP");
-      if (i === 0 && isHttpErr) throw e; // real HTTP error, don't retry
-      if (i >= PROXIES.length - 1) {
-        if (location.protocol === "file:") console.warn("[AIS] CORS blocked desde file://. Probá: `npx serve .` en la carpeta y abrí http://localhost:3000");
-        throw e;
-      }
-      if (!isHttpErr) console.warn("[AIS] Attempt " + i + " failed (" + e.message + "), trying next...");
-    }
-  }
+var AISSTREAM_KEY = "354e81f5d49824d1bc3e8606f95ce6a0045483a1";
+function _aisGetKey() {
+  return localStorage.getItem("aisstream_key") || AISSTREAM_KEY;
 }
 
-async function aisFetchAndPlot(seccionId) {
-  const msg = document.getElementById("ais-map-msg");
-  const updateEl = document.getElementById("ais-last-update");
-  if (!msg) return;
+function aisWsConnect(seccionId) {
+  var apiKey = _aisGetKey();
+  if (!apiKey) { var m = document.getElementById("ais-map-msg"); if (m) m.textContent = "Sin API Key de AISStream."; return; }
+  if (_aisWs) try { _aisWs.close(); } catch(e) {}
 
-  msg.textContent = "Obteniendo posiciones...";
+  var msg = document.getElementById("ais-map-msg");
+  if (msg) msg.textContent = "Conectando a AISStream...";
 
-  try {
-    const data = await _aisFetch(AXIOM_URL + "?" + ARG_BBOX);
-    const features = data.features || [];
-    const searchTerms = aisExtraerNombres(seccionId);
-    console.log("[AIS] Search terms:", searchTerms);
-    console.log("[AIS] API returned", features.length, "vessels. Sample:", features.slice(0,3).map(f => ({imo: f.properties?.imo, name: f.properties?.name, coords: f.geometry?.coordinates})));
-    const now = new Date();
-
-    // Track matched IMOs to remove stale markers
-    const matchedImos = new Set();
-
-    features.forEach(f => {
-      const props = f.properties || {};
-      const imo = props.imo;
-      const name = props.name || "";
-      const coords = f.geometry && f.geometry.coordinates;
-      if (!imo || !coords) return;
-
-      // Match by name or IMO
-      const matches = searchTerms.length === 0 || aisCoincide(name, searchTerms) || searchTerms.some(s => s === imo);
-      if (!matches) return;
-
-      matchedImos.add(imo);
-      const lat = coords[1], lon = coords[0];
-
-      if (_aisMarkers[imo]) {
-        _aisMarkers[imo].setLatLng([lat, lon]);
-      } else {
-        const iconColor = searchTerms.some(s => s === imo) ? "#3b82f6" : "#22c55e";
-        const icon = L.divIcon({
-          className: "",
-          html: `<div style="width:14px;height:14px;background:${iconColor};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,
-          iconSize: [14, 14],
-          iconAnchor: [7, 7]
-        });
-        const speed = props.speed != null ? props.speed + " kn" : "—";
-        const course = props.course != null ? props.course + "°" : "—";
-        const nav = props.nav_status || "—";
-        const dest = props.destination || "—";
-        const vesselType = props.vessel_type || "—";
-
-        const popup = `
-          <div style="font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.5;min-width:160px">
-            <b style="font-size:13px;color:#003366">${esc(name)}</b><br>
-            <span style="color:#666">IMO ${imo}</span><br>
-            <span>Tipo: ${vesselType}</span><br>
-            <span>Vel: ${speed} | Rumbo: ${course}</span><br>
-            <span>Destino: ${dest}</span><br>
-            <span>Estado: ${nav}</span>
-          </div>`;
-
-        const marker = L.marker([lat, lon], { icon }).addTo(_aisMap);
-        marker.bindPopup(popup);
-        _aisMarkers[imo] = marker;
-      }
-    });
-
-    // Remove stale markers
-    Object.keys(_aisMarkers).forEach(imo => {
-      if (!matchedImos.has(imo)) {
-        _aisMap.removeLayer(_aisMarkers[imo]);
-        delete _aisMarkers[imo];
-      }
-    });
-
-    const matchCount = matchedImos.size;
-    msg.textContent = matchCount === 0
-      ? "No se encontraron posiciones para los buques de esta sección."
-      : matchCount + " buque" + (matchCount !== 1 ? "s" : "") + " localizado" + (matchCount !== 1 ? "s" : "") + " en AIS.";
-    updateEl.textContent = "Actualizado: " + now.toLocaleTimeString("es-AR");
-
-    if (matchCount > 0 && _aisMap) {
-      const group = L.featureGroup(Object.values(_aisMarkers));
-      _aisMap.fitBounds(group.getBounds().pad(0.2), { maxZoom: 8 });
+  _aisWs = new WebSocket("wss://stream.aisstream.io/v0/stream");
+  _aisWs.onopen = function() {
+    var sub = { APIKey: apiKey, BoundingBoxes: [[[-60, -70], [-20, -40]]] };
+    // filter by MMSI if we have tracked ones (instant lookup)
+    var tracked = _aisTrackedMMSIs.filter(function(v) { return /^\d{5,}$/.test(v); });
+    if (tracked.length > 0) { sub.Filters = { MMSI: tracked.map(Number) }; }
+    _aisWs.send(JSON.stringify(sub));
+    if (msg) msg.textContent = tracked.length ? "Buscando " + tracked.length + " MMSI específicos..." : "Esperando datos AIS...";
+  };
+  _aisWs.onmessage = function(ev) {
+    function _handle(text) {
+      try {
+        var data = JSON.parse(text);
+        if (data.MessageType === "PositionReport") {
+          try { aisProcessPosition(data, seccionId); } catch(e) { console.error("[AIS Process error]", e.message, e.stack); }
+        }
+      } catch(e) { console.warn("[AIS WS parse error]", e.message, String(text).slice(0,100)); }
     }
+    try {
+      if (typeof ev.data === "string") { _handle(ev.data); return; }
+      if (ev.data instanceof Blob || (ev.data && typeof ev.data.arrayBuffer === "function")) {
+        var r = new FileReader();
+        r.onload = function() { _handle(r.result); };
+        r.readAsText(ev.data);
+        return;
+      }
+      _handle(String(ev.data));
+    } catch(e2) { console.warn("[AIS WS handler error]", e2.message); }
+  };
+  _aisWs.onerror = function() { document.getElementById("ais-map-msg").textContent = "Error de conexión WebSocket."; };
+  _aisWs.onclose = function() {
+    if (_aisCurrentSection !== seccionId && _aisCurrentSection !== null) return;
+    var m = document.getElementById("ais-map-msg");
+    if (m) m.textContent = "Reconectando en 10s...";
+    _aisReconnectTimer = setTimeout(function() { aisWsConnect(_aisCurrentSection || undefined); }, 10000);
+  };
+}
 
-  } catch (err) {
-    msg.textContent = "Error al obtener datos AIS: " + (err.message || err);
+function aisProcessPosition(data, seccionId) {
+  var meta = data.MetaData || {};
+  var id = meta.MMSI || data.imo || meta.imo;
+  var name = meta.ShipName || data.ShipName || "";
+  var lat = meta.latitude || data.latitude;
+  var lon = meta.longitude || data.longitude;
+  if (!id || lat == null || lon == null) return;
+
+  // keep in buffer so manual adds find recent positions instantly
+  var ts = meta.time_utc || new Date().toISOString();
+  _aisBuffer[id] = { name: name, lat: lat, lon: lon, ts: ts, data: data };
+
+  // limit buffer size (keep only most recent 2000 MMSIs)
+  var keys = Object.keys(_aisBuffer);
+  if (keys.length > 2000) {
+    var toRemove = keys.sort(function(a, b) { return (_aisBuffer[a].ts < _aisBuffer[b].ts ? -1 : 1); }).slice(0, keys.length - 2000);
+    toRemove.forEach(function(k) { delete _aisBuffer[k]; });
   }
+
+  var searchTerms = aisExtraerNombres(seccionId);
+  var matches = aisCoincide(name, searchTerms) || searchTerms.some(function(s) { return String(s) === String(id); });
+  if (!matches || !_aisMap) return;
+
+  var msg = document.getElementById("ais-map-msg");
+  var updateEl = document.getElementById("ais-last-update");
+
+  if (_aisMarkers[id]) {
+    _aisMarkers[id].setLatLng([lat, lon]);
+  } else {
+    var iconColor = _aisVesselColor(id);
+    var icon = L.divIcon({
+      className: "",
+      html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + iconColor + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(name) + '</span></div>',
+      iconSize: [14 + (name.length * 6), 18],
+      iconAnchor: [7, 9]
+    });
+    var speed = data.speedOverGround != null ? data.speedOverGround + " kn" : "—";
+    var course = data.courseOverGround != null ? data.courseOverGround + "°" : "—";
+    var dest = data.destination || "—";
+    var shipType = data.shipType || "—";
+
+    var isManualPin = String(id).indexOf("MANUAL_") === 0;
+    var popup = '<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5;min-width:160px">' +
+      '<b style="font-size:13px;color:#003366">' + esc(name) + '</b><br>' +
+      (isManualPin ? '<span style="color:#8b5cf6;font-weight:600">📍 Pin manual</span><br>' :
+      '<span style="color:#666">' + (data.imo ? "IMO " + data.imo : "MMSI " + meta.MMSI) + '</span><br>' +
+      '<span>Tipo: ' + shipType + '</span><br>' +
+      '<span>Vel: ' + speed + ' | Rumbo: ' + course + '</span><br>' +
+      '<span>Destino: ' + dest + '</span>') + '</div>';
+
+    var marker = L.marker([lat, lon], { icon }).addTo(_aisMap);
+    marker.bindPopup(popup);
+    _aisMarkers[id] = marker;
+  }
+
+  var count = Object.keys(_aisMarkers).length;
+  if (msg) msg.textContent = count + " buque" + (count !== 1 ? "s" : "") + " localizado" + (count !== 1 ? "s" : "") + " en AIS.";
+  if (updateEl) updateEl.textContent = new Date().toLocaleTimeString("es-AR");
+  // update vessel list
+  _aisRenderLista();
+}
+
+/* keep section-level MMSIs to filter on reconnect */
+let _aisTrackedMMSIs = [];
+
+function aisStartBackground() {
+  if (_aisWs) return; // already connected
+  _aisCurrentSection = null;
+  aisWsConnect();
 }
 
 function aisStartRefresh(seccionId) {
-  aisStopRefresh();
   _aisCurrentSection = seccionId;
-  if (!aisInitMap()) {
-    // Retry after DOM is ready
-    setTimeout(() => { if (_aisCurrentSection === seccionId) aisStartRefresh(seccionId); }, 300);
-    return;
+  // destroy old map so it's recreated on fresh DOM element
+  if (_aisMap) { try { _aisMap.remove(); } catch(e) {} _aisMap = null; }
+  _aisMarkers = {};
+  if (!aisInitMap()) { setTimeout(function() { if (_aisCurrentSection === seccionId) aisStartRefresh(seccionId); }, 300); return; }
+  // force map to render properly
+  setTimeout(function() { if (_aisMap) _aisMap.invalidateSize(); }, 50);
+  // Plot manual vessels DIRECTLY (bypass search-term matching)
+  _aisManualVessels.forEach(function(v) {
+    var entry = _aisBuffer[v];
+    if (entry && _aisCurrentSection === seccionId && _aisMap) {
+      var fakeData = { MetaData: { MMSI: v, ShipName: entry.name, latitude: entry.lat, longitude: entry.lon } };
+      // directly create marker if not already present
+      if (!_aisMarkers[v]) {
+        var iconColor = _aisVesselColor(v);
+        var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + iconColor + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(entry.name) + '</span></div>', iconSize: [14 + (entry.name.length * 6), 18], iconAnchor: [7, 9] });
+        var popup = '<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5;min-width:160px"><b style="font-size:13px;color:#003366">' + esc(entry.name) + '</b><br><span style="color:#8b5cf6;font-weight:600">📍 Pin manual</span></div>';
+        var marker = L.marker([entry.lat, entry.lon], { icon }).addTo(_aisMap);
+        marker.bindPopup(popup);
+        _aisMarkers[v] = marker;
+      }
+    }
+  });
+  // Refresh vessel list after manual plots
+  setTimeout(function() { if (document.getElementById("ais-vessel-list")) _aisRenderLista(); }, 30);
+  // Then plot case-matched vessels from buffer (skip manual IDs)
+  var searchTerms = aisExtraerNombres(seccionId);
+  var count = _aisManualVessels.length;
+  Object.keys(_aisBuffer).forEach(function(mmsi) {
+    if (_aisManualVessels.indexOf(mmsi) !== -1) return; // already plotted above
+    var entry = _aisBuffer[mmsi];
+    if (entry && (aisCoincide(entry.name, searchTerms) || searchTerms.some(function(s) { return String(s) === mmsi; }))) {
+      aisProcessPosition(entry.data, seccionId);
+      count++;
+    }
+  });
+  var totalInBuffer = Object.keys(_aisBuffer).length;
+  var msg = document.getElementById("ais-map-msg");
+  if (msg) msg.textContent = "Mostrando " + count + " buque" + (count !== 1 ? "s" : "") + ". " + totalInBuffer + " en buffer.";
+}
+
+function aisLimpiarManuales() {
+  _aisManualVessels = [];
+  _aisTrackedMMSIs = [];
+  // clear pin inputs
+  ["ais-pin-name","ais-pin-lat","ais-pin-lon","ais-mmsi-input"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  Object.values(_aisMarkers).forEach(function(m) { if (m && _aisMap) _aisMap.removeLayer(m); });
+  _aisMarkers = {};
+  if (_aisCurrentSection) {
+    if (_aisReconnectTimer) { clearTimeout(_aisReconnectTimer); _aisReconnectTimer = null; }
+    if (_aisWs) { try { _aisWs.close(); } catch(e) {} _aisWs = null; }
+    aisWsConnect(_aisCurrentSection);
+  } else {
+    // reconnect background without filter
+    if (_aisReconnectTimer) { clearTimeout(_aisReconnectTimer); _aisReconnectTimer = null; }
+    if (_aisWs) { try { _aisWs.close(); } catch(e) {} _aisWs = null; }
+    aisWsConnect();
   }
-  aisFetchAndPlot(seccionId);
-  _aisRefreshTimer = setInterval(() => aisFetchAndPlot(seccionId), 300000); // 5 min
+}
+
+function aisEliminarVessel(id) {
+  if (!confirm("¿Está seguro que desea eliminar este pin?")) return;
+  if (_aisMarkers[id] && _aisMap) { _aisMap.removeLayer(_aisMarkers[id]); delete _aisMarkers[id]; }
+  delete _aisBuffer[id];
+  _aisManualVessels = _aisManualVessels.filter(function(v) { return v !== id; });
+  _aisTrackedMMSIs = _aisTrackedMMSIs.filter(function(v) { return v !== id; });
+  _aisRenderLista();
+}
+
+function _aisRenderLista() {
+  var listEl = document.getElementById("ais-vessel-list");
+  if (!listEl) return;
+  listEl.innerHTML = Object.keys(_aisMarkers).map(function(k) {
+    var e = _aisBuffer[k];
+    var isManual = _aisManualVessels.some(function(v) { return v === k || v === String(e ? e.name||'' : '').trim(); });
+    var color = _aisVesselColor(k);
+    var lat = e ? e.lat : 0;
+    var lon = e ? e.lon : 0;
+    var editBtn = isManual ? '<span style="cursor:pointer;font-size:9px;opacity:0.6" onclick="event.stopPropagation();aisEditarPin(\''+k+'\')" title="Editar posición">✏️</span>' : '';
+    var delBtn = isManual ? '<span style="cursor:pointer;font-size:9px;opacity:0.6;color:#ef4444" onclick="event.stopPropagation();aisEliminarVessel(\''+k+'\')" title="Eliminar">🗑️</span>' : '';
+    return '<span style="display:inline-flex;align-items:center;gap:3px;white-space:nowrap;cursor:pointer" onclick="if(_aisMap)_aisMap.setView(['+lat+','+lon+'],7)">' +
+      '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+color+'"></span>' +
+      (e ? (e.name||'').trim()||k : k) + ' <span style="color:var(--text-lt)">' + k + '</span>' + editBtn + delBtn + '</span>';
+  }).join("");
 }
 
 function aisStopRefresh() {
-  if (_aisRefreshTimer) { clearInterval(_aisRefreshTimer); _aisRefreshTimer = null; }
+  if (_aisReconnectTimer) { clearTimeout(_aisReconnectTimer); _aisReconnectTimer = null; }
+  // keep WebSocket alive for buffer; just detach section
+  _aisCurrentSection = null;
+  // clear markers
+  if (_aisMarkers && _aisMap) {
+    Object.values(_aisMarkers).forEach(function(m) { if (m && _aisMap) _aisMap.removeLayer(m); });
+    _aisMarkers = {};
+  }
+  var vl = document.getElementById("ais-vessel-list");
+  if (vl) vl.innerHTML = "";
 }
 
 function aisAgregarManual() {
-  const input = document.getElementById("ais-mmsi-input");
+  var input = document.getElementById("ais-mmsi-input");
   if (!input) return;
-  const val = input.value.trim();
+  var val = input.value.trim();
   if (!val) return;
   _aisManualVessels.push(val);
+  if (/^\d{5,}$/.test(val) && _aisTrackedMMSIs.indexOf(val) === -1) _aisTrackedMMSIs.push(val);
   input.value = "";
-  if (_aisCurrentSection) aisFetchAndPlot(_aisCurrentSection);
+
+  // search buffer for this vessel RIGHT NOW
+  var matched = 0;
+  var sv = val.toLowerCase().trim();
+  var svClean = sv.replace(/[^a-z0-9]/g, "");
+  Object.keys(_aisBuffer).forEach(function(mmsi) {
+    var entry = _aisBuffer[mmsi];
+    var en = String(entry.name).toLowerCase().trim();
+    var enClean = en.replace(/[^a-z0-9]/g, "");
+    if (String(mmsi) === sv || en === sv || enClean === svClean || en.includes(sv) || sv.includes(en)) {
+      var sec = _aisCurrentSection;
+      if (sec && _aisMap) aisProcessPosition(entry.data, sec);
+      matched++;
+    }
+  });
+  if (matched === 0) {
+    // not in buffer — reconnect with MMSI filter for instant result
+    if (_aisCurrentSection) {
+      if (_aisReconnectTimer) { clearTimeout(_aisReconnectTimer); _aisReconnectTimer = null; }
+      if (_aisWs) { try { _aisWs.close(); } catch(e) {} _aisWs = null; }
+      aisWsConnect(_aisCurrentSection);
+    } else {
+      // background mode — reconnect to pick up the filter
+      if (_aisWs) { try { _aisWs.close(); } catch(e) {} _aisWs = null; }
+      aisWsConnect();
+    }
+  }
 }
 
-function aisToggleFilter() {
-  // Toggle: currently just clears manual list on double-click, else show/hide
-  const btn = document.getElementById("ais-toggle-btn");
-  const input = document.getElementById("ais-mmsi-input");
-  if (!btn || !input) return;
-  if (input.style.display === "none") {
-    input.style.display = "inline-block";
-    btn.textContent = "Filtrar";
-  } else {
-    input.style.display = "none";
-    btn.textContent = "Mostrar filtro";
+function _dmsToDec(s) {
+  s = s.trim();
+  // try decimal first — only if the whole string is a number
+  var asNum = Number(s.replace(",", "."));
+  if (!isNaN(asNum) && String(asNum) === s.replace(",", ".").trim()) return asNum;
+  // strip all symbols (°, d, ′, ', ″, ") and normalise separators
+  var clean = s.replace(/[°d′'″"]/g, " ").replace(/\s+/g, " ").trim();
+  // DMS: "26 56 1 S" or "26 56 1.5 S"
+  var m = clean.match(/^(-?\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s*([NSEW])?$/i);
+  if (!m) return NaN;
+  var d = parseFloat(m[1]) + parseFloat(m[2])/60 + parseFloat(m[3])/3600;
+  if (m[4] && /[SW]/i.test(m[4]) && m[1].indexOf("-") !== 0) d = -d;
+  return d;
+}
+function aisEditarPin(vesselId) {
+  var e = _aisBuffer[vesselId];
+  if (!e) return;
+  var nameEl = document.getElementById("ais-pin-name");
+  var latEl = document.getElementById("ais-pin-lat");
+  var lonEl = document.getElementById("ais-pin-lon");
+  if (!nameEl || !latEl || !lonEl) return;
+  nameEl.value = e.name || "";
+  latEl.value = e.lat != null ? e.lat : "";
+  lonEl.value = e.lon != null ? e.lon : "";
+  _aisEditingId = vesselId;
+  var btn = document.getElementById("ais-pin-btn");
+  if (btn) btn.textContent = "✏️ Upd";
+  nameEl.focus();
+}
+function aisPinManual() {
+  var nameEl = document.getElementById("ais-pin-name");
+  var latEl = document.getElementById("ais-pin-lat");
+  var lonEl = document.getElementById("ais-pin-lon");
+  if (!nameEl || !latEl || !lonEl) return;
+  var name = nameEl.value.trim();
+  var latStr = latEl.value.trim();
+  var lonStr = lonEl.value.trim();
+  if (!name || !latStr || !lonStr) { alert("Completá nombre, latitud y longitud"); return; }
+  var lat = _dmsToDec(latStr);
+  var lon = _dmsToDec(lonStr);
+  if (isNaN(lat) || isNaN(lon)) { alert("Coordenadas inválidas. Usá decimal (-34.5) o DMS (26° 56' 1'' S)"); return; }
+  // clear inputs for next entry
+  nameEl.value = "";
+  latEl.value = "";
+  lonEl.value = "";
+  nameEl.focus();
+  if (_aisEditingId) {
+    // update existing pin
+    var oldId = _aisEditingId;
+    _aisEditingId = null;
+    var btn = document.getElementById("ais-pin-btn");
+    if (btn) btn.textContent = "+ Pin";
+    var e = _aisBuffer[oldId];
+    if (!e) return;
+    // remove old marker
+    if (_aisMarkers[oldId]) { _aisMap.removeLayer(_aisMarkers[oldId]); delete _aisMarkers[oldId]; }
+    // create updated entry (keep same id)
+    var fakeId = oldId;
+    var fakeData = { MetaData: { MMSI: fakeId, ShipName: name, latitude: lat, longitude: lon } };
+    _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true };
+    if (_aisCurrentSection && _aisMap) {
+      aisProcessPosition(fakeData, _aisCurrentSection);
+      _aisMap.setView([lat, lon], 7);
+    }
+    return;
+  }
+  // create a fake data entry and plot it
+  var fakeId = "MANUAL_" + Date.now();
+  var fakeData = { MetaData: { MMSI: fakeId, ShipName: name, latitude: lat, longitude: lon } };
+  _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true };
+  // add to manual vessels so it persists in the list
+  _aisManualVessels.push(fakeId);
+  if (_aisCurrentSection && _aisMap) {
+    aisProcessPosition(fakeData, _aisCurrentSection);
+    _aisMap.setView([lat, lon], 7);
   }
 }
 
 function aisMapHtml() {
-  return `<div id="ais-map-wrap" class="activo" style="display:block">
-    <div class="ais-map-header">
-      <h3>Posiciones AIS en vivo</h3>
-      <div class="ais-map-controls">
-        <input type="text" id="ais-mmsi-input" placeholder="IMO / MMSI / nombre" onkeydown="if(event.key==='Enter')aisAgregarManual()">
-        <button onclick="aisAgregarManual()" title="Agregar buque">+ Agregar</button>
-      </div>
-    </div>
-    <div id="ais-map" style="height:380px;width:100%"></div>
-    <div class="ais-map-msg" id="ais-map-msg">Inicializando mapa AIS...</div>
-    <div class="ais-map-footer">
-      <div class="ais-map-legend">
-        <span><span class="ais-legend-dot sar"></span>SAR</span>
-        <span><span class="ais-legend-dot mas"></span>MAS</span>
-        <span><span class="ais-legend-dot manual"></span>Manual</span>
-      </div>
-      <span id="ais-last-update">—</span>
-    </div>
-  </div>`;
+  return '<div id="ais-map-wrap" class="activo" style="display:block">' +
+    '<div class="ais-map-header">' +
+      '<h3>Posiciones AIS en vivo</h3>' +
+      '<div class="ais-map-controls">' +
+        '<input type="text" id="ais-mmsi-input" placeholder="IMO / MMSI / nombre" onkeydown="if(event.key===\'Enter\')aisAgregarManual()" style="width:110px">' +
+        '<button onclick="aisAgregarManual()" title="Agregar por MMSI/nombre">+ AIS</button>' +
+        '<button onclick="if(_aisMap)_aisMap.fitBounds([[-55,-73],[-22,-54]])" title="Ver Argentina completa" style="background:#64748b;color:#fff">🗺️ ARG</button>' +
+        '<button onclick="aisLimpiarManuales()" title="Limpiar todos" style="background:#ef4444;color:#fff">✕</button>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:4px;padding:4px 8px;background:#f0f4ff;border-bottom:1px solid var(--gray-200);align-items:center;flex-wrap:wrap;font-size:11px">' +
+      '<span style="font-weight:700;color:#8b5cf6">📍</span>' +
+      '<input type="text" id="ais-pin-name" placeholder="Nombre" style="width:80px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
+      '<input type="text" id="ais-pin-lat" placeholder="Lat (ej: 26° 56\' S)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
+      '<input type="text" id="ais-pin-lon" placeholder="Lon (ej: 58° 29\' W)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
+      '<button id="ais-pin-btn" onclick="aisPinManual()" style="padding:3px 8px;background:#8b5cf6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">+ Pin</button>' +
+    '</div>' +
+    '<div id="ais-map" style="height:520px;width:100%"></div>' +
+    '<div class="ais-map-msg" id="ais-map-msg">Inicializando mapa AIS...</div>' +
+    '<div class="ais-map-footer">' +
+      '<div class="ais-map-legend">' +
+        '<span><span class="ais-legend-dot sar"></span>SAR</span>' +
+        '<span><span class="ais-legend-dot mas"></span>MAS</span>' +
+        '<span><span class="ais-legend-dot manual"></span>Manual</span>' +
+      '</div>' +
+      '<span id="ais-last-update">—</span>' +
+    '</div>' +
+    '<div id="ais-vessel-list" style="padding:4px 12px 6px;font-size:10px;background:#f8fafc;border-top:1px solid var(--gray-200);max-height:80px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:3px 8px;"></div>' +
+  '</div>';
 }
 
 /* ================================================================
@@ -4857,6 +5068,9 @@ function abrirServicio(id) {
     };
     sbTitle.textContent = (nombres[id] || id) + " — PNA";
   }
+
+  // Iniciar AIS en background
+  if (!_aisWs) setTimeout(aisStartBackground, 1000);
 
   // Cargar datos o ir a la sección correspondiente
   if (!datosGlobales) {
