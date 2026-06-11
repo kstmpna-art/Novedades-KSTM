@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -2351,47 +2352,91 @@ function renderHomeCards(data, sarN, masN) {
         <!-- TOP: SAR / MAS -->
         ${(()=>{
           var sc=sar.cerrados,sp=sar.activos,mc=mas.cerrados,mp=mas.activos;
-          function gaugeSvg(pendientes, cerrados, label, lcolor) {
-  var cx = 110, cy = 115, r = 88, m = 8, v = Math.min(pendientes, m);
-  function pt(deg) {
-    var rad = Math.PI * deg / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  }
-  var g = pt(180), g1 = pt(225), y1 = pt(292.5), r2 = pt(0);
-  var svg = '<svg viewBox="0 0 220 175" style="display:block;width:110px;flex-shrink:0;">';
-  svg += '<path d="M ' + g.x + ',' + g.y + ' A ' + r + ',' + r + ' 0 1,1 ' + r2.x + ',' + r2.y + '" fill="none" stroke="#f1f5f9" stroke-width="22" stroke-linecap="round"/>';
-  svg += '<path d="M ' + g.x + ',' + g.y + ' A ' + r + ',' + r + ' 0 0,1 ' + g1.x + ',' + g1.y + '" fill="none" stroke="#22c55e" stroke-width="22" stroke-linecap="round"/>';
-  svg += '<path d="M ' + g1.x + ',' + g1.y + ' A ' + r + ',' + r + ' 0 0,1 ' + y1.x + ',' + y1.y + '" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>';
-  svg += '<path d="M ' + y1.x + ',' + y1.y + ' A ' + r + ',' + r + ' 0 0,1 ' + r2.x + ',' + r2.y + '" fill="none" stroke="#dc2626" stroke-width="22" stroke-linecap="round"/>';
-  var a = Math.PI * (1 + v / m), nx = cx + r * 0.62 * Math.cos(a), ny = cy + r * 0.62 * Math.sin(a);
-  svg += '<line x1="' + cx + '" y1="' + cy + '" x2="' + nx + '" y2="' + ny + '" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>';
-  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#1e293b"/>';
-  svg += '</svg>';
-  return '<div style="flex:1;display:flex;align-items:center;gap:8px;min-width:0;">'
-    + svg
-    + '<div style="display:flex;flex-direction:column;gap:0px;">'
-    + '<span style="font-size:14px;font-weight:800;color:' + lcolor + ';">' + label + '</span>'
-    + '<span style="font-size:13px;font-weight:700;color:var(--text-lt);">Pendientes: <span style="font-size:20px;font-weight:800;color:var(--text);">' + pendientes + '</span></span>'
-    + '<span style="font-size:13px;font-weight:700;color:var(--text-lt);">Cerrados: <span style="color:var(--text);">' + cerrados + '</span></span>'
-    + '</div></div>';
-}
+          var _bars = [
+            {l:"SAR Pend.", v:sp, c:"#dc2626"},
+            {l:"SAR Cerr.", v:sc, c:"#22c55e"},
+            {l:"MAS Pend.", v:mp, c:"#a855f7"},
+            {l:"MAS Cerr.", v:mc, c:"#10b981"}
+          ];
+          var _maxV = Math.max(1, ..._bars.map(function(x){return x.v;}));
+          function _cd(fecha) {
+            if (!fecha) return -1;
+            var p = fecha.split("/");
+            if (p.length !== 3) return -1;
+            var y = +p[2];
+            if (y < 100) y += 2000;
+            var d = new Date(y, +p[1] - 1, +p[0]);
+            return isNaN(d) ? -1 : Math.floor((Date.now() - d.getTime()) / 86400000);
+          }
+          var _secSAR = data.secciones.find(function(s) { return s.id === "SAR"; });
+          var _secMAS = data.secciones.find(function(s) { return s.id === "MAS"; });
+          var _fSAR = (_secSAR ? _secSAR.filas : []).filter(function(f) { return f && f.tipo === "caso_especial"; });
+          var _fMAS = (_secMAS ? _secMAS.filas : []).filter(function(f) { return f && f.tipo === "caso_especial"; });
+          var _pendItems = [];
+          _fSAR.forEach(function(f) {
+            if (((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")) return;
+            var d = _cd(f.fechaInicio);
+            if (d >= 0) _pendItems.push('<span style="color:#22c55e;font-size:9px;font-weight:600;white-space:nowrap">🟢 ' + esc(f.buque) + ' <span style="color:var(--text-md);font-weight:700;">' + d + 'd</span></span>');
+          });
+          _fMAS.forEach(function(f) {
+            if (((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")) return;
+            var d = _cd(f.fechaInicio);
+            if (d >= 0) _pendItems.push('<span style="color:#f59e0b;font-size:9px;font-weight:600;white-space:nowrap">🟠 ' + esc(f.buque) + ' <span style="color:var(--text-md);font-weight:700;">' + d + 'd</span></span>');
+          });
           return `
-        <div id="sarmas-dash-card" class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow-y:auto;display:flex;flex-direction:column;">
+        <div id="sarmas-dash-card" class="dash-card" style="min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#dc2626,#7c3aed);flex-shrink:0;"></div>
-          <div style="padding:6px 8px;display:flex;flex-direction:column;min-height:0;">
+          <div style="padding:6px 8px;display:flex;flex-direction:column;min-height:180px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;flex-shrink:0;">
               <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
               <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${sc+sp+mc+mp}</span>
             </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${gaugeSvg(sp,sc,"SAR","#dc2626")}
+            <div style="display:flex;gap:10px;flex-wrap:nowrap;min-height:110px;">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;">
+                <div style="display:flex;gap:4px;height:100px;align-items:flex-end;padding:0 2px;">
+                  ${_bars.map(function(x){
+                    var _h = Math.max(8, x.v / _maxV * 80);
+                    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">'+
+                      '<span style="font-size:13px;font-weight:800;color:var(--text);line-height:1;margin-bottom:3px;flex-shrink:0;">'+x.v+'</span>'+
+                      '<div style="width:100%;height:'+_h+'px;min-height:8px;background:'+x.c+';border-radius:4px 4px 0 0;transition:height .4s;" title="'+x.l+'"></div>'+
+                      '<span style="font-size:7px;font-weight:700;color:var(--text-lt);margin-top:3px;text-align:center;line-height:1.2;white-space:nowrap;flex-shrink:0;">'+x.l+'</span>'+
+                      '</div>';
+                  }).join("")}
+                </div>
+              </div>
               <div style="width:1px;background:var(--gray-200);flex-shrink:0;margin:4px 0;"></div>
-              ${gaugeSvg(mp,mc,"MAS","#7c3aed")}
+              <div style="flex:1;min-width:0;display:flex;gap:4px;align-items:center;justify-content:center;">
+                ${function(){
+                  var tp=sp+mp,tc=sc+mc,cx=110,cy=115,r=88,m=10,v=Math.min(tp,m);
+                  function pt(d){var rad=Math.PI*d/180;return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
+                  var g=pt(180),g1=pt(225),y1=pt(292.5),r2=pt(0);
+                  var svg='<svg viewBox="0 0 220 175" style="display:block;width:80px;flex-shrink:0;">';
+                  svg+='<path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 1,1 '+r2.x+','+r2.y+'" fill="none" stroke="#f1f5f9" stroke-width="22" stroke-linecap="round"/>';
+                  svg+='<path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 0,1 '+g1.x+','+g1.y+'" fill="none" stroke="#22c55e" stroke-width="22" stroke-linecap="round"/>';
+                  svg+='<path d="M '+g1.x+','+g1.y+' A '+r+','+r+' 0 0,1 '+y1.x+','+y1.y+'" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>';
+                  svg+='<path d="M '+y1.x+','+y1.y+' A '+r+','+r+' 0 0,1 '+r2.x+','+r2.y+'" fill="none" stroke="#dc2626" stroke-width="22" stroke-linecap="round"/>';
+                  var a=Math.PI*(1+v/m),nx=cx+r*0.62*Math.cos(a),ny=cy+r*0.62*Math.sin(a);
+                  svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+nx+'" y2="'+ny+'" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>';
+                  svg+='<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="#1e293b"/>';
+                  svg+='</svg>';
+                  return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+
+                    svg+
+                    '<span style="font-size:12px;font-weight:800;color:var(--navy);letter-spacing:.3px">TOTAL</span>'+
+                    '<span style="font-size:12px;font-weight:700;color:var(--text-lt);">Pend: <span style="font-size:14px;font-weight:800;color:var(--text);">'+tp+'</span> &nbsp; Cerr: <span style="color:var(--text);">'+tc+'</span></span>'+
+                    '</div>';
+                }()}
+                <div style="display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:700;color:var(--text-lt);flex-shrink:0;">
+                  <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:2px;"></span>0–2 Demanda Baja</span>
+                  <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#f59e0b;margin-right:2px;"></span>3–5 Demanda Media</span>
+                  <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#dc2626;margin-right:2px;"></span>≥ 6 Demanda Alta</span>
+                </div>
+              </div>
             </div>
-            <div style="display:flex;justify-content:center;gap:14px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--text-lt);margin-top:6px;padding-top:5px;border-top:1px solid var(--gray-200);">
-              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>≤&nbsp;2 (Demanda Baja)</span>
-              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>3–5 (Demanda Media)</span>
-              <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;margin-right:4px;"></span>&gt;&nbsp;5 (Demanda Alta)</span>
+            <div style="border-top:1px solid var(--gray-200);margin-top:4px;padding-top:4px;display:flex;gap:4px;flex-shrink:0;">
+              <div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:3px;max-height:44px;overflow-y:auto;align-items:center;">
+                <span style="font-size:9px;font-weight:700;color:var(--text);margin-right:4px;flex-shrink:0">Días pendientes:</span>
+                ${_pendItems.length ? _pendItems.join("") : '<span style="font-size:9px;color:var(--text-lt);font-style:italic">Sin pendientes</span>'}
+              </div>
             </div>
           </div>
         </div>`})()}
@@ -2409,9 +2454,9 @@ function renderHomeCards(data, sarN, masN) {
           const maxDias = Math.max(1, ...barras.map(x => x.dias > 0 ? x.dias : 0));
           const colorDias = d => d <= 0 ? "#22c55e" : d <= 5 ? "#22c55e" : d <= 15 ? "#f59e0b" : "#ef4444";
           const anchoBar = Math.max(30, Math.min(60, 400 / Math.max(barras.length,1)));
-          const alto = 140;
+          const alto = 120;
           return `
-        <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+        <div class="dash-card" style="min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#a86210,#f59e0b);flex-shrink:0;"></div>
           <div style="padding:8px 14px 4px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
@@ -2420,7 +2465,7 @@ function renderHomeCards(data, sarN, masN) {
             </div>
             <div style="font-size:10px;color:var(--text-md);font-weight:600;">Días operando</div>
           </div>
-          <div style="padding:0 14px 6px;flex:1;overflow-y:auto;min-height:0;">
+          <div style="padding:0 14px 6px;min-height:140px;overflow-y:auto;">
             ${barras.length ? `
             <div style="display:flex;align-items:flex-end;gap:4px;height:${alto}px;padding:12px 2px 0;">
               ${barras.map(x => {
@@ -2428,9 +2473,9 @@ function renderHomeCards(data, sarN, masN) {
                 const c = colorDias(x.dias);
                 return `
             <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
-              ${x.dias > 0 ? `<span style="font-size:8px;font-weight:800;color:${c};margin-bottom:2px;line-height:1;">${x.dias}d</span>` : '<span style="font-size:7px;color:var(--text-lt);margin-bottom:2px;line-height:1;">—</span>'}
+              ${x.dias > 0 ? `<span style="font-size:8px;font-weight:800;color:${c};margin-bottom:2px;line-height:1;flex-shrink:0;">${x.dias}d</span>` : '<span style="font-size:7px;color:var(--text-lt);margin-bottom:2px;line-height:1;flex-shrink:0;">—</span>'}
               <div style="width:100%;max-width:${anchoBar}px;height:${h}px;background:${c};border-radius:4px 4px 0 0;min-height:8px;transition:height .4s;" title="${x.full}"></div>
-              <div style="text-align:center;margin-top:3px;max-width:${anchoBar}px;cursor:default;" title="${x.full}">
+              <div style="text-align:center;margin-top:3px;max-width:${anchoBar}px;cursor:default;flex-shrink:0;" title="${x.full}">
                 <div style="font-size:7px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.nom||'—'}</div>
                 ${x.full.length > (x.nom||'').length ? `<div style="font-size:6px;color:var(--text-lt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.full}</div>` : ''}
               </div>
@@ -2505,14 +2550,14 @@ function renderHomeCards(data, sarN, masN) {
             html += '<div style="font-size:10px;font-weight:700;color:#f59e0b;margin-top:4px;margin-bottom:2px;">Previstas</div><div style="display:flex;flex-wrap:wrap;gap:2px;">'+gcSched.map(function(f){return '<span style="font-size:9px;font-weight:600;color:#f59e0b;background:#fef3c7;padding:1px 5px;border-radius:3px;">'+nombre(f)+'</span>';}).join("")+'</div>';
           }
           return `
-        <div class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
+        <div class="dash-card" style="min-height:0;background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#1a9560,#34d399);flex-shrink:0;"></div>
-          <div style="padding:6px 10px;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+          <div style="padding:6px 10px;display:flex;flex-direction:column;min-height:120px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;flex-shrink:0;">
               <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">&#x1f6a2; GC / ARA</span>
               <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:#1a9560;line-height:1;">${total}</span>
             </div>
-            <div style="flex:1;min-height:0;overflow-y:auto;padding-right:2px;">
+            <div style="min-height:80px;overflow-y:auto;padding-right:2px;flex:1;">
               ${html || '<div style="font-size:11px;color:var(--text-lt);font-style:italic;text-align:center;padding:12px;">Sin datos.</div>'}
             </div>
           </div>
@@ -2555,8 +2600,6 @@ function renderHomeCards(data, sarN, masN) {
       if (!isNaN(w)) { el.style.transition = "width .6s cubic-bezier(.22,1,.36,1)"; el.style.width = w + "%"; }
     });
     try {
-
-      // Puertos → Mapa interactivo
       const c3 = document.getElementById("hc-dash-puertos");
       if (c3) {
         const pSec = data.secciones.find(s => s.id === "PUERTOS");
@@ -2567,48 +2610,7 @@ function renderHomeCards(data, sarN, masN) {
         }
         initPuertosMap("hc-dash-puertos", closedList, portFilas);
       }
-
     } catch(e) { console.error("Error gráficos home:", e); }
-
-    // ── Pendientes SAR/MAS (días desde inicio) ──────────
-    try {
-      var _cCard = document.getElementById("sarmas-dash-card");
-      if (_cCard) {
-        function _cd(fecha) {
-          if (!fecha) return -1;
-          var p = fecha.split("/");
-          if (p.length !== 3) return -1;
-          var y = +p[2];
-          if (y < 100) y += 2000;
-          var d = new Date(y, +p[1] - 1, +p[0]);
-          return isNaN(d) ? -1 : Math.floor((Date.now() - d.getTime()) / 86400000);
-        }
-        var _secSAR = data.secciones.find(function(s) { return s.id === "SAR"; });
-        var _secMAS = data.secciones.find(function(s) { return s.id === "MAS"; });
-        var _fSAR = (_secSAR ? _secSAR.filas : []).filter(function(f) { return f && f.tipo === "caso_especial"; });
-        var _fMAS = (_secMAS ? _secMAS.filas : []).filter(function(f) { return f && f.tipo === "caso_especial"; });
-        var _pendItems = [];
-        _fSAR.forEach(function(f) {
-          if (((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")) return;
-          var d = _cd(f.fechaInicio);
-          if (d >= 0) _pendItems.push('<span style="color:#22c55e;font-size:10px;font-weight:600;white-space:nowrap">🟢 ' + esc(f.buque) + ' &mdash; ' + d + 'd</span>');
-        });
-        _fMAS.forEach(function(f) {
-          if (((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO")) return;
-          var d = _cd(f.fechaInicio);
-          if (d >= 0) _pendItems.push('<span style="color:#f59e0b;font-size:10px;font-weight:600;white-space:nowrap">🟠 ' + esc(f.buque) + ' &mdash; ' + d + 'd</span>');
-        });
-        var _pd = document.createElement("div");
-        _pd.style.cssText = "padding:0 8px 4px;display:flex;flex-wrap:wrap;gap:3px;max-height:52px;overflow-y:auto;align-items:center";
-        _pd.innerHTML = '<span style="font-size:10px;font-weight:700;color:var(--text);margin-right:4px">Días pendientes:</span>';
-        if (_pendItems.length) {
-          _pd.innerHTML += _pendItems.join("");
-        } else {
-          _pd.innerHTML += '<span style="font-size:10px;color:var(--text-lt);font-style:italic">Sin pendientes</span>';
-        }
-        _cCard.appendChild(_pd);
-      }
-    } catch(e) { console.error("Error pendientes SAR/MAS:", e); }
   }, 100);
 }
 
