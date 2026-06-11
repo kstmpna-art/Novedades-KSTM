@@ -1356,16 +1356,16 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       <input type="hidden" id="casoSeccion">
       <input type="hidden" id="casoFila" value="">
       <div class="caso-tabs" id="casoTabs">
-        <button class="caso-tab active" onclick="switchCasoTab('asunto',this)">📋 Asunto</button>
-        <button class="caso-tab" onclick="switchCasoTab('caract',this)">🚢 Caracter&iacute;sticas</button>
-        <button class="caso-tab" onclick="switchCasoTab('situacion',this)">🔍 Situaci&oacute;n</button>
-        <button class="caso-tab" onclick="switchCasoTab('novedad',this)">📝 Novedad</button>
+        <button type="button" class="caso-tab active" onclick="switchCasoTab('asunto',this)">📋 Asunto</button>
+        <button type="button" class="caso-tab" onclick="switchCasoTab('caract',this)">🚢 Caracter&iacute;sticas</button>
+        <button type="button" class="caso-tab" onclick="switchCasoTab('situacion',this)">🔍 Situaci&oacute;n</button>
+        <button type="button" class="caso-tab" onclick="switchCasoTab('novedad',this)">📝 Novedad</button>
       </div>
 
       <div id="casoEstadoBtns" style="display:flex;gap:8px;margin-bottom:12px">
-        <button type="button" class="tb-btn outline" id="btnEstadoPendiente" onclick="setCasoEstado('PENDIENTE')" style="flex:1;border-color:#f59e0b;color:#f59e0b;font-weight:700">⏳ Pendiente</button>
-        <button type="button" class="tb-btn outline" id="btnEstadoCerrado" onclick="setCasoEstado('CERRADO')" style="flex:1;border-color:#22c55e;color:#22c55e;font-weight:700">✅ Cerrado</button>
-        <input type="hidden" id="casoEstado" value="PENDIENTE">
+        <button type="button" class="tb-btn outline" id="btnEstadoPendiente" onclick="setCasoEstado('Pendientes')" style="flex:1;border-color:#f59e0b;color:#f59e0b;font-weight:700">⏳ Pendientes</button>
+        <button type="button" class="tb-btn outline" id="btnEstadoCerrado" onclick="setCasoEstado('Cerrados')" style="flex:1;border-color:#22c55e;color:#22c55e;font-weight:700">✅ Cerrados</button>
+        <input type="hidden" id="casoEstado" value="Pendientes">
       </div>
 
       <!-- PANEL 1: ASUNTO -->
@@ -1465,6 +1465,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       </div>
       <div class="modal-btns" style="margin-top:16px">
         <button type="submit" class="btn-guardar-caso" id="btnGuardarCaso">💾 Guardar caso</button>
+        <button type="button" class="tb-btn outline" id="btnEliminarCaso" onclick="eliminarCaso()" style="display:none;border-color:#dc2626;color:#dc2626;font-weight:700">🗑 Eliminar caso</button>
         <button type="button" class="btn-cancelar" onclick="cerrarModalCaso()">Cancelar</button>
       </div>
     </form>
@@ -1730,7 +1731,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyu6M7UrogpM0Z_auJcs3QOnoACWepFhwcXlDoEFMCThSfqQMrSTO8U_o9og_Sm6zv50g/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyno_sjq3SRmPksDNIJ6lC-rFyZVyabJUmQWKBKX87unpVvrX7X-ULEVIMzffl_3_yP0A/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -5395,9 +5396,10 @@ function exportarWord(){
 function abrirModalCaso(seccion){
   document.getElementById("casoSeccion").value=seccion;
   document.getElementById("casoFila").value="";
+  document.getElementById("btnEliminarCaso").style.display="none";
   document.getElementById("modalCasoTitle").textContent="Cargar nuevo caso "+seccion;
   document.getElementById("formCaso").reset();
-  document.getElementById("casoEstado").value="PENDIENTE";
+  document.getElementById("casoEstado").value="Pendientes";
   document.getElementById("btnEstadoPendiente").style.background="#f59e0b";
   document.getElementById("btnEstadoPendiente").style.color="#fff";
   document.getElementById("btnEstadoCerrado").style.background="transparent";
@@ -5415,7 +5417,7 @@ function setCasoEstado(val){
   document.getElementById("casoEstado").value=val;
   var pBtn=document.getElementById("btnEstadoPendiente");
   var cBtn=document.getElementById("btnEstadoCerrado");
-  if(val==="PENDIENTE"){
+  if(val==="Pendientes"){
     pBtn.style.background="#f59e0b";pBtn.style.color="#fff";
     cBtn.style.background="transparent";cBtn.style.color="#22c55e";
   }else{
@@ -5471,12 +5473,51 @@ async function guardarCaso(e){
     btn.disabled=false;btn.textContent=editando?"💾 Actualizar caso":"💾 Guardar caso";
     if(res&&res.ok){
       cerrarModalCaso();
-      mostrarSeccion(data.seccion);
+      var secGuardada = data.seccion;
+      datosGlobales = null;
+      await cargarDatos();
+      if(secGuardada) mostrarSeccion(secGuardada);
     }else{
       alert("⚠ Error al guardar: "+(res&&res.error||"Respuesta inválida"));
     }
   }catch(err){
     btn.disabled=false;btn.textContent=editando?"💾 Actualizar caso":"💾 Guardar caso";
+    alert("⚠ Error de conexión: "+(err.message||err));
+  }
+}
+
+async function eliminarCaso(){
+  var filaSheet=document.getElementById("casoFila").value;
+  var seccion=document.getElementById("casoSeccion").value;
+  if(!filaSheet||!seccion) return;
+  if(!confirm("¿Eliminar este caso definitivamente?")) return;
+  var btn=document.getElementById("btnEliminarCaso");
+  btn.disabled=true;btn.textContent="⏳ Eliminando...";
+  try{
+    var params=new URLSearchParams();
+    params.set("accion","eliminarCasoEspecial");
+    params.set("seccion",seccion);
+    params.set("filaSheet",filaSheet);
+    var response=await fetch(API_URL,{
+      method:"POST",
+      redirect:"follow",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:params.toString()
+    });
+    var text=await response.text();
+    var res=JSON.parse(text);
+    btn.disabled=false;btn.textContent="🗑 Eliminar caso";
+    if(res&&res.ok){
+      cerrarModalCaso();
+      var secGuardada=seccion;
+      datosGlobales=null;
+      await cargarDatos();
+      if(secGuardada) mostrarSeccion(secGuardada);
+    }else{
+      alert("⚠ Error al eliminar: "+(res&&res.error||"Respuesta inválida"));
+    }
+  }catch(err){
+    btn.disabled=false;btn.textContent="🗑 Eliminar caso";
     alert("⚠ Error de conexión: "+(err.message||err));
   }
 }
@@ -5490,28 +5531,29 @@ function editarCaso(seccionId, filaSheet, hojaId){
 
   document.getElementById("casoSeccion").value=seccionId;
   document.getElementById("casoFila").value=filaSheet;
+  document.getElementById("btnEliminarCaso").style.display="inline-block";
   document.getElementById("modalCasoTitle").textContent="Editar caso "+seccionId+" — "+caso.buque;
 
-  document.getElementById("casoSubcentro").value=caso.asunto ? caso.asunto.match(/K\w{3,4}/)?.[0] || "" : "";
-  document.getElementById("casoNumero").value=caso.asunto ? (caso.asunto.match(/Nº\s*([\d\/]+)/)?.[1] || "") : "";
-  document.getElementById("casoNombre").value=caso.asunto ? (caso.asunto.match(/–\s*"(.+?)"/)?.[1] || "") : "";
-  document.getElementById("casoBuque").value=caso.buque || "";
-  document.getElementById("casoIdentificacion").value=caso.identificacion || "";
-  document.getElementById("casoTipo").value=caso.tipo || "";
-  document.getElementById("casoBandera").value=caso.bandera || "";
-  document.getElementById("casoFechaInicio").value=caso.fechaInicio || "";
-  document.getElementById("casoFechaCierre").value=caso.fechaCierre || "";
-  document.getElementById("casoPosicion").value=caso.posicion || "";
-  document.getElementById("casoEslora").value= (caso.caracteristicas||"").match(/E:\s*([^\s-]+)/)?.[1] || "";
-  document.getElementById("casoManga").value= (caso.caracteristicas||"").match(/M:\s*([^\s-]+)/)?.[1] || "";
-  document.getElementById("casoAgencia").value=caso.agencia_pob || "";
-  document.getElementById("casoProcedencia").value=caso.procedencia_destino || "";
-  document.getElementById("casoDiagnostico").value=caso.diagnostico || "";
-  document.getElementById("casoMediosPrevistos").value=caso.medios_previstos || "";
+  document.getElementById("casoSubcentro").value=caso.subcentro||"";
+  document.getElementById("casoNumero").value=caso.numero||"";
+  document.getElementById("casoNombre").value=caso.nombre||"";
+  document.getElementById("casoBuque").value=caso.buque||"";
+  document.getElementById("casoIdentificacion").value=caso.identificacion||"";
+  document.getElementById("casoTipo").value=caso.tipoBuque||"";
+  document.getElementById("casoBandera").value=caso.bandera||"";
+  document.getElementById("casoFechaInicio").value=caso.fechaInicio||"";
+  document.getElementById("casoFechaCierre").value=caso.fechaCierre||"";
+  document.getElementById("casoPosicion").value=caso.posicion||"";
+  document.getElementById("casoEslora").value=caso.eslora||"";
+  document.getElementById("casoManga").value=caso.manga||"";
+  document.getElementById("casoAgencia").value=caso.agenciaPob||"";
+  document.getElementById("casoProcedencia").value=caso.procedenciaDestino||"";
+  document.getElementById("casoDiagnostico").value=caso.diagnostico||"";
+  document.getElementById("casoMediosPrevistos").value=caso.mediosPrevistos||"";
   document.getElementById("casoSituacion").value=caso.situacion || "";
   document.getElementById("casoNovedad").value=caso.novedad || "";
 
-  setCasoEstado((caso.estado||"").toUpperCase().includes("CERRADO")?"CERRADO":"PENDIENTE");
+  setCasoEstado((caso.estado||"").toUpperCase().includes("CERRADO")?"Cerrados":"Pendientes");
 
   document.getElementById("modalCaso").classList.add("activo");
   switchCasoTab("asunto",document.querySelector("#casoTabs .caso-tab"));
