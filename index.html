@@ -498,6 +498,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .btn-exp-word:hover{background:var(--blue-lt)}
 .btn-cancelar{margin-top:6px;background:transparent;border:none;color:var(--text-lt);cursor:pointer;font-size:13px;text-decoration:underline;font-family:'DM Sans',sans-serif}
 .btn-cancelar:hover{color:var(--red)}
+.btn-exp-save{background:#22c55e;border:none;color:#fff}
+.btn-exp-save:hover{background:#16a34a}
 #exportContainer{position:fixed;left:-9999px;top:0;z-index:-1;width:210mm;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:11pt;padding:18mm 15mm}
 
 /* ── AVIACIóN TABLE ───────────────────────────────────────────── */
@@ -1339,13 +1341,26 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
 <!-- ── MODAL EXPORT ───────────────────────────────────────────────── -->
 <div id="modalExport">
-  <div class="modal-box">
-    <h2>📄 Exportar Parte de Novedades</h2>
-    <div class="modal-btns">
-      <button onclick="exportarPDF()" id="btnPDF" class="btn-exp-pdf">📕 Descargar PDF</button>
-      <button onclick="exportarWord()" id="btnWord" class="btn-exp-word">📘 Descargar Word (.doc)</button>
+  <div class="modal-box" style="max-width:520px">
+    <h2 style="text-align:center">📄 Exportar Parte</h2>
+    <div class="modal-btns" style="justify-content:center">
+      <button onclick="exportarPDF()" id="btnPDF" class="btn-exp-pdf">📕 PDF</button>
+      <button onclick="exportarWord()" id="btnWord" class="btn-exp-word">📘 Word</button>
+      <button onclick="guardarParte()" id="btnSaveParte" class="btn-exp-save">💾 Guardar</button>
     </div>
-    <button class="btn-cancelar" onclick="cerrarModalExport()">Cancelar</button>
+    <hr style="margin:14px 0;border:none;border-top:1px solid var(--gray-200)">
+    <div style="margin-bottom:10px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--text-lt);margin-bottom:4px;text-align:center">🔍 Buscar parte guardado</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="date" id="bpFecha" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit">
+        <button onclick="buscarParte()" id="btnBuscarParte" style="padding:7px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit">🔍</button>
+      </div>
+      <div id="bpFechaLabel" style="font-size:11px;text-align:center;color:var(--text-lt);margin-top:3px"></div>
+    </div>
+    <div id="bpResultados" style="max-height:200px;overflow-y:auto;font-size:13px;margin-bottom:10px"></div>
+    <div style="text-align:center">
+      <button class="btn-cancelar" onclick="cerrarModalExport()">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -1472,6 +1487,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
     </form>
   </div>
 </div>
+
+
 
 <!-- ── IMG ZOOM ───────────────────────────────────────────────────── -->
 <div id="imgZoomModal" onclick="cerrarZoom()">
@@ -1732,7 +1749,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyno_sjq3SRmPksDNIJ6lC-rFyZVyabJUmQWKBKX87unpVvrX7X-ULEVIMzffl_3_yP0A/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbz3X12uPY7C-DuflNO-RGOD9RU8nrgpmADIZx0FtYATtqQGXak29Xd5TUEUTf1JmvA0Yg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -4899,9 +4916,14 @@ function abrirNovedadPAPE(){if(!datosGlobales||!datosGlobales.urlPAPE){alert("�
 function abrirAnpyn(){var win=window.open();win.location="https://www.argentina.gob.ar/economia/agencia-nacional-de-puertos-y-navegacion/planillas-de-determinantes";}
 
 /* ================================================================
-   EXPORT - WORD & PDF (formato Parte de Novedades PNA)
-=============================================================== */
-function abrirModalExport(){document.getElementById("modalExport").classList.add("activo");}
+   EXPORT - WORD, PDF & GUARDAR PARTE
+   =============================================================== */
+function abrirModalExport(){
+  document.getElementById("modalExport").classList.add("activo");
+  document.getElementById("bpFecha").value = "";
+  document.getElementById("bpFechaLabel").textContent = "";
+  document.getElementById("bpResultados").innerHTML = "";
+}
 function cerrarModalExport(){document.getElementById("modalExport").classList.remove("activo");}
 document.getElementById("modalExport").addEventListener("click",function(e){if(e.target===this)cerrarModalExport();});
 
@@ -4909,10 +4931,103 @@ async function exportarPDF(){
   var btn=document.getElementById("btnPDF");
   btn.textContent="Generando PDF...";btn.disabled=true;
   try{
-    var res=await llamarAPI("generarPDFenDrive");
-    btn.textContent="Descargar PDF";btn.disabled=false;
-    cerrarModalExport();window.open(res.url,"_blank");
-  }catch(err){btn.textContent="Descargar PDF";btn.disabled=false;alert("Error al generar PDF: "+(err.message||err));}
+    var fechaStr=datosGlobales.fecha||"";
+    var fechaPalabras=_fechaPalabras(fechaStr);
+    var cuerpo=_buildParteCuerpo();
+    var html=_buildParteHTML(cuerpo,fechaStr,fechaPalabras);
+    var w=window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+    btn.textContent="📕 PDF";btn.disabled=false;cerrarModalExport();
+  }catch(err){btn.textContent="📕 PDF";btn.disabled=false;alert("Error al generar PDF: "+(err.message||err));}
+}
+
+async function guardarParte(){
+  if(!datosGlobales){alert("Sin datos cargados.");return;}
+  var btn=document.getElementById("btnSaveParte");
+  btn.textContent="Guardando...";btn.disabled=true;
+  try{
+    var fechaStr=datosGlobales.fecha||"";
+    var fechaPalabras=_fechaPalabras(fechaStr);
+    var cuerpo=_buildParteCuerpo();
+    var html=_buildParteHTML(cuerpo,fechaStr,fechaPalabras);
+    var params=new URLSearchParams();
+    params.set("accion","guardarParte");
+    params.set("fecha",fechaStr);
+    params.set("parte",html);
+    var response=await fetch(API_URL,{
+      method:"POST",
+      redirect:"follow",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:params.toString()
+    });
+    var text=await response.text();
+    var res=JSON.parse(text);
+    btn.textContent="💾 Guardar";btn.disabled=false;
+    if(res&&res.ok){
+      cerrarModalExport();
+      if(res.url){
+        var win=window.open("","_blank");
+        win.location=res.url;
+      }
+      alert("✅ Parte guardado correctamente.");
+    }else{
+      alert("⚠ Error al guardar: "+(res&&res.error||"Respuesta inválida"));
+    }
+  }catch(err){
+    btn.textContent="💾 Guardar";btn.disabled=false;
+    alert("⚠ Error de conexión: "+(err.message||err));
+  }
+}
+
+/* ── BUSCAR PARTE ─────────────────────────────────────── */
+async function buscarParte(){
+  var fechaInput = document.getElementById("bpFecha").value;
+  var btn = document.getElementById("btnBuscarParte");
+  var resDiv = document.getElementById("bpResultados");
+  if(!fechaInput){resDiv.innerHTML='<div style="color:var(--amber);padding:12px;text-align:center">Seleccioná una fecha.</div>';return;}
+  var partesFecha = fechaInput.split("-");
+  var fechaStr = partesFecha[2] + "/" + partesFecha[1] + "/" + partesFecha[0];
+  document.getElementById("bpFechaLabel").textContent = "Buscando: " + fechaStr;
+  btn.textContent="⏳";btn.disabled=true;
+  resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">Buscando...</div>';
+  try{
+    var params=new URLSearchParams();params.set("accion","buscarParte");params.set("fecha",fechaStr);
+    var response=await fetch(API_URL+"?"+params.toString(),{method:"GET",redirect:"follow",cache:"no-store"});
+    var text=await response.text();window._lastSearchResponse=text;var res=JSON.parse(text);
+    btn.textContent="🔍";btn.disabled=false;
+    if(res&&res.ok&&res.partes&&res.partes.length){
+      var html='<div style="margin-bottom:6px;font-size:12px;font-weight:600;color:var(--text-lt)">'+res.partes.length+' resultado'+(res.partes.length!==1?'s':'')+':</div>';
+      res.partes.forEach(function(p,i){
+        var f=p.fecha||fechaStr;
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:4px;box-shadow:var(--shadow-sm)">'+
+          '<span style="font-weight:600;color:var(--navy)">📅 '+esc(f)+'</span>'+
+          '<button onclick="verParte('+i+')" style="padding:4px 12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">👁 Ver</button>'+
+          '</div>';
+      });
+      resDiv.innerHTML=html;window._partesResultados=res.partes;
+    } else {
+      var msg = (res&&res.error?'⚠ '+esc(res.error):'📭 Sin partes para esa fecha.');
+      msg += '<div style="margin-top:8px;font-size:11px;color:var(--gray-400)">Enviado: fecha='+esc(fechaStr)+'</div>';
+      resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">'+msg+'</div>';
+    }
+  }catch(err){
+    btn.textContent="🔍";btn.disabled=false;
+    var txt = '';
+    try { txt = window._lastSearchResponse || ''; } catch(e){}
+    resDiv.innerHTML='<div style="text-align:center;color:var(--red);padding:20px">⚠ Error: '+esc(err.message||err)+'<br><span style="font-size:11px">Respuesta: '+esc(txt)+'</span></div>';
+  }
+}
+function verParte(idx){
+  var partes=window._partesResultados;if(!partes||!partes[idx])return;
+  var p=partes[idx];
+  if(p.url){
+    var win=window.open("","_blank");
+    if(win)win.location=p.url;
+  }else if(p.parte){
+    var win=window.open("","_blank");
+    win.document.write(p.parte);win.document.close();
+  }
 }
 
 function _fechaPalabras(fechaStr){
@@ -5013,15 +5128,8 @@ function _filas(id,tipo){
   return f.filter(function(x){return x;});
 }
 
-function exportarWord(){
-  if(!datosGlobales){alert("Sin datos cargados.");return;}
-  var btn=document.getElementById("btnWord");
-  btn.textContent="Generando...";btn.disabled=true;
-  var fechaStr=datosGlobales.fecha||"";
-  var fechaFile=fechaStr.replace(/\//g,"-")||"hoy";
-  var fechaPalabras=_fechaPalabras(fechaStr);
+function _buildParteCuerpo(){
   var cuerpo="";
-
   // 1. AVIACION
   var avSec=_sec("AVIACION");
   if(avSec){
@@ -5045,7 +5153,6 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de aviaci\u00f3n.</div>';
     }
   }
-
   // 2. GUARDACOSTAS
   var gcSec=_sec("GC");
   var convSec=_sec("CONVENIO");
@@ -5098,12 +5205,10 @@ function exportarWord(){
       }
     }
   }
-
   // 3. SALVAMENTO
   var salvSec=_sec("SALVAMENTO");
   cuerpo+=_seccionTitulo(3,"SERVICIO DE SALVAMENTO, BUCEO Y DOTACIONES DE SEGURIDAD");
   cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
-
   // 4. TRAFICO MARITIMO
   var kstmSec=_sec("KSTM");
   var resSec=_sec("RESERVA");
@@ -5186,7 +5291,6 @@ function exportarWord(){
       }
     }
   }
-
   // 5. PUERTOS
   var pSec=_sec("PUERTOS");
   if(pSec){
@@ -5202,16 +5306,13 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
     }
   }
-
   // 6. DETERMINANTES
   function _parseNum(v){return parseFloat(String(v).replace(",","."));}
   var detSec=_sec("DETERMINANTES");
   if(detSec){
     cuerpo+=_seccionTitulo(6,"DETERMINANTES");
     var detFilasAll=_filas("DETERMINANTES","fila");
-    // Table rows: those with valid lat/lng (datos[11], datos[12])
     var detTablaFilas=detFilasAll.filter(function(f){var d=f.datos||[];return !isNaN(_parseNum(d[11]))&&!isNaN(_parseNum(d[12]));});
-    // Text rows: remaining fila rows (e.g. rows 34, 35 without coordinates)
     var detTextoRows=detFilasAll.filter(function(f){var d=f.datos||[];return isNaN(_parseNum(d[11]))||isNaN(_parseNum(d[12]));});
     if(detTablaFilas.length){
       var calados=detTablaFilas.map(function(f){return _parseNum(f.datos[8]);}).filter(function(v){return!isNaN(v);});
@@ -5242,7 +5343,6 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin determinantes.</div>';
     }
   }
-
   // 7. DRAGAS
   var dragSec=_sec("DRAGAS");
   if(dragSec){
@@ -5259,7 +5359,6 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin dragas operando.</div>';
     }
   }
-
   // 8. METANEROS
   var metSec=_sec("METANEROS");
   if(metSec){
@@ -5290,7 +5389,6 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de metaneros.</div>';
     }
   }
-
   // 9. ALERTAS
   var alSec=_sec("ALERTA");
   if(alSec){
@@ -5303,7 +5401,6 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
     }
   }
-
   // 10. BUQUES INFRACCION
   var bqSec=_sec("BUQUES");
   if(bqSec){
@@ -5315,7 +5412,6 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin registros.</div>';
     }
   }
-
   // 11. VISITAS
   var visSec=_sec("VISITAS");
   if(visSec){
@@ -5327,7 +5423,6 @@ function exportarWord(){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin visitas previstas.</div>';
     }
   }
-
   // 12. MOVIMIENTO PORTUARIO
   var movIds=["MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4"];
   var movSecs=movIds.map(function(id){return _sec(id);}).filter(function(s){return s;});
@@ -5348,50 +5443,64 @@ function exportarWord(){
       }
     });
   }
-
   // 13. CONFLICTO MEDIO ORIENTE
   var confSec=_sec("CONFLICTO");
   if(confSec){
     cuerpo+=_seccionTitulo(13,"CONFLICTO MEDIO ORIENTE");
     cuerpo+=_renderFilas(confSec);
   }
-
   // 14. NOVEDADES VARIAS
   var novSec=_sec("NOVEDADES");
   if(novSec){
     cuerpo+=_seccionTitulo(14,"NOVEDADES VARIAS");
     cuerpo+=_renderFilas(novSec);
   }
-
   // 15. PERSONAL
   var persSec=_sec("PERSONAL_COSTERA");
   if(persSec){
     cuerpo+=_seccionTitulo(15,"PERSONAL");
     cuerpo+=_renderFilas(persSec);
   }
+  return cuerpo;
+}
 
-  // Build final document
-  var estilo='@page{size:210mm 297mm;margin:20mm 15mm}';
-  estilo+='body{font-family:Arial,sans-serif;font-size:12pt;color:#1a1a1a;line-height:1.5;text-align:justify}';
+function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
+  var estilo='@page{size:210mm 297mm;margin:22mm 18mm}';
+  estilo+='body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;line-height:1.6;text-align:justify}';
   estilo+='table{page-break-inside:avoid}';
-
-  var header='<div style="text-align:center;border-bottom:2.5px solid #003366;padding-bottom:10px;margin-bottom:16px">';
-  header+='<div style="font-size:14pt;font-weight:800;color:#003366;letter-spacing:.5px">PREFECTURA NAVAL ARGENTINA</div>';
-  header+='<div style="font-size:12pt;color:#666;font-weight:600;margin-top:1px">Autoridad Mar\u00edtima</div>';
-  header+='<div style="font-size:10pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
-  header+='<div style="font-size:13pt;font-weight:800;color:#003366;margin-top:6pt">PARTE DE NOVEDADES</div>';
-  header+='<div style="font-size:12pt;font-weight:700;color:#555;margin-top:2pt">'+fechaPalabras+'</div>';
+  estilo+='h1,h2,h3{font-family:Georgia,"Times New Roman",serif}';
+  var header='<div style="text-align:center;border-bottom:2.5px solid #003366;padding-bottom:12px;margin-bottom:18px">';
+  header+='<div style="font-size:15pt;font-weight:800;color:#003366;letter-spacing:.8px;text-transform:uppercase">PREFECTURA NAVAL ARGENTINA</div>';
+  header+='<div style="font-size:11pt;color:#666;font-weight:600;margin-top:2px">Autoridad Mar\u00edtima</div>';
+  header+='<div style="font-size:9pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:4px;letter-spacing:.3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
+  header+='<div style="font-size:16pt;font-weight:800;color:#003366;margin-top:8pt;letter-spacing:1px">PARTE DE NOVEDADES</div>';
+  header+='<div style="font-size:12pt;font-weight:700;color:#555;margin-top:3pt">'+fechaPalabras+'</div>';
   header+='</div>';
+  var footer='<div style="text-align:center;margin-top:24pt;padding-top:8pt;border-top:1px solid #ccc;font-size:8pt;color:#999">PNA \u2014 Direcci\u00f3n de Tr\u00e1fico Mar\u00edtimo, Fluvial y Lacustre \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo \u2014 '+fechaStr+'</div>';
+  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'+estilo+'</style></head><body>'+header+cuerpo+footer+'</body></html>';
+}
 
-  var docHTML='<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'+estilo+'</style></head><body>'+header+cuerpo+'</body></html>';
-
-  var blob=new Blob(["\ufeff",docHTML],{type:"application/msword"});
-  var url=URL.createObjectURL(blob);
-  var link=document.createElement("a");
-  link.href=url;link.download="Parte_PNA_"+fechaFile+".doc";
-  document.body.appendChild(link);link.click();document.body.removeChild(link);
-  setTimeout(function(){URL.revokeObjectURL(url);},3000);
-  btn.textContent="Descargar Word (.doc)";btn.disabled=false;cerrarModalExport();
+function exportarWord(){
+  if(!datosGlobales){alert("Sin datos cargados.");return;}
+  var btn=document.getElementById("btnWord");
+  btn.textContent="Generando...";btn.disabled=true;
+  try{
+    var fechaStr=datosGlobales.fecha||"";
+    var fechaFile=fechaStr.replace(/\//g,"-")||"hoy";
+    var fechaPalabras=_fechaPalabras(fechaStr);
+    var cuerpo=_buildParteCuerpo();
+    var docHTML=_buildParteHTML(cuerpo,fechaStr,fechaPalabras);
+    var blob=new Blob(["\ufeff",docHTML],{type:"application/msword"});
+    var url=URL.createObjectURL(blob);
+    var link=document.createElement("a");
+    link.href=url;link.download="Parte_PNA_"+fechaFile+".doc";
+    document.body.appendChild(link);link.click();document.body.removeChild(link);
+    setTimeout(function(){URL.revokeObjectURL(url);},3000);
+    btn.textContent="Descargar Word (.doc)";btn.disabled=false;cerrarModalExport();
+  }catch(err){
+    btn.textContent="Descargar Word (.doc)";btn.disabled=false;
+    alert("⚠ Error al generar Word: "+(err.message||err));
+  }
 }
 
 /* ── MODAL CARGA CASOS SAR/MAS ────────────────────────────────── */
