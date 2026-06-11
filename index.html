@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>DTRA — Novedades Diarias KSTM</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -464,6 +465,28 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ── MODAL EXPORT ─────────────────────────────────────────────── */
 #modalExport{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #modalExport.activo{display:flex}
+#modalExport .modal-box,#modalCaso .modal-box{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+#modalExport h2,#modalCaso h2{margin:0 0 16px;font-size:16px;color:#003366;font-weight:800}
+#modalExport .modal-btns,#modalCaso .modal-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#modalExport .btn-exp-pdf{background:#d32f2f;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+#modalExport .btn-exp-word{background:#1a6fa4;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+#modalExport .btn-cancelar,#modalCaso .btn-cancelar{background:#f0f0f0;color:#555;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+#modalCaso{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modalCaso.activo{display:flex}
+#modalCaso .caso-modal{max-width:620px}
+#modalCaso .caso-tabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:2px solid #e0e0e0;padding-bottom:0;flex-wrap:wrap}
+#modalCaso .caso-tab{padding:6px 14px;font-size:12px;font-weight:700;color:#888;background:transparent;border:none;border-bottom:2.5px solid transparent;cursor:pointer;font-family:'Outfit',sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:-2px;transition:all .15s}
+#modalCaso .caso-tab:hover{color:#1a6fa4}
+#modalCaso .caso-tab.active{color:#003366;border-bottom-color:#003366}
+#modalCaso .caso-panel{display:none}
+#modalCaso .caso-panel.active{display:block}
+#modalCaso .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#modalCaso .form-group.full{grid-column:1/-1}
+#modalCaso .form-group label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:3px}
+#modalCaso .form-group input,#modalCaso .form-group textarea{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box}
+#modalCaso .form-group textarea{resize:vertical}
+#modalCaso .btn-guardar-caso{background:#003366;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+
 .modal-box{background:#fff;border-radius:var(--radius-lg);padding:28px;width:320px;text-align:center;box-shadow:var(--shadow-lg)}
 .modal-box h2{font-family:'Outfit',sans-serif;color:var(--navy);font-size:16px;font-weight:700;margin-bottom:20px;letter-spacing:.3px}
 .modal-btns{display:flex;flex-direction:column;gap:10px}
@@ -1325,6 +1348,129 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   </div>
 </div>
 
+<!-- ── MODAL CARGA CASO SAR/MAS ──────────────────────────────────── -->
+<div id="modalCaso">
+  <div class="modal-box caso-modal">
+    <h2 id="modalCasoTitle">Cargar nuevo caso</h2>
+    <form id="formCaso" onsubmit="return guardarCaso(event)">
+      <input type="hidden" id="casoSeccion">
+      <input type="hidden" id="casoFila" value="">
+      <div class="caso-tabs" id="casoTabs">
+        <button class="caso-tab active" onclick="switchCasoTab('asunto',this)">📋 Asunto</button>
+        <button class="caso-tab" onclick="switchCasoTab('caract',this)">🚢 Caracter&iacute;sticas</button>
+        <button class="caso-tab" onclick="switchCasoTab('situacion',this)">🔍 Situaci&oacute;n</button>
+        <button class="caso-tab" onclick="switchCasoTab('novedad',this)">📝 Novedad</button>
+      </div>
+
+      <div id="casoEstadoBtns" style="display:flex;gap:8px;margin-bottom:12px">
+        <button type="button" class="tb-btn outline" id="btnEstadoPendiente" onclick="setCasoEstado('PENDIENTE')" style="flex:1;border-color:#f59e0b;color:#f59e0b;font-weight:700">⏳ Pendiente</button>
+        <button type="button" class="tb-btn outline" id="btnEstadoCerrado" onclick="setCasoEstado('CERRADO')" style="flex:1;border-color:#22c55e;color:#22c55e;font-weight:700">✅ Cerrado</button>
+        <input type="hidden" id="casoEstado" value="PENDIENTE">
+      </div>
+
+      <!-- PANEL 1: ASUNTO -->
+      <div class="caso-panel active" id="casoPanel-asunto">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Subcentro (VTS)</label>
+            <input type="text" id="casoSubcentro" placeholder="ej: KSCR">
+          </div>
+          <div class="form-group">
+            <label>N&deg; de caso</label>
+            <input type="text" id="casoNumero" placeholder="ej: 02/26">
+          </div>
+          <div class="form-group full">
+            <label>Tipo de incidente / T&iacute;tulo</label>
+            <input type="text" id="casoNombre" placeholder="ej: TRIPULANTE ACCIDENTADO">
+          </div>
+          <div class="form-group full">
+            <label>Nombre del buque</label>
+            <input type="text" id="casoBuque" required placeholder="ej: IGLU I">
+          </div>
+          <div class="form-group full">
+            <label>Matr&iacute;cula / IMO / MMSI</label>
+            <input type="text" id="casoIdentificacion" placeholder="ej: IMO 1234567">
+          </div>
+          <div class="form-group">
+            <label>Tipo de buque</label>
+            <input type="text" id="casoTipo" placeholder="ej: B/P, M/V, CARGA">
+          </div>
+          <div class="form-group">
+            <label>Bandera</label>
+            <input type="text" id="casoBandera" placeholder="ej: ARGENTINA">
+          </div>
+          <div class="form-group">
+            <label>Fecha de inicio</label>
+            <input type="text" id="casoFechaInicio" placeholder="ej: 24/06/2026">
+          </div>
+          <div class="form-group">
+            <label>Fecha de cierre</label>
+            <input type="text" id="casoFechaCierre" placeholder="ej: 25/06/2026">
+          </div>
+          <div class="form-group full">
+            <label>Posici&oacute;n</label>
+            <input type="text" id="casoPosicion" placeholder="lat/lon o referencia">
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 2: CARACTERÍSTICAS -->
+      <div class="caso-panel" id="casoPanel-caract">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Eslora</label>
+            <input type="text" id="casoEslora" placeholder="ej: 180 MTS">
+          </div>
+          <div class="form-group">
+            <label>Manga</label>
+            <input type="text" id="casoManga" placeholder="ej: 25 MTS">
+          </div>
+          <div class="form-group full">
+            <label>Agencia mar&iacute;tima / POB</label>
+            <input type="text" id="casoAgencia" placeholder="Agencia - Personas a bordo">
+          </div>
+          <div class="form-group full">
+            <label>Procedencia / Destino</label>
+            <input type="text" id="casoProcedencia" placeholder="Origen - Destino">
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3: SITUACIÓN -->
+      <div class="caso-panel" id="casoPanel-situacion">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Diagn&oacute;stico</label>
+            <textarea id="casoDiagnostico" rows="3" placeholder="Diagn&oacute;stico del caso..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Medios previstos</label>
+            <textarea id="casoMediosPrevistos" rows="3" placeholder="Medios y recursos previstos..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Completo / Situaci&oacute;n</label>
+            <textarea id="casoSituacion" rows="4" placeholder="Situaci&oacute;n completa..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 4: NOVEDAD -->
+      <div class="caso-panel" id="casoPanel-novedad">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>&Uacute;ltima novedad *</label>
+            <textarea id="casoNovedad" rows="8" required placeholder="Novedad..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-btns" style="margin-top:16px">
+        <button type="submit" class="btn-guardar-caso" id="btnGuardarCaso">💾 Guardar caso</button>
+        <button type="button" class="btn-cancelar" onclick="cerrarModalCaso()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ── IMG ZOOM ───────────────────────────────────────────────────── -->
 <div id="imgZoomModal" onclick="cerrarZoom()">
   <span class="cerrar-zoom">✕</span>
@@ -1584,7 +1730,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycby_ZPXhdBgUjQI3SXGD6D2nhGZoNWL6yQnLieQwF5R6rVG0yGb-YGn3uOuUiZEPwePOzQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyu6M7UrogpM0Z_auJcs3QOnoACWepFhwcXlDoEFMCThSfqQMrSTO8U_o9og_Sm6zv50g/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -3263,6 +3409,7 @@ function renderSeccion(sec) {
 
   if (sec.tipo==="casos_especiales") {
     let h="";
+    if(rolActual==="admin") h+=`<div style="margin-bottom:10px"><button class="tb-btn primary" onclick="abrirModalCaso('${sec.id}')" style="font-size:13px">＋ Agregar caso</button></div>`;
     filas.forEach(f=>{
       if(!f) return;
       if(f.tipo==="subtitulo"){const esPend=(f.texto||"").toUpperCase().includes("PENDIENTE");h+=`<div class="bloque-sub">${esPend?"✅":"🔴"} ${esc(f.texto)}</div>`;}
@@ -3303,7 +3450,9 @@ function renderSeccion(sec) {
           <div class="caso-line"><span><b>CARACTERÍSTICAS:</b> </span>${esc(f.caracteristicas)}</div>
           <div class="caso-line"><span><b>SITUACIÓN:</b> </span>${esc(f.situacion)}</div>
           ${relojHtml}
-          <div style="margin-top:10px;border-top:1px solid var(--gray-200);padding-top:10px">${imgViewerHtml}${uploaderHtml}</div>
+          <div style="margin-top:10px;border-top:1px solid var(--gray-200);padding-top:10px">${imgViewerHtml}${uploaderHtml}
+            ${rolActual==="admin"?`<div style="margin-top:8px;display:flex;gap:6px"><button class="tb-btn outline" onclick="editarCaso('${sec.id}','${fila}','${hojaId}')" style="font-size:11px;padding:4px 10px">✏️ Editar</button></div>`:""}
+          </div>
         </div>`;
       }
     });
@@ -3803,7 +3952,7 @@ if (sec.tipo === "tipo_armas" || sec.id === "EJER.ARMAS") {
     h += `<div style="flex:1;min-width:0;">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
         <div class="bloque-sub" style="margin:0">🗺️ Cuadrantes de ejercicio</div>
-        <button onclick="window._ejercMap && window._ejercMap.fitAll()" class="tb-btn outline" style="font-size:11px;padding:3px 10px;">Todos</button>
+        <button onclick="window._ejercMap && window._ejercMap.fitAll()" class="tb-btn outline" style="background: #9FF547; font-size:11px;padding:3px 10px;">Todos</button>
       </div>
       <div id="${mapId}" style="width:100%;height:460px;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);"></div>
       <div id="legend-${mapId}" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;font-weight:600;padding:4px 0;"></div>
@@ -4788,47 +4937,47 @@ function _calcDias2(zarpada,regreso) {
 
 function _renderFila(f){
   if(!f)return "";
-  if(f.tipo==="subtitulo") return '<div style="font-weight:700;color:#1a3a5c;margin:5pt 0 2pt;font-size:9pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
+  if(f.tipo==="subtitulo") return '<div style="font-weight:700;color:#1a3a5c;margin:5pt 0 2pt;font-size:12pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
   if(f.tipo==="separador"||f.tipo==="html") return "";
   if(f.tipo==="partes"){
     var t=(f.partes||[]).map(function(p){return(p.prefijo||"")+(p.negrita?'<b>'+_esc(p.texto)+'</b>':_esc(p.texto));}).join(" | ");
-    return t?'<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+t+'</div>':"";
+    return t?'<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+t+'</div>':"";
   }
   if(f.tipo==="fila"){
     var t=(f.datos||[]).filter(function(v){return v&&String(v).trim();}).join(" | ");
-    return t?'<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+_esc(t)+'</div>':"";
+    return t?'<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+_esc(t)+'</div>':"";
   }
-  if(f.tipo==="texto"&&f.texto) return '<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
-  if(f.tipo==="novedad") return '<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
-  if(f.tipo==="caso_especial") return '<div style="font-size:9pt;padding:2pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.buque)+'</b><br><b>ASUNTO:</b> '+_esc(f.asunto)+'<br><b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br><b>NOVEDAD:</b> '+_esc(f.novedad)+'<br><b>SITUACI\u00d3N:</b> '+_esc(f.situacion)+'</div>';
+  if(f.tipo==="texto"&&f.texto) return '<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
+  if(f.tipo==="novedad") return '<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
+  if(f.tipo==="caso_especial") return '<div style="font-size:12pt;padding:2pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.buque)+'</b><br><b>ASUNTO:</b> '+_esc(f.asunto)+'<br><b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br><b>NOVEDAD:</b> '+_esc(f.novedad)+'<br><b>SITUACI\u00d3N:</b> '+_esc(f.situacion)+'</div>';
   if(f.tipo==="arma"){
     var d=f.datos||[];
-    return '<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">\ud83c\udfaf <b>'+_esc(d[0])+'</b> \u2014 '+_esc(d[1]||"")+(d[2]?' \u2013 '+_esc(d[2]):"")+'<br><span style="color:#555">'+_esc(d[3]||"")+'</span></div>';
+    return '<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(d[0])+'</b> \u2014 '+_esc(d[1]||"")+(d[2]?' \u2013 '+_esc(d[2]):"")+'<br><span style="color:#555">'+_esc(d[3]||"")+'</span></div>';
   }
   return "";
 }
 
 function _renderFilas(sec){
-  if(!sec||!sec.filas) return '<div style="font-size:9pt;font-style:italic;color:#666">Sin datos.</div>';
+  if(!sec||!sec.filas) return '<div style="font-size:12pt;font-style:italic;color:#666">Sin datos.</div>';
   var h="";
   for(var i=0;i<sec.filas.length;i++){
     var r=_renderFila(sec.filas[i]);
     if(r) h+=r;
   }
-  return h||'<div style="font-size:9pt;font-style:italic;color:#666">Sin novedades.</div>';
+  return h||'<div style="font-size:12pt;font-style:italic;color:#666">Sin novedades.</div>';
 }
 
 function _renderTabla(datos,headers){
-  if(!datos||!datos.length) return '<div style="font-size:9pt;font-style:italic;color:#666">Sin datos.</div>';
-  var h='<table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin:3pt 0">';
+  if(!datos||!datos.length) return '<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+  var h='<table style="width:100%;border-collapse:collapse;font-size:11pt;margin:3pt 0">';
   if(headers&&headers.length){
     h+='<tr>';
-    for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#003366;color:#fff;font-weight:700;padding:2pt 4pt;text-align:center;font-size:8pt">'+headers[i]+'</td>';
+    for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#003366;color:#fff;font-weight:700;padding:3pt 5pt;text-align:center;font-size:10pt">'+headers[i]+'</td>';
     h+='</tr>';
   }
   for(var i=0;i<datos.length;i++){
     h+='<tr>';
-    for(var j=0;j<datos[i].length;j++) h+='<td style="border:1px solid #ccc;padding:1.5pt 3pt;text-align:'+(j===0?'left':'center')+'">'+_esc(datos[i][j])+'</td>';
+    for(var j=0;j<datos[i].length;j++) h+='<td style="border:1px solid #ccc;padding:2pt 4pt;text-align:'+(j===0?'left':'center')+'">'+_esc(datos[i][j])+'</td>';
     h+='</tr>';
   }
   h+='</table>';
@@ -4836,11 +4985,11 @@ function _renderTabla(datos,headers){
 }
 
 function _seccionTitulo(n,titulo){
-  return '<div style="font-size:10.5pt;font-weight:700;color:#003366;margin:10pt 0 3pt;padding:3pt 6pt;background:#eef3f8;border-left:3pt solid #003366">'+n+'. '+titulo+'</div>';
+  return '<div style="font-size:13pt;font-weight:700;color:#003366;margin:12pt 0 4pt;padding:3pt 6pt;background:#eef3f8;border-left:3pt solid #003366">'+n+'. '+titulo+'</div>';
 }
 
 function _subTitulo(txt){
-  return '<div style="font-size:9pt;font-weight:700;color:#1a3a5c;margin:6pt 0 2pt;padding:1pt 0;border-bottom:1px solid #999">'+txt+'</div>';
+  return '<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:6pt 0 2pt;padding:1pt 0;border-bottom:1px solid #999">'+txt+'</div>';
 }
 
 function _esc(s){
@@ -4874,8 +5023,24 @@ function exportarWord(){
   var avSec=_sec("AVIACION");
   if(avSec){
     cuerpo+=_seccionTitulo(1,"SERVICIO DE AVIACI\u00d3N");
-    cuerpo+='<div style="margin:2pt 0"><a href="'+(datosGlobales.urlAviacion||"#")+'" style="font-size:9pt;color:#1a6fa4">Ver archivo de aviaci\u00f3n del d\u00eda</a></div>';
-    cuerpo+=_renderFilas(avSec);
+    cuerpo+='<div style="margin:2pt 0"><a href="'+(datosGlobales.urlAviacion||"#")+'" style="font-size:12pt;color:#1a6fa4">Ver archivo de aviaci\u00f3n del d\u00eda</a></div>';
+    var avFilas=avSec.filas||[];
+    var aviDatos=[], aviSub="";
+    avFilas.forEach(function(f){
+      if(!f) return;
+      if(f.tipo==="subtitulo"){aviSub=_esc(f.texto);return;}
+      if(f.tipo==="separador"||f.tipo==="html") return;
+      if(f.tipo==="partes"){
+        var c=f.partes||[];
+        aviDatos.push([(c[0]?c[0].texto:""),(c[1]?c[1].texto:""),(c[2]?c[2].texto:""),c.slice(3).map(function(p){return p.texto;}).join(" | ")]);
+      }
+    });
+    if(aviSub) cuerpo+=_subTitulo(aviSub);
+    if(aviDatos.length){
+      cuerpo+=_renderTabla(aviDatos,["Aeronave","Procedencia","Destino","Novedad"]);
+    }else{
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de aviaci\u00f3n.</div>';
+    }
   }
 
   // 2. GUARDACOSTAS
@@ -4893,7 +5058,7 @@ function exportarWord(){
         cuerpo+=_subTitulo("Guardacostas en navegaci\u00f3n ("+gcAct.length+")");
         gcAct.forEach(function(f){
           var nav=_calcDias2(f.datos[1],f.datos[2]);
-          cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
           cuerpo+='<b>'+_esc(f.datos[0])+'</b> \u2014 '+_esc(f.datos[3]||"SIN NOVEDADES")+' \u2014 Navegando: '+nav.navegando+'d | ETA: '+nav.restantes+'d';
           cuerpo+='</div>';
         });
@@ -4901,13 +5066,13 @@ function exportarWord(){
       if(gcPrev.length){
         cuerpo+=_subTitulo("Previstas ("+gcPrev.length+")");
         gcPrev.forEach(function(f){
-          cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
           cuerpo+='<b>'+_esc(f.datos[0])+'</b> \u2014 Zarpe: '+_esc(f.datos[1])+' | ETA: '+_esc(f.datos[2])+' | '+_esc(f.datos[3]||"");
           cuerpo+='</div>';
         });
       }
     }else{
-      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin navegaciones activas.</div>';
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin navegaciones activas.</div>';
     }
     if(convSec){
       cuerpo+=_subTitulo("Convenio PNA-ARA");
@@ -4915,7 +5080,7 @@ function exportarWord(){
       if(convFilas.length){
         cuerpo+=_renderTabla(convFilas.map(function(f){return f.datos||[];}),["Meses","M/Superficie","Fecha Z-A","D\u00edas Nav.","M/Superficie","Fecha Z-A","D\u00edas Nav."]);
       }else{
-        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
       }
     }
     if(araSec){
@@ -4923,10 +5088,10 @@ function exportarWord(){
       var araFilas=_filas("ARA","fila");
       if(araFilas.length){
         araFilas.forEach(function(f){
-          cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.datos[0])+'</b> \u2014 Zarp\u00f3 '+[_esc(f.datos[1]),_esc(f.datos[2]),_esc(f.datos[3])].filter(function(v){return v;}).join(" | ")+'</div>';
+          cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.datos[0])+'</b> \u2014 Zarp\u00f3 '+[_esc(f.datos[1]),_esc(f.datos[2]),_esc(f.datos[3])].filter(function(v){return v;}).join(" | ")+'</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
       }
     }
   }
@@ -4934,7 +5099,7 @@ function exportarWord(){
   // 3. SALVAMENTO
   var salvSec=_sec("SALVAMENTO");
   cuerpo+=_seccionTitulo(3,"SERVICIO DE SALVAMENTO, BUCEO Y DOTACIONES DE SEGURIDAD");
-  cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+  cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
 
   // 4. TRAFICO MARITIMO
   var kstmSec=_sec("KSTM");
@@ -4947,25 +5112,33 @@ function exportarWord(){
     cuerpo+=_seccionTitulo(4,"SERVICIO DE TR\u00c1FICO MAR\u00cdTIMO");
     if(kstmSec){
       cuerpo+=_subTitulo("Pilotaje / Conserva");
-      var kFilas=(kstmSec.filas||[]).filter(function(f){return f&&f.tipo==="texto"&&f.texto;});
-      if(kFilas.length){
-        kFilas.forEach(function(f){cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';});
-      }else{
-        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+      var kFilasTabla=(kstmSec.filas||[]).filter(function(f){return f&&f.tipo==="fila"&&f.datos&&f.datos.length>=4;});
+      var kFilasOtros=(kstmSec.filas||[]).filter(function(f){return f&&f.tipo!=="fila";});
+      var kTiene=kFilasTabla.length||kFilasOtros.length;
+      if(kFilasTabla.length){
+        cuerpo+=_renderTabla(kFilasTabla.map(function(f){return f.datos;}),["Buque (Pto ZR - Pto PU)","Fecha ZR","Fecha PU","Situaci\u00f3n - FH Amarre"]);
       }
+      kFilasOtros.forEach(function(f){
+        if(f.tipo==="subtitulo") cuerpo+='<div style="font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;font-size:12pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
+        else if(f.tipo==="texto"&&f.texto) cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
+        else if(f.tipo==="novedad") cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
+      });
+      if(!kTiene) cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
     }
     if(resSec){
       cuerpo+=_subTitulo("Reserva de Canal");
       cuerpo+=_renderFilas(resSec);
     }
     if(sarSec){
-      cuerpo+=_subTitulo("Casos SAR");
       var sarCasos=_filas("SAR","caso_especial");
+      var sarCerrados=sarCasos.filter(function(f){var s=((f.estado||"")+" "+(f.situacion||"")).toUpperCase();return s.includes("CERRADO");}).length;
+      var sarPendientes=sarCasos.length-sarCerrados;
+      cuerpo+=_subTitulo("Casos SAR (Cerrados: "+sarCerrados+" | Pendientes: "+sarPendientes+")");
       if(sarCasos.length){
         sarCasos.forEach(function(f){
           var cerrado=((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO");
-          cuerpo+='<div style="font-size:9pt;padding:2pt 0;border-bottom:1px dotted #ccc">';
-          cuerpo+='<b>'+_esc(f.buque)+'</b>'+(cerrado?' <span style="color:#666">[CERRADO]</span>':' <span style="color:#c0392b">[ACTIVO]</span>')+'<br>';
+          cuerpo+='<div style="font-size:12pt;padding:2pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<b>'+_esc(f.buque)+'</b>'+(cerrado?' <span style="color:#666">[Cerrado]</span>':' <span style="color:#c0392b">[Pendiente]</span>')+'<br>';
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto)+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br>';
           cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad)+'<br>';
@@ -4973,17 +5146,19 @@ function exportarWord(){
           cuerpo+='</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
       }
     }
     if(masSec){
-      cuerpo+=_subTitulo("Casos MAS");
       var masCasos=_filas("MAS","caso_especial");
+      var masCerrados=masCasos.filter(function(f){var s=((f.estado||"")+" "+(f.situacion||"")).toUpperCase();return s.includes("CERRADO");}).length;
+      var masPendientes=masCasos.length-masCerrados;
+      cuerpo+=_subTitulo("Casos MAS (Cerrados: "+masCerrados+" | Pendientes: "+masPendientes+")");
       if(masCasos.length){
         masCasos.forEach(function(f){
           var cerrado=((f.estado||"")+" "+(f.situacion||"")).toUpperCase().includes("CERRADO");
-          cuerpo+='<div style="font-size:9pt;padding:2pt 0;border-bottom:1px dotted #ccc">';
-          cuerpo+='<b>'+_esc(f.buque)+'</b>'+(cerrado?' <span style="color:#666">[CERRADO]</span>':' <span style="color:#c0392b">[ACTIVO]</span>')+'<br>';
+          cuerpo+='<div style="font-size:12pt;padding:2pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<b>'+_esc(f.buque)+'</b>'+(cerrado?' <span style="color:#666">[Cerrado]</span>':' <span style="color:#c0392b">[Pendiente]</span>')+'<br>';
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto)+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br>';
           cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad)+'<br>';
@@ -4991,7 +5166,7 @@ function exportarWord(){
           cuerpo+='</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
       }
     }
     if(regSec){
@@ -5004,7 +5179,7 @@ function exportarWord(){
       if(armas.length){
         armas.forEach(function(f){cuerpo+=_renderFila(f);});
       }else{
-        cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin ejercicios.</div>';
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin ejercicios.</div>';
       }
     }
   }
@@ -5015,25 +5190,53 @@ function exportarWord(){
     cuerpo+=_seccionTitulo(5,"ESTADO DE PUERTOS");
     var puertos=_filas("PUERTOS","puerto");
     if(puertos.length){
-      cuerpo+='<ul style="margin:2pt 0;padding-left:16pt;font-size:9pt">';
+      cuerpo+='<ul style="margin:2pt 0;padding-left:16pt;font-size:12pt">';
       puertos.forEach(function(f){
-        cuerpo+='<li style="padding:1pt 0"><b>'+_esc(f.datos[0])+'</b>'+(f.datos[1]?' \u2014 '+_esc(f.datos[1]):"")+'</li>';
+        cuerpo+='<li style="padding:1.5pt 0"><b>'+_esc(f.datos[0])+'</b>'+(f.datos[1]?' \u2014 '+_esc(f.datos[1]):"")+'</li>';
       });
       cuerpo+='</ul>';
     }else{
-      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
     }
   }
 
   // 6. DETERMINANTES
+  function _parseNum(v){return parseFloat(String(v).replace(",","."));}
   var detSec=_sec("DETERMINANTES");
   if(detSec){
     cuerpo+=_seccionTitulo(6,"DETERMINANTES");
-    var detFilas=_filas("DETERMINANTES","fila");
-    if(detFilas.length){
-      cuerpo+=_renderTabla(detFilas.map(function(f){return f.datos||[];}),["Centro VTS","Denominaci\u00f3n","KM","R\u00edo","Calado","Altura Hidrom."]);
-    }else{
-      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin determinantes.</div>';
+    var detFilasAll=_filas("DETERMINANTES","fila");
+    // Table rows: those with valid lat/lng (datos[11], datos[12])
+    var detTablaFilas=detFilasAll.filter(function(f){var d=f.datos||[];return !isNaN(_parseNum(d[11]))&&!isNaN(_parseNum(d[12]));});
+    // Text rows: remaining fila rows (e.g. rows 34, 35 without coordinates)
+    var detTextoRows=detFilasAll.filter(function(f){var d=f.datos||[];return isNaN(_parseNum(d[11]))||isNaN(_parseNum(d[12]));});
+    if(detTablaFilas.length){
+      var calados=detTablaFilas.map(function(f){return _parseNum(f.datos[8]);}).filter(function(v){return!isNaN(v);});
+      var minCalado=calados.length?Math.min.apply(null,calados):null;
+      var h='<table style="width:100%;border-collapse:collapse;font-size:11pt;margin:3pt 0">';
+      var headers=["Centro VTS","Denominaci\u00f3n","KM cr\u00edtico","R\u00edo","Calado","Altura hidrom."];
+      h+='<tr>';
+      for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#003366;color:#fff;font-weight:700;padding:3pt 5pt;text-align:center;font-size:10pt">'+headers[i]+'</td>';
+      h+='</tr>';
+      detTablaFilas.forEach(function(f){
+        var d=f.datos||[];
+        var cVal=_parseNum(d[8]);
+        var esMin=minCalado!==null&&cVal===minCalado;
+        var rowStyle=esMin?' style="background-color:#ffff99"':'';
+        h+='<tr'+rowStyle+'>';
+        var cells=[d[13]||"",d[2]||"",d[3]||"",d[10]||"",d[8]||"",d[6]||""];
+        for(var j=0;j<cells.length;j++) h+='<td style="border:1px solid #ccc;padding:2pt 4pt;text-align:'+(j===0?'left':'center')+'">'+_esc(cells[j])+'</td>';
+        h+='</tr>';
+      });
+      h+='</table>';
+      cuerpo+=h;
+    }
+    detTextoRows.forEach(function(f){
+      var txt=(f.datos||[]).filter(function(v){return v&&String(v).trim();}).join(" | ");
+      if(txt) cuerpo+='<div style="font-size:12pt;padding:2pt 0;border-bottom:1px dotted #ccc">'+_esc(txt)+'</div>';
+    });
+    if(!detTablaFilas.length&&!detTextoRows.length){
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin determinantes.</div>';
     }
   }
 
@@ -5042,15 +5245,15 @@ function exportarWord(){
   if(dragSec){
     cuerpo+=_seccionTitulo(7,"DRAGAS");
     var dragFilas=(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";});
-    if(dragFilas.length){
+    var dragCount=dragFilas.length;
+    if(dragCount){
+      cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;padding:2pt 0">Total de dragas operando: <span style="color:#a86210;font-size:14pt">'+dragCount+'</span></div>';
       dragFilas.forEach(function(f){
         var raw=(f.datos||[]).filter(function(v){return v&&String(v).trim();});
-        cuerpo+='<div style="font-size:9pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(raw[0]||"")+'</b>'+(raw[1]?' \u2014 '+_esc(raw[1]):"")+' \u2014 '+raw.slice(2).map(function(v){return _esc(v);}).join(" \u2014 ")+'</div>';
+        cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(raw[0]||"")+'</b>'+(raw[1]?' \u2014 '+_esc(raw[1]):"")+' \u2014 '+raw.slice(2).map(function(v){return _esc(v);}).join(" \u2014 ")+'</div>';
       });
     }else{
-      var dragOtros=_renderFilas(dragSec);
-      if(!dragOtros||dragOtros==='<div style="font-size:9pt;font-style:italic;color:#666">Sin datos.</div>') dragOtros='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin dragas operando.</div>';
-      cuerpo+=dragOtros;
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin dragas operando.</div>';
     }
   }
 
@@ -5058,27 +5261,56 @@ function exportarWord(){
   var metSec=_sec("METANEROS");
   if(metSec){
     cuerpo+=_seccionTitulo(8,"METANEROS");
-    cuerpo+=_renderFilas(metSec);
+    var metTermRows=[], metPrevRows=[];
+    var mode="terminales";
+    (metSec.filas||[]).forEach(function(f){
+      if(!f) return;
+      if(f.tipo==="subtitulo"){
+        var t=(f.texto||"").toUpperCase();
+        if(t.includes("TERMINA")||t.includes("PREVISION")){mode=t.includes("TERMINA")?"terminales":"previsiones";return;}
+      }
+      if(f.tipo==="separador") return;
+      if(f.tipo==="html") return;
+      if(f.tipo==="fila"){if(mode==="terminales") metTermRows.push(f.datos);else metPrevRows.push(f.datos);}
+    });
+    if(!metTermRows.length&&!metPrevRows.length){
+      (metSec.filas||[]).forEach(function(f){if(f&&f.tipo==="fila"){if((f.datos||[]).length>=8) metTermRows.push(f.datos);else metPrevRows.push(f.datos);}});
+    }
+    if(metTermRows.length){
+      cuerpo+=_renderTabla(metTermRows,["Terminales","2019/20","2021","2022","2023","2024","2025","Previstos 2026","Arribados 2026","Pendientes 2026"]);
+    }
+    if(metPrevRows.length){
+      cuerpo+=_subTitulo("Previsiones");
+      cuerpo+=_renderTabla(metPrevRows,["Dependencia","Buque","Arribo","Zarpada","Descarg\u00f3","Carga"]);
+    }
+    if(!metTermRows.length&&!metPrevRows.length){
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de metaneros.</div>';
+    }
   }
 
   // 9. ALERTAS
   var alSec=_sec("ALERTA");
   if(alSec){
     cuerpo+=_seccionTitulo(9,"ALERTAS METEOROL\u00d3GICAS");
-    cuerpo+='<div style="margin:2pt 0"><a href="https://www.smn.gob.ar" style="font-size:9pt;color:#1a6fa4">Servicio Meteorol\u00f3gico Nacional</a></div>';
+    cuerpo+='<div style="margin:2pt 0"><a href="https://www.smn.gob.ar" style="font-size:12pt;color:#1a6fa4">Servicio Meteorol\u00f3gico Nacional</a></div>';
     var alFilas=_filas("ALERTA","fila");
     if(alFilas.length){
       cuerpo+=_renderTabla(alFilas.map(function(f){var d=f.datos||[];return [d[0]||"",d[1]||"",d[2]||"",d[3]||""];}),["Alerta N\u00b0","Zona","Fen\u00f3meno","MOI y destinos"]);
     }else{
-      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
     }
   }
 
-  // 10. PBIP
-  var pbipSec=_sec("PBIP");
-  if(pbipSec){
-    cuerpo+=_seccionTitulo(10,"BUQUES EN INFRACCI\u00d3N (PBIP)");
-    cuerpo+=_renderFilas(pbipSec);
+  // 10. BUQUES INFRACCION
+  var bqSec=_sec("BUQUES");
+  if(bqSec){
+    cuerpo+=_seccionTitulo(10,"BUQUES INFRACCIONADOS DEC. 256/10");
+    var bqFilas=_filas("BUQUES","fila");
+    if(bqFilas.length){
+      cuerpo+=_renderTabla(bqFilas.map(function(f){return f.datos||[];}),["Buques","2010-2023","2024","2025","2026","TOTAL"]);
+    }else{
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin registros.</div>';
+    }
   }
 
   // 11. VISITAS
@@ -5089,7 +5321,7 @@ function exportarWord(){
     if(visFilas.length){
       cuerpo+=_renderTabla(visFilas.map(function(f){return f.datos||[];}),["D\u00eda/HS","Aut./Sol.","Actividad","S/Mozo","Pers.","Proyecci\u00f3n","Aut. Ext."]);
     }else{
-      cuerpo+='<div style="font-size:9pt;font-style:italic;color:#666;padding:2pt 0">Sin visitas previstas.</div>';
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin visitas previstas.</div>';
     }
   }
 
@@ -5100,7 +5332,17 @@ function exportarWord(){
     cuerpo+=_seccionTitulo(12,"MOVIMIENTO PORTUARIO");
     movSecs.forEach(function(s){
       cuerpo+=_subTitulo(s.titulo||s.id);
-      cuerpo+=_renderFilas(s);
+      var buques=(s.filas||[]).filter(function(f){return f&&f.tipo==="buque";});
+      var movs=(s.filas||[]).filter(function(f){return f&&f.tipo==="movimiento";});
+      if(buques.length){
+        cuerpo+=_renderTabla(buques.map(function(f){return f.datos||[];}),["Dep.","N\u00b0 T.P","Muelles","B/Amar.","M/Libres","Radas","Cap.Radas","C/B Fond.","Disp.Rada"]);
+      }
+      if(movs.length){
+        cuerpo+=_renderTabla(movs.map(function(f){return f.datos||[];}),["Dep.","Arr. B/C","Arr. B/T","Zarp. B/C","Zarp. B/T","Arr. B/P","Arr. B/Port","Zarp. B/C","Zarp. B/Port","T.Mov"]);
+      }
+      if(!buques.length&&!movs.length){
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de movimiento portuario.</div>';
+      }
     });
   }
 
@@ -5127,15 +5369,15 @@ function exportarWord(){
 
   // Build final document
   var estilo='@page{size:210mm 297mm;margin:20mm 15mm}';
-  estilo+='body{font-family:Arial,sans-serif;font-size:9pt;color:#1a1a1a;line-height:1.35}';
+  estilo+='body{font-family:Arial,sans-serif;font-size:12pt;color:#1a1a1a;line-height:1.5;text-align:justify}';
   estilo+='table{page-break-inside:avoid}';
 
   var header='<div style="text-align:center;border-bottom:2.5px solid #003366;padding-bottom:10px;margin-bottom:16px">';
   header+='<div style="font-size:14pt;font-weight:800;color:#003366;letter-spacing:.5px">PREFECTURA NAVAL ARGENTINA</div>';
-  header+='<div style="font-size:9pt;color:#666;font-weight:600;margin-top:1px">Autoridad Mar\u00edtima</div>';
-  header+='<div style="font-size:8pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
+  header+='<div style="font-size:12pt;color:#666;font-weight:600;margin-top:1px">Autoridad Mar\u00edtima</div>';
+  header+='<div style="font-size:10pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
   header+='<div style="font-size:13pt;font-weight:800;color:#003366;margin-top:6pt">PARTE DE NOVEDADES</div>';
-  header+='<div style="font-size:10pt;font-weight:700;color:#555;margin-top:2pt">'+fechaPalabras+'</div>';
+  header+='<div style="font-size:12pt;font-weight:700;color:#555;margin-top:2pt">'+fechaPalabras+'</div>';
   header+='</div>';
 
   var docHTML='<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'+estilo+'</style></head><body>'+header+cuerpo+'</body></html>';
@@ -5148,6 +5390,134 @@ function exportarWord(){
   setTimeout(function(){URL.revokeObjectURL(url);},3000);
   btn.textContent="Descargar Word (.doc)";btn.disabled=false;cerrarModalExport();
 }
+
+/* ── MODAL CARGA CASOS SAR/MAS ────────────────────────────────── */
+function abrirModalCaso(seccion){
+  document.getElementById("casoSeccion").value=seccion;
+  document.getElementById("casoFila").value="";
+  document.getElementById("modalCasoTitle").textContent="Cargar nuevo caso "+seccion;
+  document.getElementById("formCaso").reset();
+  document.getElementById("casoEstado").value="PENDIENTE";
+  document.getElementById("btnEstadoPendiente").style.background="#f59e0b";
+  document.getElementById("btnEstadoPendiente").style.color="#fff";
+  document.getElementById("btnEstadoCerrado").style.background="transparent";
+  document.getElementById("btnEstadoCerrado").style.color="#22c55e";
+  document.getElementById("modalCaso").classList.add("activo");
+  switchCasoTab("asunto",document.querySelector("#casoTabs .caso-tab"));
+}
+function switchCasoTab(id,btn){
+  document.querySelectorAll(".caso-tab").forEach(function(t){t.classList.remove("active");});
+  document.querySelectorAll(".caso-panel").forEach(function(p){p.classList.remove("active");});
+  if(btn) btn.classList.add("active");
+  document.getElementById("casoPanel-"+id).classList.add("active");
+}
+function setCasoEstado(val){
+  document.getElementById("casoEstado").value=val;
+  var pBtn=document.getElementById("btnEstadoPendiente");
+  var cBtn=document.getElementById("btnEstadoCerrado");
+  if(val==="PENDIENTE"){
+    pBtn.style.background="#f59e0b";pBtn.style.color="#fff";
+    cBtn.style.background="transparent";cBtn.style.color="#22c55e";
+  }else{
+    cBtn.style.background="#22c55e";cBtn.style.color="#fff";
+    pBtn.style.background="transparent";pBtn.style.color="#f59e0b";
+  }
+}
+function cerrarModalCaso(){
+  document.getElementById("modalCaso").classList.remove("activo");
+  document.getElementById("casoFila").value="";
+}
+document.getElementById("modalCaso").addEventListener("click",function(e){if(e.target===this)cerrarModalCaso();});
+async function guardarCaso(e){
+  e.preventDefault();
+  var btn=document.getElementById("btnGuardarCaso");
+  var editando=!!document.getElementById("casoFila").value;
+  btn.disabled=true;btn.textContent=editando?"⏳ Actualizando...":"⏳ Guardando...";
+  var data={
+    accion:"guardarCasoEspecial",
+    seccion:document.getElementById("casoSeccion").value,
+    filaSheet:document.getElementById("casoFila").value,
+    estado:document.getElementById("casoEstado").value,
+    subcentro:document.getElementById("casoSubcentro").value.trim().toUpperCase(),
+    numero:document.getElementById("casoNumero").value.trim(),
+    nombre:document.getElementById("casoNombre").value.trim(),
+    buque:document.getElementById("casoBuque").value.trim().toUpperCase(),
+    identificacion:document.getElementById("casoIdentificacion").value.trim(),
+    tipo:document.getElementById("casoTipo").value.trim(),
+    bandera:document.getElementById("casoBandera").value.trim(),
+    fecha_inicio:document.getElementById("casoFechaInicio").value.trim(),
+    fecha_cierre:document.getElementById("casoFechaCierre").value.trim(),
+    posicion:document.getElementById("casoPosicion").value.trim(),
+    eslora:document.getElementById("casoEslora").value.trim(),
+    manga:document.getElementById("casoManga").value.trim(),
+    agencia_pob:document.getElementById("casoAgencia").value.trim(),
+    procedencia_destino:document.getElementById("casoProcedencia").value.trim(),
+    diagnostico:document.getElementById("casoDiagnostico").value.trim(),
+    medios_previstos:document.getElementById("casoMediosPrevistos").value.trim(),
+    situacion:document.getElementById("casoSituacion").value.trim(),
+    novedad:document.getElementById("casoNovedad").value.trim()
+  };
+  try{
+    var params=new URLSearchParams();
+    Object.keys(data).forEach(function(k){params.set(k,data[k]);});
+    var response=await fetch(API_URL,{
+      method:"POST",
+      redirect:"follow",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:params.toString()
+    });
+    var text=await response.text();
+    var res=JSON.parse(text);
+    btn.disabled=false;btn.textContent=editando?"💾 Actualizar caso":"💾 Guardar caso";
+    if(res&&res.ok){
+      cerrarModalCaso();
+      mostrarSeccion(data.seccion);
+    }else{
+      alert("⚠ Error al guardar: "+(res&&res.error||"Respuesta inválida"));
+    }
+  }catch(err){
+    btn.disabled=false;btn.textContent=editando?"💾 Actualizar caso":"💾 Guardar caso";
+    alert("⚠ Error de conexión: "+(err.message||err));
+  }
+}
+
+function editarCaso(seccionId, filaSheet, hojaId){
+  if(!datosGlobales) return;
+  var sec=datosGlobales.secciones.find(function(s){return s.id===seccionId;});
+  if(!sec) return;
+  var caso=sec.filas.find(function(f){return f.tipo==="caso_especial"&&f.filaSheet==filaSheet;});
+  if(!caso) return;
+
+  document.getElementById("casoSeccion").value=seccionId;
+  document.getElementById("casoFila").value=filaSheet;
+  document.getElementById("modalCasoTitle").textContent="Editar caso "+seccionId+" — "+caso.buque;
+
+  document.getElementById("casoSubcentro").value=caso.asunto ? caso.asunto.match(/K\w{3,4}/)?.[0] || "" : "";
+  document.getElementById("casoNumero").value=caso.asunto ? (caso.asunto.match(/Nº\s*([\d\/]+)/)?.[1] || "") : "";
+  document.getElementById("casoNombre").value=caso.asunto ? (caso.asunto.match(/–\s*"(.+?)"/)?.[1] || "") : "";
+  document.getElementById("casoBuque").value=caso.buque || "";
+  document.getElementById("casoIdentificacion").value=caso.identificacion || "";
+  document.getElementById("casoTipo").value=caso.tipo || "";
+  document.getElementById("casoBandera").value=caso.bandera || "";
+  document.getElementById("casoFechaInicio").value=caso.fechaInicio || "";
+  document.getElementById("casoFechaCierre").value=caso.fechaCierre || "";
+  document.getElementById("casoPosicion").value=caso.posicion || "";
+  document.getElementById("casoEslora").value= (caso.caracteristicas||"").match(/E:\s*([^\s-]+)/)?.[1] || "";
+  document.getElementById("casoManga").value= (caso.caracteristicas||"").match(/M:\s*([^\s-]+)/)?.[1] || "";
+  document.getElementById("casoAgencia").value=caso.agencia_pob || "";
+  document.getElementById("casoProcedencia").value=caso.procedencia_destino || "";
+  document.getElementById("casoDiagnostico").value=caso.diagnostico || "";
+  document.getElementById("casoMediosPrevistos").value=caso.medios_previstos || "";
+  document.getElementById("casoSituacion").value=caso.situacion || "";
+  document.getElementById("casoNovedad").value=caso.novedad || "";
+
+  setCasoEstado((caso.estado||"").toUpperCase().includes("CERRADO")?"CERRADO":"PENDIENTE");
+
+  document.getElementById("modalCaso").classList.add("activo");
+  switchCasoTab("asunto",document.querySelector("#casoTabs .caso-tab"));
+}
+
+
 
 /* ================================================================
    ZOOM
