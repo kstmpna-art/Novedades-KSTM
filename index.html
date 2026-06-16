@@ -1751,7 +1751,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxPADroTEubzsUZB7T1UgTXEUqTYQ3HzWFIsdtxRUpITe50iIJQ6jhOMlwofr9nFpT_cg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyCvuTuf7bTg18NvnwWQEV9KZPbkAP0FWL9vwGXWPBWR__wqsrHKP0N0KlZEJibWHumVA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -6267,6 +6267,22 @@ function avanzarAutoRotacion() {
   align-items: center; justify-content: center;
 }
 #chat-send:disabled { opacity: .5; cursor: default; }
+#chat-mic {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #2a2a2e; color: #fff; border: 1px solid var(--border);
+  font-size: 16px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+#chat-mic.listening { background: #ef4444; border-color: #ef4444; animation: mic-pulse 1s infinite; }
+@keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+.chat-spkr {
+  background: none; border: none; color: #888; font-size: 14px; cursor: pointer;
+  padding: 2px 4px; margin-left: 4px; vertical-align: middle; line-height: 1;
+  border-radius: 4px; display: inline-flex; align-items: center;
+}
+.chat-spkr:hover { background: rgba(255,255,255,.1); color: #fff; }
+.chat-spkr.speaking { color: #1a73e8; }
+.chat-msg.assistant .msg-text { display: inline; }
 </style>
 
 <div id="chat-btn" title="Consultar al asistente IA">💬</div>
@@ -6280,6 +6296,7 @@ function avanzarAutoRotacion() {
     <div class="chat-msg assistant">¡Hola! Soy el asistente de análisis de novedades. Hacé cualquier pregunta sobre el parte diario.</div>
   </div>
   <div id="chat-input-area">
+    <button id="chat-mic" title="Dictar por voz">🎤</button>
     <input type="text" id="chat-input" placeholder="Escribí tu consulta..." autocomplete="off">
     <button id="chat-send">➤</button>
   </div>
@@ -6304,9 +6321,36 @@ chatSend.addEventListener('click', enviarMensaje);
 function agregarMensaje(texto, tipo) {
   const div = document.createElement('div');
   div.className = 'chat-msg ' + tipo;
-  div.textContent = texto;
+  if (tipo === 'assistant') {
+    const span = document.createElement('span');
+    span.className = 'msg-text';
+    span.textContent = texto;
+    div.appendChild(span);
+    const btn = document.createElement('button');
+    btn.className = 'chat-spkr';
+    btn.textContent = '\u{1F50A}';
+    btn.title = 'Leer en voz alta';
+    btn.addEventListener('click', () => hablar(texto, btn));
+    div.appendChild(btn);
+  } else {
+    div.textContent = texto;
+  }
   chatMensajes.appendChild(div);
   chatMensajes.scrollTop = chatMensajes.scrollHeight;
+}
+
+function hablar(texto, btn) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  if (btn && btn.classList.contains('speaking')) { btn.classList.remove('speaking'); return; }
+  var limpio = texto.replace(/[*_#`~]/g,'').replace(/\|/g,',').replace(/[🔴🟡🟢🟣🔵🟠⚪⬜⬛🟤✅❌❓❗💬🤖🎯⚓🚢✈️⛵🚫🟢🔴🟣]/g,'');
+  const utter = new SpeechSynthesisUtterance(limpio);
+  utter.lang = 'es-AR';
+  utter.rate = 1.1;
+  if (btn) btn.classList.add('speaking');
+  utter.onend = () => { if (btn) btn.classList.remove('speaking'); };
+  utter.onerror = () => { if (btn) btn.classList.remove('speaking'); };
+  window.speechSynthesis.speak(utter);
 }
 
 function enviarMensaje() {
@@ -6339,6 +6383,32 @@ function enviarMensaje() {
   })
   .finally(() => { chatSend.disabled = false; chatInput.focus(); });
 }
+
+// ── Speech Recognition ──
+(function(){
+  var recognition = null;
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.lang = 'es-AR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = function(e) {
+      document.getElementById('chat-mic').classList.remove('listening');
+      chatInput.value = e.results[0][0].transcript;
+      enviarMensaje();
+    };
+    recognition.onerror = function() { document.getElementById('chat-mic').classList.remove('listening'); };
+    recognition.onend = function() { document.getElementById('chat-mic').classList.remove('listening'); };
+  }
+  var micBtn = document.getElementById('chat-mic');
+  if(micBtn) micBtn.addEventListener('click', function() {
+    if (!recognition) { agregarMensaje('Reconocimiento de voz no disponible en este navegador.', 'error'); return; }
+    if (this.classList.contains('listening')) { recognition.stop(); this.classList.remove('listening'); return; }
+    this.classList.add('listening');
+    recognition.start();
+  });
+})();
 </script>
 <!-- ===================== FIN CHAT IA ===================== -->
 </body>
