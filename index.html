@@ -5851,7 +5851,7 @@ function _buildResumenCards(){
   console.log("[resumen] sSAR:",sSAR.length,"sMAS:",sMAS.length,"sGC:",sGC.length,"sPuertos:",sPuertos.length,"sDragas:",sDragas.length,"sAlertas:",sAlertas.length,"sMetaneros:",sMetaneros.length,"sCalado:",sCalado.length);
   var hasNews=sSAR.length||sMAS.length||sGC.length||sPuertos.length||sDragas.length||sAlertas.length||sMetaneros.length||sCalado.length;
   if(hasNews){
-    newsHtml='<div style="margin-top:16pt;padding-top:10pt;border-top:2px solid #003366"><div style="font-size:13pt;font-weight:700;color:#003366;margin-bottom:6pt">NOVEDADES IMPORTANTES</div>';
+    newsHtml='<div style="margin-top:16pt;padding-top:10pt;border-top:2px solid #003366"><div style="font-size:13pt;font-weight:700;color:#003366;margin-bottom:6pt;text-align:center">NOVEDADES</div>';
     newsHtml+=_secBlock("SAR - Casos pendientes",sSAR,"#c0392b");
     newsHtml+=_secBlock("MAS - Casos pendientes",sMAS,"#c07c1a");
     newsHtml+=_secBlock("Guardacostas en navegaci\u00f3n",sGC,"#1a9560");
@@ -5877,9 +5877,9 @@ function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
   header+='<div style="font-size:9pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:4px;letter-spacing:.3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
   header+='<div style="font-size:16pt;font-weight:800;color:#003366;margin-top:8pt;letter-spacing:1px">PARTE DE NOVEDADES</div>';
   header+='<div style="font-size:12pt;font-weight:700;color:#555;margin-top:3pt">'+fechaPalabras+'</div>';
-  header+='</div>';  
+  header+='</div>';
   var resumen=_buildResumenCards();
-  var resumenSec='<div style="margin-bottom:8pt;padding:4pt 0"><div style="font-size:14pt;font-weight:700;color:#003366;margin-bottom:10pt;padding-bottom:4pt;border-bottom:2px solid #003366;text-transform:uppercase;letter-spacing:.8px">RESUMEN</div>'+resumen+'</div>';
+  var resumenSec='<div style="margin-bottom:8pt;padding:4pt 0"><div style="font-size:14pt;font-weight:700;color:#003366;margin-bottom:10pt;padding-bottom:4pt;border-bottom:2px solid #003366;text-transform:uppercase;letter-spacing:.8px;text-align:center">RESUMEN</div>'+resumen+'</div>';
   var pageBreak='<div style="page-break-after:always;margin:0;padding:0;height:0"></div>';
   var firmaHtml='';
   if(_firmanteEncargado||_firmanteOficial){
