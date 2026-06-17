@@ -1771,7 +1771,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycby15TWS8qTlUM4PK9JxWxUcMa54gXuICezPr-60UgqQLTrIrF5G2xkKG4Au2_UUL89FpQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzxfoiCkjRYZ2iVtFco42llwE6j2Qhk-snXitP5n30SK4dbkTSLTLQOVmRY76gegrWMFA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -5189,15 +5189,22 @@ async function subirBase64(file){
                    ext === "doc" ? "application/msword" :
                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     var nomArchivo = nombreBase + "." + ext;
-    var body={accion:"subirPDF",fileName:nomArchivo,fileData:base64,mimeType:mimeType};
+    
+    var params = new URLSearchParams();
+    params.set("accion", "subirParte");
+    params.set("base64Data", base64);
+    params.set("mimeType", mimeType);
+    params.set("nombreCaso", nomArchivo);
+    
     var response=await fetch(API_URL,{
       method:"POST",
       redirect:"follow",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify(body)
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:params.toString()
     });
-    var res=await response.json();
-    if(res.success){
+    var text=await response.text();
+    var res=JSON.parse(text);
+    if(res.success || res.ok){
       status.textContent="Guardado en Drive.";status.style.color="green";
       setTimeout(function(){status.textContent="";status.style.display="none";},3000);
     }else{
