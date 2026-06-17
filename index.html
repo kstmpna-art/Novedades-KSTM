@@ -1366,20 +1366,26 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       <div id="dropStatus" style="font-size:9pt;margin-top:4px;display:none"></div>
     </div>
     <hr style="margin:14px 0;border:none;border-top:1px solid var(--gray-200)">
-    <div style="margin-bottom:10px">
-      <label style="display:block;font-size:12px;font-weight:700;color:var(--text-lt);margin-bottom:4px;text-align:center">🔍 Buscar parte guardado</label>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--text-lt);margin-bottom:4px;text-align:center">🔍 Buscar parte por fecha</label>
       <div style="display:flex;gap:6px;align-items:center">
         <input type="date" id="bpFecha" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit">
         <button onclick="buscarParte()" id="btnBuscarParte" style="padding:7px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit">🔍</button>
+        <button onclick="limpiarBusqueda()" style="padding:7px 12px;background:var(--gray-200);color:var(--text-lt);border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">✕</button>
       </div>
-      <div id="bpFechaLabel" style="font-size:11px;text-align:center;color:var(--text-lt);margin-top:3px"></div>
     </div>
-    <div id="bpResultados" style="max-height:200px;overflow-y:auto;font-size:13px;margin-bottom:10px"></div>
-    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;flex-wrap:wrap">
-      <button onclick="listarPartesGuardadas()" id="btnListarPartes" class="btn-exp-pdf" style="padding:6px 12px;font-size:12px">📋 Ver historial completo</button>
-      <button onclick="abrirCarpetaPartes()" id="btnAbrirCarpeta" class="btn-exp-word" style="padding:6px 12px;font-size:12px">📂 Abrir carpeta en Drive</button>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--text-lt);margin-bottom:4px;text-align:center">📅 Buscar parte por rango</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="date" id="bpFechaDesde" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit" placeholder="Desde">
+        <span style="color:var(--text-lt);font-size:12px">a</span>
+        <input type="date" id="bpFechaHasta" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit" placeholder="Hasta">
+        <button onclick="buscarParteRango()" id="btnBuscarRango" style="padding:7px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit">🔍</button>
+        <button onclick="limpiarBusqueda()" style="padding:7px 12px;background:var(--gray-200);color:var(--text-lt);border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">✕</button>
+      </div>
     </div>
-    <div id="bpListadoCompleto" style="max-height:200px;overflow-y:auto;font-size:13px;margin-bottom:10px"></div>
+      <div id="bpFechaLabel" style="font-size:11px;text-align:center;color:var(--text-lt);margin-bottom:8px"></div>
+    <div id="bpResultados" style="max-height:250px;overflow-y:auto;font-size:13px;margin-bottom:10px"></div>
     <div style="text-align:center">
       <button class="btn-cancelar" onclick="cerrarModalExport()">Cerrar</button>
     </div>
@@ -1771,7 +1777,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzxfoiCkjRYZ2iVtFco42llwE6j2Qhk-snXitP5n30SK4dbkTSLTLQOVmRY76gegrWMFA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzMBishsV5CbmQchh4RBjpNIOt1tErznRVYeo3ZE3qcn5AVgWV5DNalL-ST-QvfnDLnpQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -5183,12 +5189,12 @@ async function subirBase64(file){
     });
     status.textContent="Guardando en Drive...";status.style.color="#555";
     var fechaStr=datosGlobales?datosGlobales.fecha||"":"";
-    var nombreBase="Parte de Novedades "+(fechaStr?_fechaPalabras(fechaStr):"");
     var ext=file.name.toLowerCase().split(".").pop();
     var mimeType = ext === "pdf" ? "application/pdf" :
                    ext === "doc" ? "application/msword" :
                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    var nomArchivo = nombreBase + "." + ext;
+    var fechaArchivo = fechaStr || "";
+    var nomArchivo = "Parte de novedades " + fechaArchivo + "." + ext;
     
     var params = new URLSearchParams();
     params.set("accion", "subirParte");
@@ -5215,7 +5221,7 @@ async function subirBase64(file){
   }
 }
 
-/* ── BUSCAR PARTE (GAS) ─────────────────────────────── */
+/* ── BUSCAR PARTE POR FECHA ─────────────────────────────── */
 async function buscarParte(){
   var fechaInput=document.getElementById("bpFecha").value;
   var btn=document.getElementById("btnBuscarParte");
@@ -5227,29 +5233,73 @@ async function buscarParte(){
   btn.textContent="\u23F3";btn.disabled=true;
   resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">Buscando...</div>';
   try{
-    var params=new URLSearchParams();params.set("accion","buscarParte");params.set("fecha",fechaStr);params.set("folderId","1JQGSVgL2sEOxi4A8bDAwT8rPUWRTNYqq");
+    var params=new URLSearchParams();params.set("accion","buscarParte");params.set("fecha",fechaStr);
     var response=await fetch(API_URL+"?"+params.toString(),{method:"GET",redirect:"follow",cache:"no-store"});
-    var text=await response.text();window._lastSearchResponse=text;var res=JSON.parse(text);
+    var text=await response.text();var res=JSON.parse(text);
     btn.textContent="\uD83D\uDD0D";btn.disabled=false;
     if(res&&res.ok&&res.partes&&res.partes.length){
-      var html='<div style="margin-bottom:6px;font-size:12px;font-weight:600;color:var(--text-lt)">'+res.partes.length+' resultado'+(res.partes.length!==1?'s':'')+':</div>';
-      res.partes.forEach(function(p,i){
-        var f=p.fecha||fechaStr;
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:4px;box-shadow:var(--shadow-sm)">'+
-          '<span style="font-weight:600;color:var(--navy)">\uD83D\uDCC5 '+esc(f)+'</span>'+
-          '<button onclick="verParte('+i+')" style="padding:4px 12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">\uD83D\uDC41 Ver</button>'+
-          '</div>';
-      });
-      resDiv.innerHTML=html;window._partesResultados=res.partes;
+      mostrarResultados(res.partes);
     }else{
       var msg=(res&&res.error?'\u26A0 '+esc(res.error):'\uD83D\uDCED Sin partes para esa fecha.');
-      msg+='<div style="margin-top:8px;font-size:11px;color:var(--gray-400)">Enviado: fecha='+esc(fechaStr)+'</div>';
       resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">'+msg+'</div>';
     }
   }catch(err){
     btn.textContent="\uD83D\uDD0D";btn.disabled=false;
     resDiv.innerHTML='<div style="text-align:center;color:var(--red);padding:20px">\u26A0 Error: '+esc(err.message||err)+'</div>';
   }
+}
+
+/* ── BUSCAR PARTE POR RANGO ─────────────────────────────── */
+async function buscarParteRango(){
+  var desde=document.getElementById("bpFechaDesde").value;
+  var hasta=document.getElementById("bpFechaHasta").value;
+  var btn=document.getElementById("btnBuscarRango");
+  var resDiv=document.getElementById("bpResultados");
+  if(!desde&&!hasta){resDiv.innerHTML='<div style="color:var(--amber);padding:12px;text-align:center">Seleccion\u00e1 al menos una fecha.</div>';return;}
+  var pd=desde?desde.split("-"):null;
+  var ph=hasta?hasta.split("-"):null;
+  var fDesde=pd?pd[2]+"/"+pd[1]+"/"+pd[0]:"";
+  var fHasta=ph?ph[2]+"/"+ph[1]+"/"+ph[0]:"";
+  var lbl=fDesde&&hasta?fDesde+" al "+fHasta:fDesde||fHasta;
+  document.getElementById("bpFechaLabel").textContent="Buscando: "+lbl;
+  btn.textContent="\u23F3";btn.disabled=true;
+  resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">Buscando...</div>';
+  try{
+    var params=new URLSearchParams();params.set("accion","buscarParte");params.set("fecha",fDesde);params.set("fechaHasta",fHasta);
+    var response=await fetch(API_URL+"?"+params.toString(),{method:"GET",redirect:"follow",cache:"no-store"});
+    var text=await response.text();var res=JSON.parse(text);
+    btn.textContent="\uD83D\uDD0D";btn.disabled=false;
+    if(res&&res.ok&&res.partes&&res.partes.length){
+      mostrarResultados(res.partes);
+    }else{
+      var msg=(res&&res.error?'\u26A0 '+esc(res.error):'\uD83D\uDCED Sin partes para ese rango.');
+      resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">'+msg+'</div>';
+    }
+  }catch(err){
+    btn.textContent="\uD83D\uDD0D";btn.disabled=false;
+    resDiv.innerHTML='<div style="text-align:center;color:var(--red);padding:20px">\u26A0 Error: '+esc(err.message||err)+'</div>';
+  }
+}
+
+function mostrarResultados(partes){
+  var resDiv=document.getElementById("bpResultados");
+  var html='<div style="margin-bottom:6px;font-size:12px;font-weight:600;color:var(--text-lt)">'+partes.length+' resultado'+(partes.length!==1?'s':'')+':</div>';
+  partes.forEach(function(p,i){
+    var f=p.fecha||"";
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:4px;box-shadow:var(--shadow-sm)">'+
+      '<span style="font-weight:600;color:var(--navy)">\uD83D\uDCC5 '+esc(f)+'</span>'+
+      '<button onclick="verParte('+i+')" style="padding:4px 12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">\uD83D\uDC41 Ver</button>'+
+      '</div>';
+  });
+  resDiv.innerHTML=html;window._partesResultados=partes;
+}
+
+function limpiarBusqueda(){
+  document.getElementById("bpFecha").value="";
+  document.getElementById("bpFechaDesde").value="";
+  document.getElementById("bpFechaHasta").value="";
+  document.getElementById("bpFechaLabel").textContent="";
+  document.getElementById("bpResultados").innerHTML="";
 }
 function verParte(idx){
   var partes=window._partesResultados;if(!partes||!partes[idx])return;
@@ -5827,9 +5877,9 @@ function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
   header+='<div style="font-size:9pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:4px;letter-spacing:.3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
   header+='<div style="font-size:16pt;font-weight:800;color:#003366;margin-top:8pt;letter-spacing:1px">PARTE DE NOVEDADES</div>';
   header+='<div style="font-size:12pt;font-weight:700;color:#555;margin-top:3pt">'+fechaPalabras+'</div>';
-  header+='</div>';
+  header+='</div>';  
   var resumen=_buildResumenCards();
-  var resumenSec='<div style="margin-bottom:8pt;padding:4pt 0"><div style="font-size:14pt;font-weight:700;color:#003366;margin-bottom:10pt;padding-bottom:4pt;border-bottom:2px solid #003366;text-transform:uppercase;letter-spacing:.8px">RESUMEN EJECUTIVO</div>'+resumen+'</div>';
+  var resumenSec='<div style="margin-bottom:8pt;padding:4pt 0"><div style="font-size:14pt;font-weight:700;color:#003366;margin-bottom:10pt;padding-bottom:4pt;border-bottom:2px solid #003366;text-transform:uppercase;letter-spacing:.8px">RESUMEN</div>'+resumen+'</div>';
   var pageBreak='<div style="page-break-after:always;margin:0;padding:0;height:0"></div>';
   var firmaHtml='';
   if(_firmanteEncargado||_firmanteOficial){
