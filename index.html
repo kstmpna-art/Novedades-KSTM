@@ -114,111 +114,124 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 #app{display:flex;height:100dvh;overflow:hidden}
 
 /* ── SIDEBAR ──────────────────────────────────────────────────── */
-#sidebar{
-  width:var(--sidebar-w);min-width:var(--sidebar-w);
-  background:var(--navy-lt);
-  display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:2px 0 12px rgba(0,0,0,0.2);z-index:20;
-  border-radius:0 14px 14px 0;
-  transition:transform .3s ease;
-}
-.sb-brand{
-  padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.01);display:flex;flex-direction:row;align-items:center;gap:12px;
-}
-.sb-brand img{height:38px;opacity:.85;display:block;flex-shrink:0;}
-.sb-brand .sb-org{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.55);letter-spacing:1.5px;text-transform:uppercase;line-height:1.4}
-.sb-brand .sb-title{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#ffffff;margin-top:2px; transition: color .15s;}
-.sb-brand:hover .sb-title{color: #4a9fd4;}
-.sb-user{
-  padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.01);
-  display:flex;align-items:center;gap:10px;
-}
-.sb-user-av{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--gold);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;color:var(--navy-dk);flex-shrink:0;
-  font-family:'Outfit',sans-serif;
-}
-.sb-user-name{font-size:13px;font-weight:700;color:#ffffff;line-height:1.3}
-.sb-user-role{font-size:11.5px;color:rgba(255,255,255,0.55); font-weight: 500;}
-.sb-date{
-  padding:8px 16px;font-size:12px;font-weight:700;
-  color:#f0b430;letter-spacing:.5px;
-  border-bottom:1px solid rgba(255,255,255,0.1);
-  background:rgba(200,151,42,0.01);
-}
-.sb-search{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.1)}
-.sb-search input{
-  width:100%;background:rgba(255,255,255,0.1);
-  border:1px solid rgba(255,255,255,0.2);
-  border-radius:var(--radius);color:#fff;
-  font-size:12.5px;padding:7px 11px;outline:none;
-  font-family:'DM Sans',sans-serif;
-  transition: all .2s;
-}
-.sb-search input:focus{border-color:rgba(255,255,255,0.45); background: rgba(255,255,255,0.14);}
-.sb-search input::placeholder{color:rgba(255,255,255,0.45);font-size:12px}
-#sb-nav{flex:1;overflow-y:auto;padding:6px 0 10px}
-#sb-nav::-webkit-scrollbar{width:3px}
-#sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
-.sb-group{font-size:10.5px;font-weight:800;color:rgba(255,255,255,0.55);letter-spacing:1.8px;text-transform:uppercase;padding:12px 16px 4px}
-.sb-item{
-  display:flex;align-items:center;gap:10px;
-  width:100%;padding:8px 16px;
-  background:transparent;border:none;border-left:2.5px solid transparent;
-  color:rgba(255,255,255,0.70);font-size:13.5px;
-  font-family:'DM Sans',sans-serif;cursor:pointer;
-  text-align:left;transition:all .15s; line-height: 1.4;
-}
-.sb-item:hover{background:rgba(255,255,255,0.08);color:#fff; border-left-color:rgba(255,255,255,0.2);}
-.sb-item.active{background:#1d6fa4;border-left-color:#79c3f0;color:#fff;font-weight:700;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
-.sb-item .si-icon{font-size:15px;flex-shrink:0;width:20px;text-align:center; opacity: 1;}
-.sb-item .si-label{flex:1; line-height: 1.4;}
-.sb-badge{
-  font-size:10px;font-weight:700;padding:1px 6px;
-  border-radius:20px;flex-shrink:0;
-}
-.sb-badge.blue{background:rgba(29,111,164,0.25);color:#7ec8f4;border:1px solid rgba(29,111,164,0.3)}
-.sb-badge.red{background:rgba(192,57,43,0.2);color:#f87171;border:1px solid rgba(192,57,43,0.3)}
-.sb-badge.amber{background:rgba(192,124,26,0.2);color:#f0b430;border:1px solid rgba(192,124,26,0.3)}
-.sb-badge.green{background:rgba(26,149,96,0.2);color:#4ade80;border:1px solid rgba(26,149,96,0.3)}
-.sb-bottom{padding:10px 12px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;gap:6px}
-.sb-act-btn{
-  width:100%;padding:7px 10px;font-size:11px;font-weight:700;
-  letter-spacing:.5px;text-transform:uppercase;border-radius:var(--radius);
-  cursor:pointer;transition:all .15s;font-family:'Outfit',sans-serif;
-  display:flex;align-items:center;justify-content:center;gap:5px;
-}
-.sb-act-btn.primary{background:#1d6fa4;border:none;color:#ffffff; font-size: 12px;}
-.sb-act-btn.primary:hover{background:#2d8bc8}
-.sb-act-btn.ghost{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7); font-size: 12px;}
-.sb-act-btn.ghost:hover{border-color:rgba(255,255,255,0.4);color:#ffffff; background: rgba(255,255,255,0.12)}
+#sidebar{display:none}
 
-.sb-stab {flex: 1; min-width: 44px; padding: 9px 4px 8px; background: transparent; border: none;
-  border-bottom: 2px solid transparent; color: rgba(255,255,255,0.55); font-size: 10px; font-weight: 700; font-family: 'Outfit', sans-serif; cursor: pointer; transition: all .18s; display: flex;  flex-direction: column; align-items: center; gap: 3px; text-transform: uppercase;letter-spacing: .5px;}
-.sb-stab:hover { color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.07);}
-.sb-stab.active { color: #f0b430; border-bottom-color: #f0b430; background: rgba(200,151,42,0.1);
+/* ── TOPBAR DROPDOWNS ────────────────────────────────────────── */
+.tb-nav-right{display:flex;align-items:center;gap:4px;justify-content:center}
+.tb-dropdown-wrap{position:relative}
+.tb-dropdown{
+  display:none;position:absolute;top:100%;left:0;min-width:280px;
+  background:var(--navy);border:1px solid rgba(255,255,255,0.12);
+  border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  padding:6px 0;z-index:9999;overflow:visible;
 }
+.tb-dropdown::-webkit-scrollbar{width:3px}
+.tb-dropdown::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:2px}
+.tb-dropdown-wrap.abierto>.tb-dropdown{display:block}
+.tb-dd-arrow{font-size:9px;margin-left:4px;transition:transform .2s}
+.tb-dropdown-wrap.abierto .tb-dd-arrow{transform:rotate(180deg)}
+.tb-dd-item{
+  display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;
+  background:none;border:none;color:rgba(255,255,255,0.8);font-size:13px;
+  font-family:'DM Sans',sans-serif;cursor:pointer;text-align:left;
+  transition:background .12s;border-left:2.5px solid transparent;
+}
+.tb-dd-item:hover{background:rgba(255,255,255,0.08);color:#fff;border-left-color:rgba(255,255,255,0.2)}
+.tb-dd-item .sb-badge{margin-left:auto;font-size:9px}
+.tb-dd-sub{padding-left:24px;font-size:12.5px}
+.tb-dd-sub2{padding-left:36px;font-size:12px}
+.tb-dd-sep{height:1px;background:rgba(255,255,255,0.1);margin:4px 10px}
+.tb-dd-parent{font-weight:700;color:rgba(255,255,255,0.95)}
+.tb-dd-arrow-sm{font-size:9px;margin-left:auto;transition:transform .2s}
+.tb-dd-sub-wrap{position:relative}
+.tb-dd-sub-wrap>.tb-dropdown-sub{
+  display:none;width:100%;
+  padding:0;
+}
+.tb-dd-sub-wrap.abierto>.tb-dropdown-sub{display:block}
+.tb-dd-sub-wrap.abierto>.tb-dd-parent .tb-dd-arrow-sm{transform:rotate(90deg)}
 
 /* ── MAIN ─────────────────────────────────────────────────────── */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
 /* ── TOPBAR ───────────────────────────────────────────────────── */
 #topbar{
-  height:var(--topbar-h);
   background:#fff;border-bottom:1px solid var(--gray-200);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;flex-shrink:0;box-shadow:var(--shadow-sm);z-index:10;
+  display:flex;align-items:center;
+  padding:0 20px;flex-shrink:0;box-shadow:var(--shadow-sm);z-index:500;
 }
-.tb-left{display:flex;align-items:center;gap:10px}
+@media (max-width:768px){
+  #topbar{flex-wrap:wrap;height:auto;padding:6px 8px;gap:4px;}
+}
+.tb-left{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-start}
+.tb-nav-right{display:flex;align-items:center;gap:4px;justify-content:center;flex:1}
+.tb-right{display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end}
+.tb-tabs{display:flex;gap:4px;margin-left:8px}
+.tb-tab{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 15px;border-radius:var(--radius);
+  background:#bfd4e9;border:1px solid var(--gray-200);
+  color:#1d3557;font-size:15px;font-weight:600;
+  font-family:'Outfit',sans-serif;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.tb-tab:hover{border-color:var(--blue);color:var(--blue)}
+.tb-tab.active{background:var(--blue);border-color:var(--blue);color:#fff}
 #hamburger{
-  display:none;background:none;border:none;cursor:pointer;
-  font-size:20px;color:var(--text);padding:4px;
+  background:var(--blue);border:none;cursor:pointer;
+  font-size:20px;color:#fff;padding:4px;
+  border-radius:var(--radius);
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
 }
+
+/* ── HAMBURGER PANEL ──────────────────────────── */
+#hamburger-panel {
+  position: fixed; left: -290px; top: 0; height: 100%;
+  width: 280px; min-width: 280px;
+  background: var(--navy-lt);
+  box-shadow: 2px 0 12px rgba(0,0,0,0.2);
+  z-index: 2000;
+  transition: left .3s ease;
+  display: flex; flex-direction: column;
+  border-radius: 0 14px 14px 0;
+}
+#hamburger-panel.open { left: 0; }
+.hb-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.hb-items {
+  flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto;
+}
+.hb-sep { height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0; }
+#sb-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4); z-index: 1999;
+}
+#sb-overlay.visible { display: block; }
+.sb-act-btn{
+  width:100%;padding:10px 12px;font-size:12px;font-weight:700;
+  letter-spacing:.5px;border-radius:var(--radius);
+  cursor:pointer;transition:all .15s;font-family:'Outfit',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.sb-act-btn.primary{background:var(--blue);border:none;color:#fff}
+.sb-act-btn.primary:hover{background:var(--blue-lt)}
+.sb-act-btn.ghost{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7)}
+.sb-act-btn.ghost:hover{border-color:rgba(255,255,255,0.4);color:#fff;background:rgba(255,255,255,0.12)}
+.sb-badge{
+  font-size:9px;font-weight:700;padding:1px 6px;
+  border-radius:20px;flex-shrink:0;
+}
+.sb-badge.blue{background:rgba(29,111,164,0.25);color:#7ec8f4;border:1px solid rgba(29,111,164,0.3)}
+.sb-badge.red{background:rgba(192,57,43,0.2);color:#f87171;border:1px solid rgba(192,57,43,0.3)}
+.sb-badge.amber{background:rgba(192,124,26,0.2);color:#f0b430;border:1px solid rgba(192,124,26,0.3)}
+.sb-badge.green{background:rgba(26,149,96,0.2);color:#4ade80;border:1px solid rgba(26,149,96,0.3)}
 .tb-section-title{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;color:var(--navy)}
 .tb-section-sub{font-size:12px;color:var(--text-lt);margin-top:1px}
-.tb-right{display:flex;align-items:center;gap:8px}
+.tb-right{display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end}
 .tb-btn{
   font-size:12px;font-weight:600;padding:6px 13px;border-radius:var(--radius);
   cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s;
@@ -242,7 +255,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 #main-body::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:3px}
 
 /* ── HOME / SERVICIOS ─────────────────────────────────────────── */
-#home-view.home-visible{display:flex !important;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
+#home-view.home-visible{display:flex !important;flex-direction:column;flex:1;min-height:0;overflow-y:auto;}
 .home-header{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);
   border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:12px;
@@ -263,6 +276,18 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .home-dash-grid > div{min-height:0;overflow:hidden;}
 @media (max-width:1100px){.home-dash-grid{grid-template-columns:1fr 1fr;}.home-dash-grid > div:first-child{overflow-y:auto;}}
 .fs-active .home-header{flex-direction:column;text-align:center;padding:24px 32px}
+.tb-buscar{position:relative;display:flex;align-items:center;gap:4px}
+@media (max-width:768px){
+  .tb-buscar{order:10;width:100%;margin-top:4px}
+  #tb-bp-texto{width:100% !important}
+  .tb-nav-right{width:100%;justify-content:center}
+  #tb-bp-resultados{width:100% !important;right:0 !important;left:0 !important}
+  .home-dash-grid{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;gap:8px;height:auto !important;}
+  .home-dash-grid > div{flex:0 0 auto !important;scroll-snap-align:none !important;overflow:visible !important;height:auto !important;min-height:0 !important;}
+  #sarmas-dash-card > div > div:nth-child(2){flex-direction:column !important;}
+  #sarmas-dash-card{overflow:visible !important;}
+  #sarmas-dash-card > div{overflow:visible !important;}
+}
 .fs-active .home-header-left{width:100%;text-align:center}
 .fs-active .home-header h2{font-size:30px}
 .fs-active .home-header p{font-size:14px}
@@ -270,9 +295,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .fs-active .home-kpi .kpi-val{font-size:34px}
 .fs-active .home-kpi .kpi-lbl{font-size:12px}
 @media (max-width:768px){
-  .home-dash-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;height:100%;}
-  .home-dash-grid > div{flex:0 0 100%;scroll-snap-align:start;overflow-y:auto;min-height:0;height:100%;}
+  .home-dash-grid{display:flex;flex-direction:column;gap:8px;height:auto;}
+  .home-dash-grid > div{flex:0 0 auto !important;scroll-snap-align:none !important;overflow:visible !important;height:auto !important;min-height:0 !important;}
   .home-dash-grid #windy-iframe-home,.home-dash-grid #hc-dash-puertos{touch-action:pan-y;}
+  #home-view.home-visible{flex:0 0 auto !important;min-height:auto !important;overflow:visible !important;}
 }
 .services-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--text-lt);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
 .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
@@ -668,81 +694,17 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
 /* APP responsive — desktop grande: sidebar como barra superior con dropdowns */
 @media (min-width: 1101px) {
-  #app { flex-direction: column; overflow: visible; }
-  #sidebar {
-    width: 100% !important; min-width: 100% !important;
-    flex-direction: row; align-items: center;
-    height: auto; min-height: 80px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    position: static; z-index: 50; overflow: visible;
-    gap: 0; transition: transform .25s ease;
-  }
-
-  .sb-brand { display: flex !important; flex-direction: row; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: none; flex-shrink: 0; }
-  .sb-brand img { height: 44px; margin-bottom: 0; }
-  .sb-brand .sb-org { font-size: 12px; }
-  .sb-brand .sb-user-name { font-size: 16px; margin: 0; }
-  .sb-user, .sb-date, .sb-bottom { display: none !important; }
-  #sb-nav {
-    display: flex; flex-direction: row; overflow: visible;
-    align-items: stretch; flex: 1; padding: 0;
-  }
-  .sb-group-wrap {
-    position: relative; display: flex;
-    border-bottom: none; flex-shrink: 0;
-  }
-  .sb-group-btn {
-    display: flex !important; width: auto; padding: 26px 20px;
-    background: transparent; border: none; border-bottom: 2.5px solid transparent;
-    color: rgba(255,255,255,0.7); font-size: 14px; white-space: nowrap;
-    gap: 8px; border-radius: 0;
-  }
-  .sb-group-btn:hover { background: rgba(255,255,255,0.08); color: #fff; border-bottom-color: rgba(255,255,255,0.15); }
-  .sb-group-btn.active { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #79c3f0; }
-  .sb-group-items {
-    position: absolute; top: 100%; left: 0; min-width: 260px;
-    background: var(--navy); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 0 0 10px 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    flex-direction: column; padding: 8px 0;
-    max-height: none !important; overflow: visible !important; z-index: 999;
-    display: none !important;
-  }
-  .sb-group-items:not(.cerrado) { display: flex !important; }
-  .sb-arrow { display: inline !important; font-size: 9px; }
-  .sb-item {
-    border-left: 2.5px solid transparent !important; border-bottom: none !important;
-    padding: 12px 20px; white-space: nowrap; font-size: 13px; width: 100%; gap: 10px;
-  }
-  .sb-item:hover { border-left-color: rgba(255,255,255,0.25) !important; }
-  .sb-item.active { border-left-color: #79c3f0 !important; border-bottom-color: transparent !important; }
-  .sb-badge { font-size: 9px; padding: 1px 6px; }
-  .sb-search { display: flex; align-items: center; padding: 0 12px; border-bottom: none; flex-shrink: 0; margin-left: auto; }
-  .sb-search input { width: 220px; font-size: 13px; padding: 8px 14px; }
+  #app { flex-direction: column; overflow: hidden; }
   #main { flex: 1; }
-  #hamburger { display: none !important; }
+  #hamburger { display: flex; }
   #topbar { padding: 0 20px; }
 }
-/* APP responsive — tablet y mobile: hamburger + slide-in */
+/* APP responsive — tablet y mobile */
 @media (max-width: 1100px) {
-  #hamburger { display: block; }
-  #sidebar {
-    position: fixed;
-    left: -290px; top: 0; height: 100%;
-    width: 280px !important;
-    min-width: 280px !important;
-    z-index: 100;
-    transition: left .3s ease;
-    border-radius: 0 14px 14px 0;
-  }
-  #sidebar.open       { left: 0; }
-  #sb-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 99;
-  }
-  #sb-overlay.visible { display: block; }
+  #hamburger { display: flex; }
+  .tb-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 1; min-width: 0; }
+  .tb-tabs::-webkit-scrollbar { height: 0; }
+  .tb-tab { font-size: 11px; padding: 5px 10px; }
 }
 /* APP responsive — mobile */
 @media (max-width: 768px) {
@@ -769,6 +731,9 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   }
   .tb-section-sub  { display: none; }
   .tb-section-title { font-size: 13px; }
+  .tb-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 1; min-width: 0; }
+  .tb-tabs::-webkit-scrollbar { height: 0; }
+  .tb-tab { font-size: 11px; padding: 5px 10px; }
   #hc-dash-puertos { min-height: 220px !important; }
   #btn-auto-rotate { font-size: 11px; padding: 4px 8px; }
 }
@@ -795,6 +760,35 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   #main-body     { padding: 8px 10px 70px; }
   .role-badge    { display: none; }
   #statusbar     { font-size: 10px; gap: 8px; padding: 4px 10px; }
+}
+
+/* ════════════════════════════════════════════════════
+   TOPBAR RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width:1100px) {
+  .tb-tab { font-size:12px; padding:6px 10px; }
+}
+@media (max-width:900px) {
+  .tb-tab { font-size:11px; padding:5px 8px; }
+  .tb-nav-right { gap:3px; }
+}
+@media (max-width:768px) {
+  #topbar { flex-wrap:nowrap; gap:4px; padding:0 8px; }
+  .tb-left { min-width:0; }
+  .sb-item .si-label { display:none; }
+  .sb-item .si-icon { font-size:18px; }
+  .tb-section-title { display:none; }
+  .tb-tab { font-size:10px; padding:4px 6px; white-space:nowrap; }
+  .tb-tab span { white-space:nowrap; }
+  .tb-nav-right { gap:2px; }
+  .tb-right { gap:4px; }
+  .role-badge { display:none; }
+  #auto-refresh-indicator { display:none !important; }
+  #tb-bp-texto { width:100px; }
+}
+@media (max-width:480px) {
+  .tb-tab { font-size:9px; padding:3px 5px; }
+  .tb-dropdown { min-width:200px; }
 }
 
 /* ════════════════════════════════════════════════════
@@ -1181,6 +1175,37 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   max-height: 0;
   border-radius: 0;
 }
+
+/* ── SUB-GRUPOS ANIDADOS ──────────────────────────── */
+.sb-subgroup-wrap {
+  margin: 2px 8px;
+  border-radius: 8px;
+  background: #1a3550;
+}
+.sb-subgroup-btn {
+  font-size: 11px !important;
+  padding: 7px 12px !important;
+  letter-spacing: .5px !important;
+}
+.sb-subgroup-items {
+  background: #152d45;
+  border-radius: 0 0 8px 8px;
+}
+.sb-subgroup-items .sb-item {
+  padding-left: 24px;
+  font-size: 12.5px;
+}
+.sb-subgroup-wrap .sb-subgroup-wrap {
+  margin: 2px 6px;
+  background: #12253a;
+}
+.sb-subgroup-wrap .sb-subgroup-wrap .sb-subgroup-items {
+  background: #0f1f30;
+}
+.sb-subgroup-wrap .sb-subgroup-wrap .sb-item {
+  padding-left: 36px;
+  font-size: 12px;
+}
 </style>
 </head>
 <body>
@@ -1524,205 +1549,155 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   <img id="imgZoomSrc" src="" alt="Zoom">
 </div>
 
-<div id="sb-overlay" onclick="cerrarSidebar()"></div>
+<div id="sb-overlay" onclick="cerrarHamburger()"></div>
 
 <!-- ── APP ───────────────────────────────────────────────────────── -->
 <div id="app" style="display:none">
 
-  <!-- SIDEBAR -->
-  <div id="sidebar">
-    <div class="sb-brand">
-      <img src="https://www.argentina.gob.ar/sites/default/files/styles/isotipo/public/imagenEncabezado/prefectura-escudo.png?itok=EywBfOaV" alt="PNA" onerror="this.style.display='none'">
-      <div style="display:flex;flex-direction:column;">
-        <div class="sb-org">Prefectura Naval Argentina</div>
-        <div class="sb-user-name">Tráfico Marítimo — KSTM</div>
-      </div>
-    </div>
-    <div class="sb-user">
-      <div class="sb-user-av" id="sb-av">OP</div>
-      <div>
-        <div class="sb-user-name" id="sb-uname">Operador</div>
-        <div class="sb-user-role" id="sb-urole">Cargando...</div>
-      </div>
-    </div>
-    <div class="sb-date" id="sb-fecha">📅 Cargando...</div>
-    <div class="sb-search">
-      <input type="text" id="buscador" placeholder="🔍 Buscar en el parte..." onkeyup="filtrarPartes()">
-    </div>
-    <nav id="sb-nav">
-    <button class="sb-item" id="navbtn-HOME" onclick="mostrarHome()" style="font-weight:700;margin:4px 10px;border-radius:var(--radius);background:rgba(29,111,164,0.08);">
-      <span class="si-icon">🏠</span>
-      <span class="si-label">Panel principal</span>
-    </button>
-
-  <div class="sb-group-wrap">
-    <button class="sb-group-btn" onclick="toggleGrupo('g-operaciones')">
-      <span>⚓ Operaciones</span><span class="sb-arrow" id="arrow-g-operaciones">▾</span>
-    </button>
-    <div class="sb-group-items cerrado" id="g-operaciones">
-      <button class="sb-item" id="navbtn-AVIACION" onclick="mostrarSeccion('AVIACION')">
-        <span class="si-icon">✈️</span><span class="si-label">Aviación</span>
-      </button>
-      <button class="sb-item" id="navbtn-GC" onclick="mostrarSeccion('GC')">
-        <span class="si-icon">🚢</span><span class="si-label">Guardacostas</span>
-        <span class="sb-badge green" id="badge-GC"></span>
-      </button>
-      <button class="sb-item" id="navbtn-CONVENIO" onclick="mostrarSeccion('CONVENIO')">
-        <span class="si-icon">⚓</span><span class="si-label">Convenio PNA-ARA</span>
-      </button>
-      <button class="sb-item" id="navbtn-ARA" onclick="mostrarSeccion('ARA')">
-        <span class="si-icon">🛡️</span><span class="si-label">Buques ARA</span>
-        <span class="sb-badge blue" id="badge-ARA"></span>
-      </button>
-      <button class="sb-item" id="navbtn-SALVAMENTO" onclick="mostrarSeccion('SALVAMENTO')">
-        <span class="si-icon">🔥</span><span class="si-label">Salvamento / SERS</span>
-      </button>
-      <button class="sb-item" id="navbtn-KSTM" onclick="mostrarSeccion('KSTM')">
-        <span class="si-icon">⚓</span><span class="si-label">Pilotaje/ Conserva</span>
-        <span class="sb-badge blue" id="badge-KSTM"></span>
-      </button>
-      <button class="sb-item" id="navbtn-RESERVA" onclick="mostrarSeccion('RESERVA')">
-        <span class="si-icon">🔒</span><span class="si-label">Reserva de Canal</span>
-        <span class="sb-badge blue" id="badge-RESERVA"></span>
-      </button>
-      <button class="sb-item" id="navbtn-DRAGAS" onclick="mostrarSeccion('DRAGAS')">
-        <span class="si-icon">🚢</span><span class="si-label">Dragas Operando</span>
-        <span class="sb-badge blue" id="badge-DRAGAS"></span>
-      </button>
-    </div>
-  </div>
-
-  <div class="sb-group-wrap">
-    <button class="sb-group-btn" onclick="toggleGrupo('g-sar')">
-      <span>🆘 SAR / MAS</span><span class="sb-arrow" id="arrow-g-sar">▾</span>
-    </button>
-    <div class="sb-group-items cerrado" id="g-sar">
-      <button class="sb-item" id="navbtn-SAR" onclick="mostrarSeccion('SAR')">
-        <span class="si-icon">🆘</span><span class="si-label">Casos SAR</span>
-        <span class="sb-badge red" id="badge-SAR"></span>
-      </button>
-      <button class="sb-item" id="navbtn-MAS" onclick="mostrarSeccion('MAS')">
-        <span class="si-icon">⚕️</span><span class="si-label">Casos MAS</span>
-        <span class="sb-badge amber" id="badge-MAS"></span>
-      </button>
-    </div>
-  </div>
-
-  <div class="sb-group-wrap">
-    <button class="sb-group-btn" onclick="toggleGrupo('g-eventos')">
-      <span>⛵ Eventos</span><span class="sb-arrow" id="arrow-g-eventos">▾</span>
-    </button>
-    <div class="sb-group-items cerrado" id="g-eventos">
-      <button class="sb-item" id="navbtn-REGATAS" onclick="mostrarSeccion('REGATAS')">
-        <span class="si-icon">⛵</span><span class="si-label">Eventos Náuticos</span>
-      </button>
-      <button class="sb-item" id="navbtn-EJER.ARMAS" onclick="mostrarSeccion('EJER.ARMAS')">
-        <span class="si-icon">🎯</span><span class="si-label">Ejercicios de Armas</span>
-        <span class="sb-badge amber" id="badge-EJERARMAS"></span>
-      </button>
-      <button class="sb-item" id="navbtn-METANEROS" onclick="mostrarSeccion('METANEROS')">
-        <span class="si-icon">⛽</span><span class="si-label">Metaneros</span>
-      </button>
-      <button class="sb-item" id="navbtn-PBIP" onclick="mostrarSeccion('PBIP')">
-        <span class="si-icon">🛡️</span><span class="si-label">PBIP</span>
-      </button>
-      <button class="sb-item" id="navbtn-VELEROS_OC" onclick="mostrarSeccion('VELEROS_OC')">
-        <span class="si-icon">⛵</span><span class="si-label">Veleros Oc.</span>
-      </button>
-      <button class="sb-item" id="navbtn-CRUCEROS" onclick="mostrarSeccion('CRUCEROS')">
-        <span class="si-icon">🛳️</span><span class="si-label">Cruceros</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="sb-group-wrap">
-    <button class="sb-group-btn" onclick="toggleGrupo('g-situacion')">
-      <span>🌩️ Situación</span><span class="sb-arrow" id="arrow-g-situacion">▾</span>
-    </button>
-    <div class="sb-group-items cerrado" id="g-situacion">
-      <button class="sb-item" id="navbtn-PUERTOS" onclick="mostrarSeccion('PUERTOS')">
-        <span class="si-icon">🚫</span><span class="si-label">Puertos Cerrados</span>
-        <span class="sb-badge red" id="badge-PUERTOS"></span>
-      </button>
-      <button class="sb-item" id="navbtn-ALERTA" onclick="mostrarSeccion('ALERTA')">
-        <span class="si-icon">🌩️</span><span class="si-label">Alertas Meteorológicas</span>
-      </button>
-      <button class="sb-item" id="navbtn-DETERMINANTES" onclick="mostrarSeccion('DETERMINANTES')">
-        <span class="si-icon">💧</span><span class="si-label">Determinantes</span>
-      </button>
-      </div>
-  </div>
-
-  <div class="sb-group-wrap">
-    <button class="sb-group-btn" onclick="toggleGrupo('g-portuario')">
-      <span>📊 Portuario</span><span class="sb-arrow" id="arrow-g-portuario">▾</span>
-    </button>
-    <div class="sb-group-items cerrado" id="g-portuario">
-      <button class="sb-item" id="navbtn-MOV_BAJO_PARANA" onclick="mostrarSeccion('MOV_BAJO_PARANA')">
-        <span class="si-icon">📊</span><span class="si-label">Bajo Paraná</span>
-      </button>
-      <button class="sb-item" id="navbtn-MOV_DELTA" onclick="mostrarSeccion('MOV_DELTA')">
-        <span class="si-icon">📊</span><span class="si-label">Delta</span>
-      </button>
-      <button class="sb-item" id="navbtn-MOV_ZONA3" onclick="mostrarSeccion('MOV_ZONA3')">
-        <span class="si-icon">📊</span><span class="si-label">Río de la Plata</span>
-      </button>
-      <button class="sb-item" id="navbtn-MOV_ZONA4" onclick="mostrarSeccion('MOV_ZONA4')">
-        <span class="si-icon">📊</span><span class="si-label">Mar Norte</span>
-      </button>
-      <button class="sb-item" id="navbtn-__DASH_PORTUARIO__" onclick="abrirDashboardGeneral()">
-        <span class="si-icon">🗂️</span><span class="si-label">Resumen Portuario</span>
-      </button>
-      <button class="sb-item" id="navbtn-BUQUES" onclick="mostrarSeccion('BUQUES')">
-        <span class="si-icon">⚠️</span><span class="si-label">Buques Infracción</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="sb-group-wrap">
-    <button class="sb-group-btn" onclick="toggleGrupo('g-admin')">
-      <span>👤 Administración</span><span class="sb-arrow" id="arrow-g-admin">▾</span>
-    </button>
-    <div class="sb-group-items cerrado" id="g-admin">
-      <button class="sb-item" id="navbtn-VISITAS" onclick="mostrarSeccion('VISITAS')">
-        <span class="si-icon">📆</span><span class="si-label">Visitas previstas</span>
-        <span class="sb-badge blue" id="badge-VISITAS"></span>
-      </button>
-      <button class="sb-item" id="navbtn-NOVEDADES" onclick="mostrarSeccion('NOVEDADES')">
-        <span class="si-icon">📝</span><span class="si-label">Novedades Varias</span>
-        <span class="sb-badge blue" id="badge-NOVEDADES"></span>
-      </button>
-      <button class="sb-item" id="navbtn-PERSONAL_COSTERA" onclick="mostrarSeccion('PERSONAL_COSTERA')">
-        <span class="si-icon">👤</span><span class="si-label">Personal Costera/DTRA</span>
-      </button>
-    </div>
-  </div>
-</nav>
-    <div class="sb-bottom">
-      <button class="sb-act-btn primary" onclick="abrirModalExport()">📄 Exportar Parte</button>
-      <button class="sb-act-btn ghost" onclick="abrirNovedadPAPE()">🚢 Enlace PAPE</button>
-    </div>
-  </div>
-
   <!-- MAIN -->
-  <div id="main">
+  <div id="main" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
     <div id="topbar">
       <div class="tb-left">
-        <button id="hamburger" onclick="toggleSidebar()">☰</button>
-        <div>
-          <div class="tb-section-title" id="topbar-title">Inicio — Novedades Diarias</div>
-          <div class="tb-section-sub" id="topbar-sub">Seleccione una sección del menú</div>
+        <button id="hamburger" onclick="toggleHamburger()">☰</button>
+        <button class="sb-item" id="navbtn-HOME" onclick="mostrarHome()" style="font-weight:700;border-radius:var(--radius);background:rgba(29,111,164,0.08);margin-right:6px;padding:8px 16px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <span class="si-icon">🏠</span>
+          <span class="si-label">Inicio</span>
+        </button>
+        <div style="margin-right:8px">
+          <div class="tb-section-title" id="topbar-title" style="font-size:14px"></div>
+          <div class="tb-section-sub" id="topbar-sub" style="font-size:10px"></div>
         </div>
       </div>
+      <div class="tb-nav-right">
+        <div class="tb-buscar" id="tb-buscar-wrap">
+          <input type="text" id="tb-bp-texto" placeholder="🔍 Buscar sección..." style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px;font-family:inherit;width:130px" oninput="buscarSeccionTexto()" onfocus="buscarSeccionTexto()">
+          <div id="tb-bp-resultados" style="position:absolute;top:100%;right:0;width:260px;max-height:250px;overflow-y:auto;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9999;padding:6px 0;display:none;margin-top:4px"></div>
+        </div>
+        <!-- ══ METEOROLOGÍA ══ -->
+        <div class="tb-dropdown-wrap" data-dd="dd-meteo">
+          <button class="tb-tab" onclick="toggleDd(this,event)">
+            <span>🌩️ Meteorología ▾</span>
+          </button>
+          <div class="tb-dropdown" id="dd-meteo">
+            <button class="tb-dd-item" onclick="irSeccion('ALERTA',this)">
+              <span>🌩️</span><span>Alertas Meteorológicas</span>
+            </button>
+            <button class="tb-dd-item" onclick="irSeccion('DETERMINANTES',this)">
+              <span>💧</span><span>Determinantes</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ SERVICIOS ══ -->
+        <div class="tb-dropdown-wrap" data-dd="dd-serv">
+          <button class="tb-tab" onclick="toggleDd(this,event)">
+            <span>🚢 Servicios ▾</span>
+          </button>
+          <div class="tb-dropdown" id="dd-serv">
+            <button class="tb-dd-item" onclick="irSeccion('AVIACION',this)">
+              <span>✈️</span><span>SEAV - Aviación</span>
+            </button>
+            <button class="tb-dd-item" onclick="irSeccion('GC',this)">
+              <span>🚢</span><span>SBGC - Guardacostas</span>
+              <span class="sb-badge green" id="badge-GC"></span>
+            </button>
+            <button class="tb-dd-item" onclick="irSeccion('SALVAMENTO',this)">
+              <span>🔥</span><span>SERS - Salvamento</span>
+            </button>
+            <div class="tb-dd-sep"></div>
+            <!-- KSTM sub-dropdown -->
+            <div class="tb-dd-sub-wrap" data-dd="dd-kstm">
+              <button class="tb-dd-item tb-dd-parent" onclick="toggleSubDd(this,event)">
+                <span>⚓</span><span>KSTM - Tráfico Marítimo</span><span class="tb-dd-arrow-sm">▸</span>
+              </button>
+              <div class="tb-dropdown tb-dropdown-sub" id="dd-kstm">
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('CONVENIO',this)"><span>⚓</span><span>Convenio PNA-ARA</span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('ARA',this)"><span>🛡️</span><span>Buques ARA</span><span class="sb-badge blue" id="badge-ARA"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('KSTM',this)"><span>🚢</span><span>Pilotaje/Conserva</span><span class="sb-badge blue" id="badge-KSTM"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('RESERVA',this)"><span>🔒</span><span>Reserva de Canal</span><span class="sb-badge blue" id="badge-RESERVA"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('DRAGAS',this)"><span>🚢</span><span>Dragas Operando</span><span class="sb-badge blue" id="badge-DRAGAS"></span></button>
+                <div class="tb-dd-sep"></div>
+                <!-- SAR/MAS sub -->
+                <div class="tb-dd-sub-wrap" data-dd="dd-sar">
+                  <button class="tb-dd-item tb-dd-parent tb-dd-sub" onclick="toggleSubDd(this,event)">
+                    <span>🆘</span><span>SAR/MAS</span><span class="tb-dd-arrow-sm">▸</span>
+                  </button>
+                  <div class="tb-dropdown tb-dropdown-sub" id="dd-sar">
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('SAR',this)"><span>🆘</span><span>Casos SAR</span><span class="sb-badge red" id="badge-SAR"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('MAS',this)"><span>⚕️</span><span>Casos MAS</span><span class="sb-badge amber" id="badge-MAS"></span></button>
+                  </div>
+                </div>
+                <!-- Eventos sub -->
+                <div class="tb-dd-sub-wrap" data-dd="dd-eve">
+                  <button class="tb-dd-item tb-dd-parent tb-dd-sub" onclick="toggleSubDd(this,event)">
+                    <span>⛵</span><span>Eventos</span><span class="tb-dd-arrow-sm">▸</span>
+                  </button>
+                  <div class="tb-dropdown tb-dropdown-sub" id="dd-eve">
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('REGATAS',this)"><span>⛵</span><span>Eventos Náuticos</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('EJER.ARMAS',this)"><span>🎯</span><span>Ejercicios de Armas</span><span class="sb-badge amber" id="badge-EJERARMAS"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('METANEROS',this)"><span>⛽</span><span>Metaneros</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('PBIP',this)"><span>🛡️</span><span>PBIP</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('VELEROS_OC',this)"><span>⛵</span><span>Veleros Oc.</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('CRUCEROS',this)"><span>🛳️</span><span>Cruceros</span></button>
+                  </div>
+                </div>
+                <div class="tb-dd-sep"></div>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('PUERTOS',this)"><span>🚫</span><span>Puertos Cerrados</span><span class="sb-badge red" id="badge-PUERTOS"></span></button>
+                <div class="tb-dd-sep"></div>
+                <!-- Administración sub -->
+                <div class="tb-dd-sub-wrap" data-dd="dd-admin">
+                  <button class="tb-dd-item tb-dd-parent tb-dd-sub" onclick="toggleSubDd(this,event)">
+                    <span>👤</span><span>Administración</span><span class="tb-dd-arrow-sm">▸</span>
+                  </button>
+                  <div class="tb-dropdown tb-dropdown-sub" id="dd-admin">
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('VISITAS',this)"><span>📆</span><span>Visitas previstas</span><span class="sb-badge blue" id="badge-VISITAS"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('NOVEDADES',this)"><span>📝</span><span>Novedades Varias</span><span class="sb-badge blue" id="badge-NOVEDADES"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('PERSONAL_COSTERA',this)"><span>👤</span><span>Personal Costera/DTRA</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ MOV. PORT. ══ -->
+        <div class="tb-dropdown-wrap" data-dd="dd-port">
+          <button class="tb-tab" onclick="toggleDd(this,event)">
+            <span>📊 Mov. Port./Dec. 256/10 ▾</span>
+          </button>
+          <div class="tb-dropdown" id="dd-port">
+            <button class="tb-dd-item" onclick="irSeccion('MOV_BAJO_PARANA',this)"><span>📊</span><span>PZBP - Bajo Paraná</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('MOV_ZONA3',this)"><span>📊</span><span>PZRP - Río de la Plata</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('MOV_DELTA',this)"><span>📊</span><span>PZDE - Delta</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('MOV_ZONA4',this)"><span>📊</span><span>PZMN - Mar Norte</span></button>
+            <div class="tb-dd-sep"></div>
+            <button class="tb-dd-item" onclick="irDashPort(this)"><span>🗂️</span><span>Resumen Portuario</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('BUQUES',this)"><span>⚠️</span><span>Buques Infracción</span></button>
+          </div>
+        </div>
+      </div>
+
       <div class="tb-right">
         <span class="role-badge" id="role-badge-display">...</span>
-        <button class="tb-btn outline" onclick="volverSelector()" title="Servicios">🏠</button>
-        <button class="tb-btn outline" onclick="toggleBriefing()" title="Pantalla completa">🖥️</button>
-        <button class="tb-btn outline" onclick="mostrarVistaCompleta()" title="Vista general">📋</button>
-        <button class="tb-btn outline" onclick="abrirModalExport()" title="Exportar Parte">📄</button>
-        <button class="tb-btn outline" id="btn-auto-rotate" onclick="toggleAutoRotacion()">▶ Auto</button>
-        <button class="tb-btn outline" onclick="actualizarSistema()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
         <span id="auto-refresh-indicator" style="font-size:11px;color:var(--navy);font-weight:700;font-family:'Outfit',sans-serif;letter-spacing:.3px;white-space:nowrap;background:var(--gray-100);border:1px solid var(--gray-200);padding:3px 8px;border-radius:6px"></span>
+      </div>
+    </div>
+
+    <!-- HAMBURGER PANEL (derecha) -->
+    <div id="sb-overlay" onclick="cerrarHamburger()"></div>
+    <div id="hamburger-panel">
+      <div class="hb-header">
+        <span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;color:#fff">Acciones</span>
+        <button onclick="cerrarHamburger()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:18px">✕</button>
+      </div>
+      <div class="hb-items">
+        <button class="sb-act-btn primary" onclick="toggleBriefing();cerrarHamburger()">🖥️ Pantalla completa</button>
+        <button class="sb-act-btn primary" onclick="volverSelector();cerrarHamburger()">🏠 Panel de Servicios</button>
+        <button class="sb-act-btn primary" onclick="mostrarVistaCompleta();cerrarHamburger()">📋 Vista general</button>
+        <button class="sb-act-btn primary" onclick="abrirModalExport();cerrarHamburger()">📄 Exportar Parte</button>
+        <div class="hb-sep"></div>
+        <button class="sb-act-btn ghost" id="btn-auto-rotate" onclick="toggleAutoRotacion()">▶ Auto</button>
+        <button class="sb-act-btn ghost" onclick="actualizarSistema();cerrarHamburger()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
       </div>
     </div>
 
@@ -1777,7 +1752,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzMBishsV5CbmQchh4RBjpNIOt1tErznRVYeo3ZE3qcn5AVgWV5DNalL-ST-QvfnDLnpQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxe-RMQgJLuJO_biXr35R3-5hAy__EazRaJsZ2LXp4BczLk7dhvoajxnD8maoMzA9IH/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -1852,9 +1827,12 @@ function iniciarApp(user, role) {
   rolActual = role;
 
   // Poblar datos del sidebar (para cuando se abra el app)
-  document.getElementById("sb-av").textContent    = user.initials;
-  document.getElementById("sb-uname").textContent = user.name;
-  document.getElementById("sb-urole").textContent = role === "admin" 
+  const elAv = document.getElementById("sb-av");
+  const elName = document.getElementById("sb-uname");
+  const elRole = document.getElementById("sb-urole");
+  if (elAv) elAv.textContent = user.initials;
+  if (elName) elName.textContent = user.name;
+  if (elRole) elRole.textContent = role === "admin" 
     ? "Administrador" 
     : "Solo Visualización";
   
@@ -2253,7 +2231,8 @@ function renderizar(data) {
 
   document.getElementById("loader").style.display = "none";
   document.getElementById("home-view").style.display = "block";
-  document.getElementById("sb-fecha").textContent = "📅 " + (data.fecha||"");
+  const elFecha = document.getElementById("sb-fecha");
+  if (elFecha) elFecha.textContent = "📅 " + (data.fecha||"");
   document.getElementById("home-fecha-sub").textContent = data.fecha || "";
 
     const sarSec = data.secciones.find(s => s.id === "SAR");
@@ -2301,8 +2280,10 @@ function renderizar(data) {
   document.getElementById("hkpi-sar").textContent = sarN;
   document.getElementById("hkpi-mas").textContent = masN;
   document.getElementById("hkpi-gc").textContent  = gcN;
-  document.getElementById("sb-sar-bar").innerHTML = `<span class="sdot r"></span>SAR: ${sarN} casos`;
-  document.getElementById("sb-mas-bar").innerHTML = `<span class="sdot a"></span>MAS: ${masN} casos`;
+  const elSarBar = document.getElementById("sb-sar-bar");
+  const elMasBar = document.getElementById("sb-mas-bar");
+  if (elSarBar) elSarBar.innerHTML = `<span class="sdot r"></span>SAR: ${sarN} casos`;
+  if (elMasBar) elMasBar.innerHTML = `<span class="sdot a"></span>MAS: ${masN} casos`;
 
   const badgeMap = {
     GC:{id:"badge-GC",tipo:"fila",cls:"green"},
@@ -2332,6 +2313,85 @@ function isEnPrevistas(f) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const d = parseDate(f.datos&&f.datos[1]);
   return d && d > hoy;
+}
+
+var _hist = null;
+var _anioActual = String(new Date().getFullYear());
+function calcTacometro(tipo) {
+  if (!_hist) _hist = (datosGlobales && datosGlobales.historico) || {};
+  var datos = _hist[tipo] || {};
+  var actual = Number(datos[_anioActual]) || 0;
+  var anios = Object.keys(datos).filter(function(a){return a !== _anioActual;});
+  if (!anios.length) return null;
+  var totales = anios.map(function(a){return datos[a];}).filter(function(v){return v > 0;});
+  if (!totales.length) return null;
+  var min = Math.min.apply(null, totales);
+  var max = Math.max.apply(null, totales);
+  var avg = Math.round(totales.reduce(function(a,b){return a+b;},0)/totales.length);
+  var anioPasado = String(Number(_anioActual)-1);
+  var lastYear = datos[anioPasado] || 0;
+  var escala = Math.max(max, actual) * 1.15;
+  return { min:min, max:max, avg:avg, lastYear:lastYear, actual:actual, escala:escala };
+}
+function renderTacometroSVG(tipo, label, pendientes, cerrados) {
+  var t = calcTacometro(tipo);
+  if (!t) return '';
+  var cx=110, cy=110, r=85, w=18;
+  var startA=180, endA=360, totalA=endA-startA;
+  function pt(a){var rad=Math.PI*a/180;return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
+  var color = tipo==='SAR' ? '#dc2626' : '#a855f7';
+  var colorLight = tipo==='SAR' ? '#fecaca' : '#e9d5ff';
+  var minA = startA + (t.min/t.escala)*totalA;
+  var avgA = startA + (t.avg/t.escala)*totalA;
+  var maxA = startA + (t.max/t.escala)*totalA;
+  var svg = '<svg viewBox="0 0 220 145" style="width:100%;max-width:160px;display:block;margin:0 auto;">';
+  var bg = pt(180), bg2 = pt(360);
+  svg += '<path d="M '+bg.x+','+bg.y+' A '+r+','+r+' 0 0,1 '+bg2.x+','+bg2.y+'" fill="none" stroke="#e2e8f0" stroke-width="'+w+'" stroke-linecap="round"/>';
+  var arcEnd = Math.min(startA + (t.actual/t.escala)*totalA, 360);
+  var arcPt = pt(arcEnd);
+  if (t.actual > 0) {
+    svg += '<path d="M '+bg.x+','+bg.y+' A '+r+','+r+' 0 0,1 '+arcPt.x+','+arcPt.y+'" fill="none" stroke="'+color+'" stroke-width="'+w+'" stroke-linecap="round" opacity="0.85"/>';
+  }
+  var needleA = Math.PI * (startA + Math.min(t.actual/t.escala, 1)*totalA) / 180;
+  var nx = cx + (r-10)*Math.cos(needleA), ny = cy + (r-10)*Math.sin(needleA);
+  svg += '<line x1="'+cx+'" y1="'+cy+'" x2="'+nx+'" y2="'+ny+'" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>';
+  svg += '<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="#1e293b"/>';
+  function markerLine(angle, col, lbl) {
+    var p2x = cx + (r+12)*Math.cos(Math.PI*angle/180), p2y = cy + (r+12)*Math.sin(Math.PI*angle/180);
+    var p3x = cx + (r-12)*Math.cos(Math.PI*angle/180), p3y = cy + (r-12)*Math.sin(Math.PI*angle/180);
+    var tx = cx + (r+20)*Math.cos(Math.PI*angle/180), ty = cy + (r+20)*Math.sin(Math.PI*angle/180);
+    var s = '<line x1="'+p3x+'" y1="'+p3y+'" x2="'+p2x+'" y2="'+p2y+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="3,2" opacity="0.7"/>';
+    s += '<text x="'+tx+'" y="'+(ty+3)+'" text-anchor="middle" fill="'+col+'" font-size="7" font-weight="700" font-family="Outfit,sans-serif">'+lbl+'</text>';
+    return s;
+  }
+  svg += markerLine(minA, '#22c55e', 'Min');
+  svg += markerLine(avgA, '#f59e0b', 'Prom');
+  svg += markerLine(maxA, '#ef4444', 'Max');
+  var lyA = t.lastYear > 0 ? startA + (t.lastYear/t.escala)*totalA : -1;
+  if (lyA > 0 && lyA <= 360) {
+    var lyP = pt(lyA);
+    svg += '<circle cx="'+lyP.x+'" cy="'+lyP.y+'" r="4" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/>';
+    var lyTx = cx + (r+20)*Math.cos(Math.PI*lyA/180), lyTy = cy + (r+20)*Math.sin(Math.PI*lyA/180);
+    svg += '<text x="'+lyTx+'" y="'+(lyTy+3)+'" text-anchor="middle" fill="#3b82f6" font-size="7" font-weight="700" font-family="Outfit,sans-serif">'+t.lastYear+'</text>';
+  }
+  svg += '<text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" fill="#1e293b" font-size="18" font-weight="800" font-family="Outfit,sans-serif">'+t.actual+'</text>';
+  svg += '</svg>';
+  var legend = '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 8px;margin-top:4px;font-size:9px;font-weight:600;color:var(--text-lt);">';
+  legend += '<span><span style="color:#22c55e">●</span> Min:'+t.min+'</span>';
+  legend += '<span><span style="color:#f59e0b">●</span> Prom:'+t.avg+'</span>';
+  legend += '<span><span style="color:#ef4444">●</span> Max:'+t.max+'</span>';
+  legend += '<span><span style="color:#3b82f6">●</span> 2025:'+t.lastYear+'</span>';
+  legend += '</div>';
+  var pc = '';
+  if (pendientes !== undefined && cerrados !== undefined) {
+    pc = '<div style="display:flex;justify-content:center;gap:10px;margin-top:3px;font-size:10px;font-weight:700;">'+
+      '<span style="color:#ef4444">🔴 Pend: '+pendientes+'</span>'+
+      '<span style="color:#22c55e">🟢 Cerr: '+cerrados+'</span>'+
+      '</div>';
+  }
+  return '<div onclick="mostrarSeccion(\''+tipo+'\')" style="cursor:pointer;text-align:center;padding:6px 10px;background:linear-gradient(135deg,'+colorLight+' 0%,#fff 100%);border-radius:var(--radius-lg);border:1px solid '+colorLight+';min-width:140px;">'+
+    '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:.5px;margin-bottom:2px;">'+label+'</div>'+
+    svg+legend+pc+'</div>';
 }
 
 function renderHomeCards(data, sarN, masN) {
@@ -2487,45 +2547,12 @@ function renderHomeCards(data, sarN, masN) {
               <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
               <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${sc+sp+mc+mp}</span>
             </div>
-            <div style="display:flex;gap:10px;flex-wrap:nowrap;min-height:110px;">
-              <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;">
-                <div style="display:flex;gap:4px;height:100px;align-items:flex-end;padding:0 2px;">
-                  ${_bars.map(function(x){
-                    var _h = Math.max(8, x.v / _maxV * 80);
-                    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">'+
-                      '<span style="font-size:13px;font-weight:800;color:var(--text);line-height:1;margin-bottom:3px;flex-shrink:0;">'+x.v+'</span>'+
-                      '<div style="width:100%;height:'+_h+'px;min-height:8px;background:'+x.c+';border-radius:4px 4px 0 0;transition:height .4s;" title="'+x.l+'"></div>'+
-                      '<span style="font-size:7px;font-weight:700;color:var(--text-lt);margin-top:3px;text-align:center;line-height:1.2;white-space:nowrap;flex-shrink:0;">'+x.l+'</span>'+
-                      '</div>';
-                  }).join("")}
-                </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;min-height:110px;align-items:center;justify-content:center;">
+              <div style="flex:1;min-width:120px;display:flex;justify-content:center;">
+                ${renderTacometroSVG('SAR', 'SAR', sp, sc)}
               </div>
-              <div style="width:1px;background:var(--gray-200);flex-shrink:0;margin:4px 0;"></div>
-              <div style="flex:1;min-width:0;display:flex;gap:4px;align-items:center;justify-content:center;">
-                ${function(){
-                  var tp=sp+mp,tc=sc+mc,cx=110,cy=115,r=88,m=10,v=Math.min(tp,m);
-                  function pt(d){var rad=Math.PI*d/180;return{x:cx+r*Math.cos(rad),y:cy+r*Math.sin(rad)};}
-                  var g=pt(180),g1=pt(225),y1=pt(292.5),r2=pt(0);
-                  var svg='<svg viewBox="0 0 220 175" style="display:block;width:80px;flex-shrink:0;">';
-                  svg+='<path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 1,1 '+r2.x+','+r2.y+'" fill="none" stroke="#f1f5f9" stroke-width="22" stroke-linecap="round"/>';
-                  svg+='<path d="M '+g.x+','+g.y+' A '+r+','+r+' 0 0,1 '+g1.x+','+g1.y+'" fill="none" stroke="#22c55e" stroke-width="22" stroke-linecap="round"/>';
-                  svg+='<path d="M '+g1.x+','+g1.y+' A '+r+','+r+' 0 0,1 '+y1.x+','+y1.y+'" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>';
-                  svg+='<path d="M '+y1.x+','+y1.y+' A '+r+','+r+' 0 0,1 '+r2.x+','+r2.y+'" fill="none" stroke="#dc2626" stroke-width="22" stroke-linecap="round"/>';
-                  var a=Math.PI*(1+v/m),nx=cx+r*0.62*Math.cos(a),ny=cy+r*0.62*Math.sin(a);
-                  svg+='<line x1="'+cx+'" y1="'+cy+'" x2="'+nx+'" y2="'+ny+'" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>';
-                  svg+='<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="#1e293b"/>';
-                  svg+='</svg>';
-                  return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'+
-                    svg+
-                    '<span style="font-size:12px;font-weight:800;color:var(--navy);letter-spacing:.3px">TOTAL</span>'+
-                    '<span style="font-size:12px;font-weight:700;color:var(--text-lt);">Pend: <span style="font-size:14px;font-weight:800;color:var(--text);">'+tp+'</span> &nbsp; Cerr: <span style="color:var(--text);">'+tc+'</span></span>'+
-                    '</div>';
-                }()}
-                <div style="display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:700;color:var(--text-lt);flex-shrink:0;">
-                  <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:2px;"></span>0–2 Demanda Baja</span>
-                  <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#f59e0b;margin-right:2px;"></span>3–5 Demanda Media</span>
-                  <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#dc2626;margin-right:2px;"></span>≥ 6 Demanda Alta</span>
-                </div>
+              <div style="flex:1;min-width:120px;display:flex;justify-content:center;">
+                ${renderTacometroSVG('MAS', 'MAS', mp, mc)}
               </div>
             </div>
             <div style="border-top:1px solid var(--gray-200);margin-top:4px;padding-top:4px;display:flex;gap:4px;flex-shrink:0;">
@@ -2713,32 +2740,64 @@ function renderHomeCards(data, sarN, masN) {
 /* ================================================================
    SIDEBAR / SECCIONES
 ================================================================ */
-function toggleSidebar() {
-  const sb = document.getElementById("sidebar");
-  const ov = document.getElementById("sb-overlay");
-  if (sb.classList.contains("open")) { sb.classList.remove("open"); ov.classList.remove("visible"); }
-  else { sb.classList.add("open"); ov.classList.add("visible"); }
+function toggleSidebar() {}
+function cerrarSidebar() {}
+function cerrarDropdowns() {
+  document.querySelectorAll(".tb-dropdown-wrap").forEach(d => d.classList.remove("abierto"));
+  document.querySelectorAll(".tb-dd-sub-wrap").forEach(d => d.classList.remove("abierto"));
 }
-function cerrarSidebar() {
-  const sb = document.getElementById("sidebar");
-  if (sb) sb.classList.remove("open");
+function toggleDd(btn, ev) {
+  if(ev) ev.stopPropagation();
+  const wrap = btn.closest(".tb-dropdown-wrap");
+  const isOpen = wrap.classList.contains("abierto");
+  cerrarDropdowns();
+  if (!isOpen) wrap.classList.add("abierto");
+}
+function toggleSubDd(btn, ev) {
+  if(ev) ev.stopPropagation();
+  const wrap = btn.closest(".tb-dd-sub-wrap");
+  const isOpen = wrap.classList.contains("abierto");
+  wrap.parentElement.querySelectorAll(":scope > .tb-dd-sub-wrap").forEach(s => s.classList.remove("abierto"));
+  if (!isOpen) wrap.classList.add("abierto");
+}
+function irSeccion(id) {
+  cerrarDropdowns();
+  mostrarSeccion(id);
+}
+function irDashPort() {
+  cerrarDropdowns();
+  abrirDashboardGeneral();
+}
+document.addEventListener("click", function(e) {
+  if (!e.target.closest(".tb-dropdown-wrap") && !e.target.closest(".tb-dd-sub-wrap")) cerrarDropdowns();
+});
+function toggleHamburger() {
+  const hp = document.getElementById("hamburger-panel");
+  const ov = document.getElementById("sb-overlay");
+  if (hp.classList.contains("open")) { hp.classList.remove("open"); ov.classList.remove("visible"); }
+  else { hp.classList.add("open"); ov.classList.add("visible"); }
+}
+function cerrarHamburger() {
+  const hp = document.getElementById("hamburger-panel");
+  if (hp) hp.classList.remove("open");
   const ov = document.getElementById("sb-overlay");
   if (ov) ov.classList.remove("visible");
 }
-function cerrarDropdowns() {
-  document.querySelectorAll(".sb-group-items").forEach(g => g.classList.add("cerrado"));
-}
-window.addEventListener("resize",()=>{ if(window.innerWidth>1100) cerrarSidebar(); });
+function abrirGrupo(grupoId) {}
+window.addEventListener("resize",()=>{});
 
 function mostrarHome() {
-  if (window.innerWidth >= 1101) cerrarDropdowns();
-  if (window.innerWidth <= 1100) cerrarSidebar();
+  cerrarDropdowns();
+  cerrarHamburger();
   const hv = document.getElementById("home-view");
   hv.style.display = "";
   hv.classList.add("home-visible");
   document.getElementById("section-view").style.display   = "none";
   document.getElementById("dashboard-view").style.display = "none";
-  document.getElementById("topbar-title").textContent = "Panel General";
+  const tt = document.getElementById("topbar-title");
+  const ts = document.getElementById("topbar-sub");
+  if (tt) tt.textContent = "Panel General";
+  if (ts) ts.textContent = "";
   
 
   if (!datosGlobales) return;
@@ -2801,11 +2860,10 @@ function mostrarHome() {
     <div class="home-header">
       <div class="home-header-left">
         <h2>Reporte de Novedades</h2>
-        
       </div>
       <div class="home-header-kpi">
         ${todos.map(t => `
-          <div class="home-kpi ${t.c !== '#fff' ? (t.sec==='SAR'?'red':'amber') : ''}" onclick="mostrarSeccion('${t.sec}')" style="cursor:pointer">
+          <div class="home-kpi" onclick="mostrarSeccion('${t.sec}')" style="cursor:pointer">
             <div class="kpi-val" style="color:${t.c}">${t.v}</div>
             <div class="kpi-lbl">${t.l}</div>
             ${t.extra?`<div style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
@@ -2819,8 +2877,8 @@ function mostrarHome() {
 }
 
 function mostrarSeccion(id) {
-  if (window.innerWidth >= 1101) cerrarDropdowns();
-  if (window.innerWidth <= 1100) cerrarSidebar();
+  cerrarDropdowns();
+  cerrarHamburger();
   seccionActiva = id;
   seccionDashActiva = id;
 
@@ -2854,7 +2912,10 @@ function mostrarSeccion(id) {
 
   const sec = datosGlobales && datosGlobales.secciones.find(s => s.id === id);
 
-  document.getElementById("topbar-title").textContent = titleMap[id] || id;
+  const tt2 = document.getElementById("topbar-title");
+  const ts2 = document.getElementById("topbar-sub");
+  if (tt2) tt2.textContent = titleMap[id] || id;
+  if (ts2) ts2.textContent = "";
 
   // Mostrar botón dashboard + navegación entre secciones
   const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
@@ -5049,8 +5110,10 @@ function filtrarPartes(){
   setTimeout(()=>{
     document.getElementById("home-view").style.display="none";
     document.getElementById("section-view").style.display="block";
-    document.getElementById("topbar-title").textContent="Resultados de búsqueda";
-    document.getElementById("topbar-sub").textContent=`"${q}" — ${resultados.length} resultados`;
+    const tt3 = document.getElementById("topbar-title");
+    const ts3 = document.getElementById("topbar-sub");
+    if (tt3) tt3.textContent="Resultados de búsqueda";
+    if (ts3) ts3.textContent=`"${q}" — ${resultados.length} resultados`;
     const visor=document.getElementById("visor");
     if(!resultados.length){visor.innerHTML=`<div class="empty">Sin resultados para "${q}".</div>`;return;}
     let h=`<div class="bloque-sub">🔍 Resultados: "${q}" <span class="badge blue">${resultados.length}</span></div>`;
@@ -5084,18 +5147,22 @@ function filtrarPartes(){
 function toggleBriefing(){
   const yaFull = !!document.fullscreenElement;
   if (!yaFull) {
-    document.getElementById("sidebar").style.display = "none";
     document.getElementById("topbar").style.display = "none";
     document.body.classList.add("fs-active");
     mostrarHome();
     if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
   } else {
-    document.getElementById("sidebar").style.display = "";
     document.getElementById("topbar").style.display = "";
     document.body.classList.remove("fs-active");
     if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   }
 }
+document.addEventListener("fullscreenchange", function() {
+  if (!document.fullscreenElement) {
+    document.getElementById("topbar").style.display = "";
+    document.body.classList.remove("fs-active");
+  }
+});
 document.addEventListener("fullscreenchange", function(){
   if (!document.fullscreenElement) {
     document.getElementById("sidebar").style.display = "";
@@ -5111,8 +5178,10 @@ function mostrarVistaCompleta(){
   document.getElementById("home-view").style.display = "none";
   document.getElementById("section-view").style.display = "block";
   document.getElementById("dashboard-view").style.display = "none";
-  document.getElementById("topbar-title").textContent = "Vista completa";
-  document.getElementById("topbar-sub").textContent = datosGlobales.fecha || "";
+  const tt4 = document.getElementById("topbar-title");
+  const ts4 = document.getElementById("topbar-sub");
+  if (tt4) tt4.textContent = "Vista completa";
+  if (ts4) ts4.textContent = datosGlobales.fecha || "";
   document.getElementById("dash-btn-wrap").innerHTML = '<button class="tb-btn outline" onclick="toggleBriefing()">🖥️ Pantalla completa</button>';
   const ignorar = ["SEAV","SERS","SBGC"];
   let html = "";
@@ -5307,6 +5376,94 @@ function verParte(idx){
   if(p.url){var win=window.open("","_blank");if(win)win.location=p.url;}
   else if(p.parte){var win=window.open("","_blank");win.document.write(p.parte);win.document.close();}
 }
+
+/* ── BUSCAR EN TODO EL DOCUMENTO ──────────────────────────────── */
+var _seccionesMap = {
+  ALERTA:"Alertas Meteorológicas", DETERMINANTES:"Determinantes",
+  AVIACION:"SEAV - Aviación", GC:"SBGC - Guardacostas", SALVAMENTO:"SERS - Salvamento",
+  CONVENIO:"Convenio PNA-ARA", ARA:"Buques ARA", KSTM:"Pilotaje/Conserva",
+  RESERVA:"Reserva de Canal", DRAGAS:"Dragas Operando",
+  SAR:"Casos SAR", MAS:"Casos MAS",
+  REGATAS:"Eventos Náuticos", "EJER.ARMAS":"Ejercicios de Armas",
+  METANEROS:"Metaneros", PBIP:"PBIP", VELEROS_OC:"Veleros Oc.", CRUCEROS:"Cruceros",
+  PUERTOS:"Puertos Cerrados", VISITAS:"Visitas previstas",
+  NOVEDADES:"Novedades Varias", PERSONAL_COSTERA:"Personal Costera/DTRA",
+  MOV_BAJO_PARANA:"PZBP - Bajo Paraná", MOV_ZONA3:"PZRP - Río de la Plata",
+  MOV_DELTA:"PZDE - Delta", MOV_ZONA4:"PZMN - Mar Norte", BUQUES:"Buques Infracción"
+};
+function extraerTextoFila(f){
+  if(!f) return "";
+  var t="";
+  if(f.tipo==="caso_especial"){
+    t=(f.titulo||"")+" "+(f.texto||"")+" "+(f.estado||"")+" "+(f.situacion||"")+" "+(f.observaciones||"")+" "+(f.circunstancias||"");
+    if(f.personal) f.personal.forEach(function(p){t+=" "+(p.nombre||"")+" "+(p.rol||"");});
+    if(f.equipos) f.equipos.forEach(function(e){t+=" "+(e.tipo||"")+" "+(e.nombre||"");});
+    if(f.buques) f.buques.forEach(function(b){t+=" "+(b.nombre||"")+" "+(b.matricula||"");});
+  } else if(f.tipo==="fila"){
+    if(Array.isArray(f.datos)) t=f.datos.join(" ");
+  } else if(f.tipo==="arma"){
+    if(Array.isArray(f.datos)) t=f.datos.join(" ");
+  } else if(f.tipo==="puerto"){
+    if(Array.isArray(f.datos)) t=f.datos.join(" ");
+  } else if(f.tipo==="novedad"){
+    t=(f.titulo||"")+" "+(f.texto||"");
+  } else if(f.tipo==="texto"){
+    t=f.texto||"";
+  } else if(f.tipo==="subtitulo"){
+    t=f.texto||"";
+  } else if(f.tipo==="html"){
+    t=(f.texto||"").replace(/<[^>]*>/g," ");
+  } else if(f.tipo==="partes"){
+    if(f.partes) t=f.partes.map(function(p){return p.texto||"";}).join(" ");
+  }
+  return t;
+}
+function buscarSeccionTexto(){
+  var q=document.getElementById("tb-bp-texto").value.trim().toUpperCase();
+  var resDiv=document.getElementById("tb-bp-resultados");
+  if(!q||q.length<2){resDiv.style.display="none";resDiv.innerHTML="";return;}
+  if(!datosGlobales||!datosGlobales.secciones){resDiv.style.display="block";resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:12px;font-size:12px">Cargando datos...</div>';return;}
+  var matches=[];
+  datosGlobales.secciones.forEach(function(sec){
+    var secLabel=_seccionesMap[sec.id]||sec.id;
+    (sec.filas||[]).forEach(function(f,i){
+      var txt=extraerTextoFila(f).toUpperCase();
+      if(txt.includes(q)){
+        var titulo="";
+        if(f.tipo==="caso_especial") titulo=f.titulo||"";
+        else if(f.tipo==="novedad") titulo=f.titulo||"";
+        else if(f.tipo==="fila"&&Array.isArray(f.datos)) titulo=f.datos[0]||"";
+        else if(f.tipo==="arma"&&Array.isArray(f.datos)) titulo=f.datos[0]||"";
+        else if(f.tipo==="puerto"&&Array.isArray(f.datos)) titulo=f.datos[0]||"";
+        else if(f.tipo==="subtitulo") titulo=f.texto||"";
+        else titulo="";
+        matches.push({secId:sec.id,secLabel:secLabel,titulo:titulo||secLabel,tipo:f.tipo});
+      }
+    });
+  });
+  resDiv.style.display="block";
+  if(!matches.length){
+    resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:12px;font-size:12px">Sin resultados para "'+esc(q)+'"</div>';
+    return;
+  }
+  var html='<div style="padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-lt)">'+matches.length+' resultado'+(matches.length!==1?'s':'')+':</div>';
+  var shown=0;
+  matches.forEach(function(m){
+    if(shown>=20) return;
+    html+='<button onclick="irSeccion(\''+m.secId+'\',this);document.getElementById(\'tb-bp-texto\').value=\'\';document.getElementById(\'tb-bp-resultados\').style.display=\'none\';" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;background:none;border:none;border-left:2.5px solid transparent;cursor:pointer;text-align:left;font-size:12px;font-family:\'DM Sans\',sans-serif;color:var(--text-lt);transition:background .12s" onmouseover="this.style.background=\'var(--gray-100)\';this.style.borderLeftColor=\'var(--blue)\'" onmouseout="this.style.background=\'none\';this.style.borderLeftColor=\'transparent\'">'+
+      '<span style="color:var(--navy);font-weight:600;white-space:nowrap">'+esc(m.secLabel)+'</span>'+
+      '<span style="color:var(--text-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(m.titulo)+'</span>'+
+      '</button>';
+    shown++;
+  });
+  if(matches.length>20) html+='<div style="padding:4px 12px;font-size:10px;color:var(--text-lt)">+ '+(matches.length-20)+' más...</div>';
+  resDiv.innerHTML=html;
+}
+document.addEventListener("click",function(e){
+  var wrap=document.getElementById("tb-buscar-wrap");
+  var res=document.getElementById("tb-bp-resultados");
+  if(wrap&&res&&!wrap.contains(e.target)){res.style.display="none";res.innerHTML="";}
+});
 
 var _ultimasPartes=[];
 
@@ -6174,7 +6331,8 @@ function cambiarServicio(id) {
   const tab = document.getElementById("tab-" + id);
   if (tab) tab.classList.add("active");
   const nombres = { SEAV:"Aviación", SERS:"Salvamento/SERS", SBGC:"Guardacostas", KSTM:"Tráfico Marítimo" };
-  document.getElementById("sb-service-title").textContent = (nombres[id] || id) + " — PNA";
+  const svcTitle = document.getElementById("sb-service-title");
+  if (svcTitle) svcTitle.textContent = (nombres[id] || id) + " — PNA";
   mostrarSeccion(defaultSeccionPorServicio(id));
 }
 
@@ -6246,24 +6404,23 @@ function cambiarCapaWindy(capa) {
 function toggleGrupo(id) {
   const grupoActual = document.getElementById(id);
   const arrowActual = document.getElementById("arrow-" + id);
-  const botonActual = grupoActual.previousElementSibling;
 
-  // Cerrar todos los demás
-  document.querySelectorAll(".sb-group-items").forEach(grupo => {
+  // Cerrar todos los demás GRUPOS PRINCIPALES (no subgrupos)
+  document.querySelectorAll("#sb-nav > .sb-group-wrap > .sb-group-items").forEach(grupo => {
     if (grupo.id !== id) {
       grupo.classList.add("cerrado");
     }
   });
 
-  // Resetear flechas
-  document.querySelectorAll(".sb-arrow").forEach(arrow => {
+  // Resetear flechas de grupos principales
+  document.querySelectorAll("#sb-nav > .sb-group-wrap > .sb-group-btn > .sb-arrow").forEach(arrow => {
     if (arrow.id !== "arrow-" + id) {
       arrow.textContent = "▸";
     }
   });
 
   // Sacar active de todos los botones principales
-  document.querySelectorAll(".sb-group-btn").forEach(btn => {
+  document.querySelectorAll("#sb-nav > .sb-group-wrap > .sb-group-btn").forEach(btn => {
     btn.classList.remove("active");
   });
 
@@ -6275,14 +6432,31 @@ function toggleGrupo(id) {
     arrowActual.textContent = "▸";
   } else {
     arrowActual.textContent = "▾";
-    botonActual.classList.add("active");
+    document.querySelector(`[onclick="toggleGrupo('${id}')"]`).classList.add("active");
   }
+}
+
+function toggleSubgrupo(id) {
+  const sub = document.getElementById(id);
+  const arrow = document.getElementById("arrow-" + id);
+
+  // Solo cerrar hermanos dentro del mismo padre
+  const padre = sub.closest(".sb-subgroup-wrap") ? sub.closest(".sb-subgroup-wrap").parentElement : sub.parentElement;
+  padre.querySelectorAll(":scope > .sb-subgroup-wrap > .sb-group-items").forEach(s => {
+    if (s.id !== id) s.classList.add("cerrado");
+  });
+  padre.querySelectorAll(":scope > .sb-subgroup-wrap > .sb-group-btn > .sb-arrow").forEach(a => {
+    if (a.id !== "arrow-" + id) a.textContent = "▸";
+  });
+
+  sub.classList.toggle("cerrado");
+  if (arrow) arrow.textContent = sub.classList.contains("cerrado") ? "▸" : "▾";
 }
 
 function iniciarAutoRefresh() {
   if (autoRefreshInterval) clearInterval(autoRefreshInterval);
   if (autoRefreshCountdown) clearInterval(autoRefreshCountdown);
-  let segundos = 3600;
+  let segundos = 900;
   const el = document.getElementById("auto-refresh-indicator");
   const actualizar = () => {
     const m = Math.floor(segundos / 60);
@@ -6297,7 +6471,7 @@ function iniciarAutoRefresh() {
   }, 1000);
   autoRefreshInterval = setInterval(() => {
     actualizarSistema(true);
-  }, 3600000);
+  }, 900000);
 }
 
 function actualizarSistema(automatico) {
