@@ -161,7 +161,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   padding:0 20px;flex-shrink:0;box-shadow:var(--shadow-sm);z-index:500;
 }
 @media (max-width:768px){
-  #topbar{flex-wrap:wrap;height:auto;padding:6px 8px;gap:4px;}
+  #topbar{flex-wrap:nowrap;height:auto;padding:4px 8px;gap:4px;}
 }
 .tb-left{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-start}
 .tb-nav-right{display:flex;align-items:center;gap:4px;justify-content:center;flex:1}
@@ -206,6 +206,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   overflow-y: auto;
 }
 .hb-sep { height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0; }
+.hb-nav-mobile { display: none; }
+.hb-nav-title { display: none; }
 #sb-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.4); z-index: 1999;
@@ -256,6 +258,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
 /* ── HOME / SERVICIOS ─────────────────────────────────────────── */
 #home-view.home-visible{display:flex !important;flex-direction:column;flex:1;min-height:0;overflow-y:auto;}
+#home-view.home-visible > #home-dash-wrap{min-height:0;flex:1;overflow:hidden;}
 .home-header{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);
   border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:12px;
@@ -272,18 +275,27 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .home-kpi .kpi-lbl{font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.3px;line-height:1.3}
 .home-kpi.red .kpi-val{color:#f87171}
 .home-kpi.amber .kpi-val{color:var(--gold-lt)}
-.home-dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr;gap:12px;height:100%;min-height:0;}
+.home-dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr;gap:12px;height:100%;}
 .home-dash-grid > div{min-height:0;overflow:hidden;}
 @media (max-width:1100px){.home-dash-grid{grid-template-columns:1fr 1fr;}.home-dash-grid > div:first-child{overflow-y:auto;}}
 .fs-active .home-header{flex-direction:column;text-align:center;padding:24px 32px}
 .tb-buscar{position:relative;display:flex;align-items:center;gap:4px}
 @media (max-width:768px){
-  .tb-buscar{order:10;width:100%;margin-top:4px}
-  #tb-bp-texto{width:100% !important}
-  .tb-nav-right{width:100%;justify-content:center}
-  #tb-bp-resultados{width:100% !important;right:0 !important;left:0 !important}
-  .home-dash-grid{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;gap:8px;height:auto !important;}
-  .home-dash-grid > div{flex:0 0 auto !important;scroll-snap-align:none !important;overflow:visible !important;height:auto !important;min-height:0 !important;}
+  .tb-buscar{display:none}
+  .tb-buscar.abierto{display:flex;position:absolute;top:100%;left:0;right:0;z-index:10000;padding:6px 8px;background:#fff;border-bottom:1px solid var(--gray-200);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+  .tb-buscar.abierto input{width:100% !important;font-size:13px !important;padding:6px 10px !important}
+  #tb-search-toggle{display:flex !important}
+  .tb-dropdown-wrap{display:none !important}
+  .tb-nav-right{gap:2px}
+  .hb-nav-mobile{display:block}
+  .hb-nav-title{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;padding:8px 14px 2px;margin-top:4px;}
+  .hb-nav-mobile .sb-act-btn{font-size:12px;padding:6px 14px;}
+  .home-dash-grid{display:flex;flex-direction:column;gap:8px;height:auto !important;overflow-x:hidden;}
+  .home-dash-grid > div{overflow:visible !important;}
+  #home-dash-wrap{overflow:visible !important;flex:none !important;height:auto !important;}
+  #hc-dash-puertos{height:250px !important;min-height:250px !important;}
+  #windy-iframe-home{min-height:250px !important;height:250px !important;}
+  .home-dash-grid #windy-iframe-home,.home-dash-grid #hc-dash-puertos{touch-action:pan-y;}
   #sarmas-dash-card > div > div:nth-child(2){flex-direction:column !important;}
   #sarmas-dash-card{overflow:visible !important;}
   #sarmas-dash-card > div{overflow:visible !important;}
@@ -294,12 +306,6 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .fs-active .home-header-kpi{justify-content:center;margin-top:10px;width:100%}
 .fs-active .home-kpi .kpi-val{font-size:34px}
 .fs-active .home-kpi .kpi-lbl{font-size:12px}
-@media (max-width:768px){
-  .home-dash-grid{display:flex;flex-direction:column;gap:8px;height:auto;}
-  .home-dash-grid > div{flex:0 0 auto !important;scroll-snap-align:none !important;overflow:visible !important;height:auto !important;min-height:0 !important;}
-  .home-dash-grid #windy-iframe-home,.home-dash-grid #hc-dash-puertos{touch-action:pan-y;}
-  #home-view.home-visible{flex:0 0 auto !important;min-height:auto !important;overflow:visible !important;}
-}
 .services-title{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--text-lt);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
 .services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
 .service-card{
@@ -709,7 +715,13 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* APP responsive — mobile */
 @media (max-width: 768px) {
   #main-body  { padding: 8px 12px 80px; }
-  #topbar     { padding: 0 12px 0 58px; }
+  #topbar     { padding: 4px 8px; gap: 4px; flex-wrap: nowrap; }
+  .tb-left    { flex: 0 0 auto; gap: 4px; }
+  .tb-left .si-label { display: none; }
+  .tb-left .sb-item { padding: 6px 8px; margin-right: 0; }
+  .tb-section-sub  { display: none; }
+  .tb-section-title { font-size: 11px; }
+  .tb-tab { font-size: 10px; padding: 5px 6px; white-space: nowrap; }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
   .kpi-grid      { grid-template-columns: repeat(2, 1fr); }
   .charts-grid   { grid-template-columns: 1fr; }
@@ -729,26 +741,20 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
     flex-shrink: 0;
     padding: 3px 12px;
   }
-  .tb-section-sub  { display: none; }
-  .tb-section-title { font-size: 13px; }
-  .tb-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 1; min-width: 0; }
-  .tb-tabs::-webkit-scrollbar { height: 0; }
-  .tb-tab { font-size: 11px; padding: 5px 10px; }
-  #hc-dash-puertos { min-height: 220px !important; }
+  #hc-dash-puertos { height: 250px !important; min-height: 250px !important; }
   #btn-auto-rotate { font-size: 11px; padding: 4px 8px; }
 }
 @media (max-width: 480px) {
-  .tb-section-title { font-size: 11px; }
+  .tb-section-title { font-size: 10px; }
   .home-kpi .kpi-val { font-size: 18px; }
   .home-kpi .kpi-lbl { white-space: nowrap; }
-  #hc-dash-puertos { min-height: 180px !important; }
+  #hc-dash-puertos { min-height: 250px !important; }
   #sec-puertos-map { height: 250px !important; }
-
+  .tb-tab { font-size: 9px; padding: 4px 5px; }
   #btn-auto-rotate { font-size: 10px; padding: 4px 6px; }
   #btn-actualizar { font-size: 10px; padding: 4px 6px; white-space: nowrap; }
   #auto-refresh-indicator { font-size: 9px !important; padding: 2px 5px !important; display: none; }
   #topbar .tb-right .role-badge { display: none; }
-  #topbar { padding: 0 8px 0 50px; gap: 4px; }
   .tb-right { gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 0; }
   .tb-right::-webkit-scrollbar { height: 2px; }
   .tb-right::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 2px; }
@@ -760,6 +766,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   #main-body     { padding: 8px 10px 70px; }
   .role-badge    { display: none; }
   #statusbar     { font-size: 10px; gap: 8px; padding: 4px 10px; }
+  .tb-dropdown { min-width: 200px; }
 }
 
 /* ════════════════════════════════════════════════════
@@ -773,18 +780,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   .tb-nav-right { gap:3px; }
 }
 @media (max-width:768px) {
-  #topbar { flex-wrap:nowrap; gap:4px; padding:0 8px; }
-  .tb-left { min-width:0; }
   .sb-item .si-label { display:none; }
   .sb-item .si-icon { font-size:18px; }
-  .tb-section-title { display:none; }
-  .tb-tab { font-size:10px; padding:4px 6px; white-space:nowrap; }
-  .tb-tab span { white-space:nowrap; }
-  .tb-nav-right { gap:2px; }
-  .tb-right { gap:4px; }
   .role-badge { display:none; }
   #auto-refresh-indicator { display:none !important; }
-  #tb-bp-texto { width:100px; }
 }
 @media (max-width:480px) {
   .tb-tab { font-size:9px; padding:3px 5px; }
@@ -1569,6 +1568,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         </div>
       </div>
       <div class="tb-nav-right">
+        <button class="tb-tab" id="tb-search-toggle" onclick="toggleBuscarMobile()" style="display:none" title="Buscar">🔍</button>
         <div class="tb-buscar" id="tb-buscar-wrap">
           <input type="text" id="tb-bp-texto" placeholder="🔍 Buscar sección..." style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px;font-family:inherit;width:130px" oninput="buscarSeccionTexto()" onfocus="buscarSeccionTexto()">
           <div id="tb-bp-resultados" style="position:absolute;top:100%;right:0;width:260px;max-height:250px;overflow-y:auto;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9999;padding:6px 0;display:none;margin-top:4px"></div>
@@ -1696,6 +1696,39 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <button class="sb-act-btn primary" onclick="mostrarVistaCompleta();cerrarHamburger()">📋 Vista general</button>
         <button class="sb-act-btn primary" onclick="abrirModalExport();cerrarHamburger()">📄 Exportar Parte</button>
         <div class="hb-sep"></div>
+        <!-- Navegación mobile -->
+        <div class="hb-nav-mobile">
+          <div class="hb-nav-title">🌤️ Meteorología</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('ALERTA');cerrarHamburger()">🌩️ Alertas Meteorológicas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('DETERMINANTES');cerrarHamburger()">💧 Determinantes</button>
+          <div class="hb-nav-title">🚢 Servicios</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('AVIACION');cerrarHamburger()">✈️ SEAV - Aviación</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('GC');cerrarHamburger()">🚢 SBGC - Guardacostas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('SALVAMENTO');cerrarHamburger()">🔥 Salvamento</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('KSTM');cerrarHamburger()">⚓ Pilotaje/Conserva</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('CONVENIO');cerrarHamburger()">🤝 Convenio PNA-ARA</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('ARA');cerrarHamburger()">🚢 Buques ARA</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('RESERVA');cerrarHamburger()">📋 Reserva de Canal</button>
+          <div class="hb-nav-title">⚔️ Operaciones</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('SAR');cerrarHamburger()">🆘 Casos SAR</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MAS');cerrarHamburger()">🟣 Casos MAS</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('REGATAS');cerrarHamburger()">🏁 Regatas/Eventos</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('EJER.ARMAS');cerrarHamburger()">🎯 Ej. Armas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('DRAGAS');cerrarHamburger()">🏗️ Dragas</button>
+          <div class="hb-nav-title">🛡️ Seguridad</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('PUERTOS');cerrarHamburger()">🚫 Puertos Cerrados</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_BAJO_PARANA');cerrarHamburger()">📦 Mov. Bajo Paraná</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_DELTA');cerrarHamburger()">📦 Mov. Delta</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_ZONA3');cerrarHamburger()">📦 Mov. Río de la Plata</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_ZONA4');cerrarHamburger()">📦 Mov. Mar Norte</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('METANEROS');cerrarHamburger()">⛽ Metaneros</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('PBIP');cerrarHamburger()">🛡️ PBIP</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('VELEROS_OC');cerrarHamburger()">⛵ Veleros Oceánicos</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('CRUCEROS');cerrarHamburger()">🛳️ Cruceros</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('VISITAS');cerrarHamburger()">📋 Visitas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('NOVEDADES');cerrarHamburger()">📝 Novedades Varias</button>
+        </div>
+        <div class="hb-sep"></div>
         <button class="sb-act-btn ghost" id="btn-auto-rotate" onclick="toggleAutoRotacion()">▶ Auto</button>
         <button class="sb-act-btn ghost" onclick="actualizarSistema();cerrarHamburger()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
       </div>
@@ -1752,7 +1785,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxe-RMQgJLuJO_biXr35R3-5hAy__EazRaJsZ2LXp4BczLk7dhvoajxnD8maoMzA9IH/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxScU2xLMHNe6h1gzaWrJe1G7SAoG16lu1HMsHUt3bBmCN0gDS2YZAqxbP2kDyXi-tprg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -2483,13 +2516,12 @@ function renderHomeCards(data, sarN, masN) {
 
   const bloque = document.createElement("div");
   bloque.id = "home-graficos-bloque";
-  bloque.style.height = "100%";
   bloque.innerHTML = `
 
     <div class="home-dash-grid">
 
       <!-- LEFT COLUMN: Puerto map -->
-      <div class="dash-card" style="flex:1;min-width:220px;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
+      <div class="dash-card" style="min-width:220px;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
         <div style="height:4px;background:${puertos>0?'linear-gradient(90deg,#dc2626,#f87171)':'linear-gradient(90deg,#1a9560,#34d399)'};flex-shrink:0;"></div>
         <div style="padding:8px 12px 4px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
@@ -2539,6 +2571,13 @@ function renderHomeCards(data, sarN, masN) {
             var d = _cd(f.fechaInicio);
             if (d >= 0) _pendItems.push('<span style="color:#f59e0b;font-size:9px;font-weight:600;white-space:nowrap">🟠 ' + esc(f.buque) + ' <span style="color:var(--text-md);font-weight:700;">' + d + 'd</span></span>');
           });
+          // ── Acumulado 2025: misma fecha que hoy ──
+          var _acu = (typeof data !== 'undefined' && data.acumulado) ? data.acumulado : {};
+          var _hoy = new Date();
+          var _diaHoy = String(_hoy.getDate()).padStart(2,'0');
+          var _mesHoy = String(_hoy.getMonth()+1).padStart(2,'0');
+          var _clave2025 = _diaHoy + "/" + _mesHoy + "/2025";
+          var _acu2025 = _acu[_clave2025] || null;
           return `
         <div id="sarmas-dash-card" class="dash-card" style="flex:1;min-height:0;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;display:flex;flex-direction:column;">
           <div style="height:4px;background:linear-gradient(90deg,#dc2626,#7c3aed);flex-shrink:0;"></div>
@@ -2547,15 +2586,25 @@ function renderHomeCards(data, sarN, masN) {
               <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
               <span style="font-size:24px;font-family:'Outfit',sans-serif;font-weight:800;color:var(--navy);">${sc+sp+mc+mp}</span>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;min-height:110px;align-items:center;justify-content:center;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;min-height:130px;align-items:center;justify-content:center;">
               <div style="flex:1;min-width:120px;display:flex;justify-content:center;">
                 ${renderTacometroSVG('SAR', 'SAR', sp, sc)}
               </div>
+              ${_acu2025 ? '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 4px;">'+
+                '<div style="text-align:center;background:linear-gradient(135deg,#fef2f2,#fff);border-radius:6px;padding:4px 10px;border:1px solid #fecaca;">'+
+                  '<div style="font-size:8px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.3px;">SAR 2025</div>'+
+                  '<div style="font-size:16px;font-weight:800;color:#dc2626;font-family:Outfit,sans-serif;line-height:1.1;">'+_acu2025.sar+'</div>'+
+                '</div>'+
+                '<div style="text-align:center;background:linear-gradient(135deg,#faf5ff,#fff);border-radius:6px;padding:4px 10px;border:1px solid #e9d5ff;">'+
+                  '<div style="font-size:8px;font-weight:700;color:#a855f7;text-transform:uppercase;letter-spacing:.3px;">MAS 2025</div>'+
+                  '<div style="font-size:16px;font-weight:800;color:#a855f7;font-family:Outfit,sans-serif;line-height:1.1;">'+_acu2025.mas+'</div>'+
+                '</div>'+
+              '</div>' : ''}
               <div style="flex:1;min-width:120px;display:flex;justify-content:center;">
                 ${renderTacometroSVG('MAS', 'MAS', mp, mc)}
               </div>
             </div>
-            <div style="border-top:1px solid var(--gray-200);margin-top:4px;padding-top:4px;display:flex;gap:4px;flex-shrink:0;">
+            <div style="border-top:1px solid var(--gray-200);margin-top:6px;padding-top:5px;display:flex;gap:4px;flex-shrink:0;">
               <div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:3px;max-height:44px;overflow-y:auto;align-items:center;">
                 <span style="font-size:9px;font-weight:700;color:var(--text);margin-right:4px;flex-shrink:0">Días pendientes:</span>
                 ${_pendItems.length ? _pendItems.join("") : '<span style="font-size:9px;color:var(--text-lt);font-style:italic">Sin pendientes</span>'}
@@ -2715,8 +2764,23 @@ function renderHomeCards(data, sarN, masN) {
   // Insertar en el contenedor del home
   document.getElementById("home-dash-wrap").appendChild(bloque);
 
+  // ── Fijar altura del grid por JS ──
+  if (!window._fixGridH) {
+    window._fixGridH = function() {
+      var _wrap = document.getElementById("home-dash-wrap");
+      var _grid = _wrap ? _wrap.querySelector(".home-dash-grid") : null;
+      if (_grid && _wrap) {
+        var _wh = _wrap.clientHeight;
+        if (_wh > 50) { _grid.style.height = _wh + "px"; }
+      }
+    };
+    window.addEventListener("resize", window._fixGridH);
+  }
+  window._fixGridH();
+
   // ── Animar barras y gráficos ────────────────────────
   setTimeout(() => {
+    _fixGridH();
     // Animar barras SAR/MAS
     document.querySelectorAll("#home-dash-wrap .bf").forEach(el => {
       const w = parseFloat(el.getAttribute("data-w"));
@@ -2770,6 +2834,10 @@ function irDashPort() {
 }
 document.addEventListener("click", function(e) {
   if (!e.target.closest(".tb-dropdown-wrap") && !e.target.closest(".tb-dd-sub-wrap")) cerrarDropdowns();
+  if (!e.target.closest("#tb-buscar-wrap") && !e.target.closest("#tb-search-toggle")) {
+    const bw = document.getElementById("tb-buscar-wrap");
+    if (bw) bw.classList.remove("abierto");
+  }
 });
 function toggleHamburger() {
   const hp = document.getElementById("hamburger-panel");
@@ -2782,6 +2850,15 @@ function cerrarHamburger() {
   if (hp) hp.classList.remove("open");
   const ov = document.getElementById("sb-overlay");
   if (ov) ov.classList.remove("visible");
+}
+function toggleBuscarMobile() {
+  const wrap = document.getElementById("tb-buscar-wrap");
+  if (!wrap) return;
+  wrap.classList.toggle("abierto");
+  if (wrap.classList.contains("abierto")) {
+    const inp = wrap.querySelector("input");
+    if (inp) inp.focus();
+  }
 }
 function abrirGrupo(grupoId) {}
 window.addEventListener("resize",()=>{});
@@ -2867,10 +2944,12 @@ function mostrarHome() {
             <div class="kpi-val" style="color:${t.c}">${t.v}</div>
             <div class="kpi-lbl">${t.l}</div>
             ${t.extra?`<div style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
+            ${t.sub?`<div style="font-size:8px;color:rgba(255,255,255,0.55);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.sub}</div>`:''}
+            ${t.sub2?`<div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:2px;white-space:nowrap;letter-spacing:.2px;border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;">${t.sub2}</div>`:''}
           </div>`).join("")}
       </div>
     </div>
-    <div id="home-dash-wrap" style="flex:1;overflow:hidden;"></div>
+    <div id="home-dash-wrap" style="flex:1;min-height:0;"></div>
   `;
 
   renderHomeCards(datosGlobales, sar, mas);
@@ -6492,6 +6571,7 @@ function actualizarSistema(automatico) {
 
   // Resetear estado
   datosGlobales = null;
+  _hist = null;
   if (relojInterval) { clearInterval(relojInterval); relojInterval = null; }
 
   // Mostrar loader
@@ -6624,7 +6704,7 @@ function avanzarAutoRotacion() {
 #chat-modal {
   position: fixed; bottom: 90px; right: 24px;
   width: 380px; height: 520px;
-  background: var(--bg-card); border: 1px solid var(--border);
+  background: #1a2e48; border: 1px solid rgba(255,255,255,0.15);
   border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,.5);
   z-index: 9998; display: none; flex-direction: column; overflow: hidden;
   font-family: inherit;
@@ -6642,22 +6722,25 @@ function avanzarAutoRotacion() {
 #chat-mensajes {
   flex: 1; overflow-y: auto; padding: 12px; display: flex;
   flex-direction: column; gap: 8px; font-size: 14px;
+  background: #0f2744;
 }
 .chat-msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; line-height: 1.4; white-space: pre-wrap; }
 .chat-msg.user { background: #1a73e8; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-.chat-msg.assistant { background: var(--bg-card-alt,#2a2a2e); color: var(--text-lt); align-self: flex-start; border-bottom-left-radius: 4px; }
-.chat-msg.error { background: rgba(220,38,38,.15); color: #ef4444; align-self: center; font-size: 13px; }
-.chat-msg.loading { background: transparent; align-self: flex-start; color: var(--text-lt,#888); font-style: italic; }
+.chat-msg.assistant { background: #1a3557; color: #d8e2ef; align-self: flex-start; border-bottom-left-radius: 4px; }
+.chat-msg.error { background: rgba(220,38,38,.2); color: #ef4444; align-self: center; font-size: 13px; }
+.chat-msg.loading { background: #1a3557; align-self: flex-start; color: #8da5be; font-style: italic; border-bottom-left-radius: 4px; animation: loading-pulse 1.5s ease-in-out infinite; }
+@keyframes loading-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 #chat-input-area {
   display: flex; gap: 8px; padding: 10px 12px;
-  border-top: 1px solid var(--border); background: var(--bg-card);
+  border-top: 1px solid rgba(255,255,255,0.1); background: #0a1e35;
 }
 #chat-input {
-  flex: 1; padding: 8px 12px; border: 1px solid var(--border);
-  border-radius: 20px; background: var(--bg-card-alt,#1e1e22);
-  color: var(--text-lt); font-size: 14px; outline: none;
+  flex: 1; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px; background: #0f2744;
+  color: #d8e2ef; font-size: 14px; outline: none;
 }
 #chat-input:focus { border-color: #1a73e8; }
+#chat-input:disabled { opacity: 0.5; cursor: not-allowed; }
 #chat-send {
   width: 36px; height: 36px; border-radius: 50%;
   background: #1a73e8; color: #fff; border: none;
@@ -6667,14 +6750,14 @@ function avanzarAutoRotacion() {
 #chat-send:disabled { opacity: .5; cursor: default; }
 #chat-mic {
   width: 36px; height: 36px; border-radius: 50%;
-  background: #2a2a2e; color: #fff; border: 1px solid var(--border);
+  background: #1a3557; color: #d8e2ef; border: 1px solid rgba(255,255,255,0.15);
   font-size: 16px; cursor: pointer; display: flex;
   align-items: center; justify-content: center; flex-shrink: 0;
 }
 #chat-mic.listening { background: #ef4444; border-color: #ef4444; animation: mic-pulse 1s infinite; }
 @keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
 .chat-spkr {
-  background: none; border: none; color: #888; font-size: 14px; cursor: pointer;
+  background: none; border: none; color: #8da5be; font-size: 14px; cursor: pointer;
   padding: 2px 4px; margin-left: 4px; vertical-align: middle; line-height: 1;
   border-radius: 4px; display: inline-flex; align-items: center;
 }
@@ -6757,10 +6840,11 @@ function enviarMensaje() {
   agregarMensaje(texto, 'user');
   chatInput.value = '';
   chatSend.disabled = true;
+  chatInput.disabled = true;
 
   const loading = document.createElement('div');
   loading.className = 'chat-msg loading';
-  loading.textContent = 'Analizando...';
+  loading.textContent = 'Analizando datos...';
   chatMensajes.appendChild(loading);
   chatMensajes.scrollTop = chatMensajes.scrollHeight;
 
@@ -6815,7 +6899,7 @@ function enviarConsultaIA(mensaje, loading) {
     loading.remove();
     agregarMensaje('Error al conectar con el asistente. Intente de nuevo.', 'error');
   })
-  .finally(function(){ chatSend.disabled = false; chatInput.focus(); });
+  .finally(function(){ chatSend.disabled = false; chatInput.disabled = false; chatInput.focus(); });
 }
 
 // ── Speech Recognition ──
