@@ -2046,7 +2046,8 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 }).addTo(map);
   L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
   const closedSet = new Set(closedCodes);
-  // build a lookup: code → { hora, motivo } from sheet data
+  if (!window._puertosMarkers) window._puertosMarkers = {};
+  window._puertosMap = map;
   var portLookup = {};
   if (portFilas) {
     portFilas.forEach(function(f) {
@@ -2082,9 +2083,11 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
     } else {
       label = `✅ ${name}<br><span style="color:#22c55e;font-weight:700">Puerto operativo</span>`;
     }
-    L.marker(coords, {icon}).addTo(map).bindPopup(`<b>${label}</b>`);
+    var _m = L.marker(coords, {icon}).addTo(map).bindPopup(`<b>${label}</b>`);
+    window._puertosMarkers[code] = _m;
   });
   if (bounds.length > 1) map.fitBounds(bounds, {padding:[20,20]});
+  window._puertosBounds = bounds.length > 1 ? bounds : null;
   setTimeout(() => map.invalidateSize(), 200);
   const legend = L.control({position:"bottomright"});
   legend.onAdd = function() {
@@ -2094,6 +2097,22 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
     return div;
   };
   legend.addTo(map);
+}
+function flyToPuerto(code) {
+  var map = window._puertosMap;
+  var markers = window._puertosMarkers || {};
+  if (!map || !markers[code]) return;
+  map.flyTo(markers[code].getLatLng(), 8, {duration:0.8});
+  setTimeout(function(){ markers[code].openPopup(); }, 850);
+}
+function resetPuertosMap() {
+  var map = window._puertosMap;
+  if (!map) return;
+  if (window._puertosBounds) {
+    map.flyToBounds(window._puertosBounds, {padding:[20,20], duration:0.8});
+  } else {
+    map.flyTo([-40,-63], 4, {duration:0.8});
+  }
 }
 function initDeterminantesMap(containerId) {
   const el = document.getElementById(containerId);
@@ -2530,7 +2549,8 @@ function renderHomeCards(data, sarN, masN) {
           </div>
           <div style="font-size:9px;color:${puertos>0?'#dc2626':'var(--text-md)'};font-weight:600;">Cerrados</div>
         </div>
-        ${puertosCerradosNombres.length?`<div style="padding:0 12px 4px;display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${puertosCerradosNombres.map(n=>'<span style="font-size:9px;font-weight:600;color:#dc2626;background:#fef2f2;padding:1px 5px;border-radius:3px;white-space:nowrap;">🚫 '+esc(n)+'</span>').join('')}</div>`:''}
+        ${puertosCerradosNombres.length?`<div style="padding:0 12px 4px;display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${puertosCerradosNombres.map(n=>'<span onclick="flyToPuerto(this.dataset.code)" data-code="'+esc(n)+'" style="font-size:9px;font-weight:600;color:#dc2626;background:#fef2f2;padding:1px 5px;border-radius:3px;white-space:nowrap;cursor:pointer;" title="Ir a '+esc(n)+' en el mapa">🚫 '+esc(n)+'</span>').join('')}</div>`:''}
+        ${puertosCerradosNombres.length?`<div style="padding:0 12px 2px;flex-shrink:0;"><button onclick="resetPuertosMap()" style="font-size:9px;font-weight:700;color:#1d6fa4;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;cursor:pointer;">← Ver todos</button></div>`:''}
         <div id="hc-dash-puertos" style="flex:1;min-height:180px;cursor:grab;"></div>
       </div>
 
