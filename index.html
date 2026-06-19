@@ -281,10 +281,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .fs-active .home-header{flex-direction:column;text-align:center;padding:24px 32px}
 .tb-buscar{position:relative;display:flex;align-items:center;gap:4px}
 @media (max-width:768px){
-  .tb-buscar{display:none}
-  .tb-buscar.abierto{display:flex;position:absolute;top:100%;left:0;right:0;z-index:10000;padding:6px 8px;background:#fff;border-bottom:1px solid var(--gray-200);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-  .tb-buscar.abierto input{width:100% !important;font-size:13px !important;padding:6px 10px !important}
-  #tb-search-toggle{display:flex !important}
+  .tb-buscar{display:flex !important;flex:1;position:relative !important;overflow:visible !important;}
+  .tb-buscar #tb-bp-texto{flex:1;font-size:13px !important;padding:6px 10px !important;width:auto !important;border-radius:4px;}
+  .tb-buscar #tb-search-btn{display:none !important;}
+  #tb-search-toggle{display:none !important}
   .tb-dropdown-wrap{display:none !important}
   .tb-nav-right{gap:2px}
   .hb-nav-mobile{display:block}
@@ -1570,7 +1570,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       <div class="tb-nav-right">
         <button class="tb-tab" id="tb-search-toggle" onclick="toggleBuscarMobile()" style="display:none" title="Buscar">🔍</button>
         <div class="tb-buscar" id="tb-buscar-wrap">
-          <input type="text" id="tb-bp-texto" placeholder="🔍 Buscar sección..." style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px;font-family:inherit;width:130px" oninput="buscarSeccionTexto()" onfocus="buscarSeccionTexto()">
+          <input type="text" id="tb-bp-texto" placeholder="🔍 Buscar..." style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px;font-family:inherit;width:130px" oninput="buscarSeccionTexto()" onfocus="buscarSeccionTexto()" onkeydown="if(event.key==='Enter'){buscarSeccionTexto();event.preventDefault();}" onkeyup="buscarSeccionTexto()">
+          <button onclick="buscarSeccionTexto()" style="display:none;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px;cursor:pointer;background:#f1f5f9;" id="tb-search-btn">🔍</button>
           <div id="tb-bp-resultados" style="position:absolute;top:100%;right:0;width:260px;max-height:250px;overflow-y:auto;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9999;padding:6px 0;display:none;margin-top:4px"></div>
         </div>
         <!-- ══ METEOROLOGÍA ══ -->
@@ -5494,7 +5495,7 @@ function extraerTextoFila(f){
   if(!f) return "";
   var t="";
   if(f.tipo==="caso_especial"){
-    t=(f.titulo||"")+" "+(f.texto||"")+" "+(f.estado||"")+" "+(f.situacion||"")+" "+(f.observaciones||"")+" "+(f.circunstancias||"");
+    t=(f.titulo||"")+" "+(f.texto||"")+" "+(f.estado||"")+" "+(f.situacion||"")+" "+(f.observaciones||"")+" "+(f.circunstancias||"")+" "+(f.fechaInicio||"")+" "+(f.fechaFin||"");
     if(f.personal) f.personal.forEach(function(p){t+=" "+(p.nombre||"")+" "+(p.rol||"");});
     if(f.equipos) f.equipos.forEach(function(e){t+=" "+(e.tipo||"")+" "+(e.nombre||"");});
     if(f.buques) f.buques.forEach(function(b){t+=" "+(b.nombre||"")+" "+(b.matricula||"");});
@@ -5518,30 +5519,24 @@ function extraerTextoFila(f){
   return t;
 }
 function buscarSeccionTexto(){
-  var q=document.getElementById("tb-bp-texto").value.trim().toUpperCase();
+  var inp=document.getElementById("tb-bp-texto");
+  var q=(inp?inp.value:"").trim().toUpperCase();
   var resDiv=document.getElementById("tb-bp-resultados");
+  if(!resDiv) return;
   if(!q||q.length<2){resDiv.style.display="none";resDiv.innerHTML="";return;}
   if(!datosGlobales||!datosGlobales.secciones){resDiv.style.display="block";resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:12px;font-size:12px">Cargando datos...</div>';return;}
   var matches=[];
   datosGlobales.secciones.forEach(function(sec){
     var secLabel=_seccionesMap[sec.id]||sec.id;
     (sec.filas||[]).forEach(function(f,i){
-      var txt=extraerTextoFila(f).toUpperCase();
-      if(txt.includes(q)){
-        var titulo="";
-        if(f.tipo==="caso_especial") titulo=f.titulo||"";
-        else if(f.tipo==="novedad") titulo=f.titulo||"";
-        else if(f.tipo==="fila"&&Array.isArray(f.datos)) titulo=f.datos[0]||"";
-        else if(f.tipo==="arma"&&Array.isArray(f.datos)) titulo=f.datos[0]||"";
-        else if(f.tipo==="puerto"&&Array.isArray(f.datos)) titulo=f.datos[0]||"";
-        else if(f.tipo==="subtitulo") titulo=f.texto||"";
-        else titulo="";
-        matches.push({secId:sec.id,secLabel:secLabel,titulo:titulo||secLabel,tipo:f.tipo});
-      }
+      if(!f) return;
+      var coincide=JSON.stringify(f).toUpperCase().includes(q);
+      if(!coincide) return;
+      matches.push({secId:sec.id,secLabel:secLabel,f:f});
     });
   });
-  resDiv.style.display="block";
   if(!matches.length){
+    resDiv.style.display="block";
     resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:12px;font-size:12px">Sin resultados para "'+esc(q)+'"</div>';
     return;
   }
@@ -5549,20 +5544,83 @@ function buscarSeccionTexto(){
   var shown=0;
   matches.forEach(function(m){
     if(shown>=20) return;
-    html+='<button onclick="irSeccion(\''+m.secId+'\',this);document.getElementById(\'tb-bp-texto\').value=\'\';document.getElementById(\'tb-bp-resultados\').style.display=\'none\';" style="display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;background:none;border:none;border-left:2.5px solid transparent;cursor:pointer;text-align:left;font-size:12px;font-family:\'DM Sans\',sans-serif;color:var(--text-lt);transition:background .12s" onmouseover="this.style.background=\'var(--gray-100)\';this.style.borderLeftColor=\'var(--blue)\'" onmouseout="this.style.background=\'none\';this.style.borderLeftColor=\'transparent\'">'+
-      '<span style="color:var(--navy);font-weight:600;white-space:nowrap">'+esc(m.secLabel)+'</span>'+
-      '<span style="color:var(--text-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(m.titulo)+'</span>'+
+    var f=m.f;var txt="";
+    if(f.tipo==="caso_especial"){
+      txt='<div style="cursor:pointer" onclick="irSeccion(\''+m.secId+'\',this);document.getElementById(\'tb-bp-texto\').value=\'\';ocultarBuscador();">'+
+        '<div style="font-weight:700;font-size:13px;color:var(--navy);margin-bottom:3px">'+esc(f.buque||f.titulo||"")+'</div>'+
+        (f.asunto?'<div style="font-size:11px;color:var(--text-md);margin-bottom:1px"><b style="color:var(--navy)">ASUNTO:</b> '+esc(f.asunto)+'</div>':'')+
+        (f.posicion?'<div style="font-size:11px;color:var(--text-md);margin-bottom:1px"><b style="color:var(--navy)">POSICIÓN:</b> '+esc(f.posicion)+'</div>':'')+
+        (f.novedad?'<div style="font-size:11px;color:var(--text-md);margin-bottom:1px"><b style="color:var(--navy)">NOVEDAD:</b> '+esc(f.novedad)+'</div>':'')+
+        (f.caracteristicas?'<div style="font-size:11px;color:var(--text-md);margin-bottom:1px"><b style="color:var(--navy)">CARACT.:</b> '+esc(f.caracteristicas)+'</div>':'')+
+        (f.situacion?'<div style="font-size:11px;color:var(--text-md);margin-bottom:1px"><b style="color:var(--navy)">SITUACIÓN:</b> '+esc(f.situacion)+'</div>':'')+
+        '<div style="font-size:10px;color:var(--blue);font-weight:600;margin-top:4px">📍 Ir a sección</div></div>';
+    } else if(f.tipo==="fila"&&Array.isArray(f.datos)){
+      txt='<div style="font-weight:600;font-size:12px;color:var(--navy)">'+esc(f.datos[0]||"")+'</div>'+
+        '<div style="font-size:11px;color:var(--text-md)">'+esc(f.datos.slice(1,5).filter(Boolean).join(" · "))+'</div>';
+    } else if(f.tipo==="puerto"&&Array.isArray(f.datos)){
+      txt='<div style="font-weight:600;font-size:12px;color:var(--navy)">⚓ '+esc(f.datos[0]||"")+'</div>'+
+        '<div style="font-size:11px;color:var(--text-md)">'+esc(f.datos.slice(1,4).filter(Boolean).join(" · "))+'</div>';
+    } else if(f.tipo==="arma"&&Array.isArray(f.datos)){
+      txt='<div style="font-weight:600;font-size:12px;color:var(--navy)">🔫 '+esc(f.datos[0]||"")+'</div>'+
+        '<div style="font-size:11px;color:var(--text-md)">'+esc(f.datos.slice(1,4).filter(Boolean).join(" · "))+'</div>';
+    } else if(f.tipo==="novedad"){
+      txt='<div style="font-weight:600;font-size:12px;color:var(--navy)">'+esc(f.titulo||"")+'</div>'+
+        '<div style="font-size:11px;color:var(--text-md)">'+esc(f.texto||"")+'</div>';
+    } else if(f.tipo==="partes"&&f.partes){
+      txt='<div style="font-size:11px;color:var(--text-md)">'+esc(f.partes.map(function(p){return p.texto||"";}).join(" | "))+'</div>';
+    } else {
+      txt='<div style="font-size:11px;color:var(--text-md)">'+esc(extraerTextoFila(f).substring(0,120))+'</div>';
+    }
+    html+='<button onclick="irSeccion(\''+m.secId+'\',this);document.getElementById(\'tb-bp-texto\').value=\'\';ocultarBuscador();" style="display:block;width:100%;padding:8px 12px;background:none;border:none;border-left:2.5px solid transparent;cursor:pointer;text-align:left;font-size:12px;font-family:\'DM Sans\',sans-serif;color:var(--text-lt);transition:background .12s" onmouseover="this.style.background=\'var(--gray-100)\';this.style.borderLeftColor=\'var(--blue)\'" onmouseout="this.style.background=\'none\';this.style.borderLeftColor=\'transparent\'">'+
+      '<div style="font-size:10px;color:var(--text-lt);text-transform:uppercase;font-weight:700;margin-bottom:2px">'+esc(m.secLabel)+'</div>'+
+      txt+
       '</button>';
     shown++;
   });
   if(matches.length>20) html+='<div style="padding:4px 12px;font-size:10px;color:var(--text-lt)">+ '+(matches.length-20)+' más...</div>';
   resDiv.innerHTML=html;
+  resDiv.style.display="block";
+  positionarBuscador();
+}
+function positionarBuscador(){
+  var inp=document.getElementById("tb-bp-texto");
+  var resDiv=document.getElementById("tb-bp-resultados");
+  if(!inp||!resDiv||resDiv.style.display==="none") return;
+  var r=inp.getBoundingClientRect();
+  resDiv.style.position="fixed";
+  resDiv.style.top=(r.bottom)+"px";
+  resDiv.style.left=r.left+"px";
+  resDiv.style.width=r.width+"px";
+  resDiv.style.maxHeight="50vh";
+  resDiv.style.overflowY="auto";
+  resDiv.style.zIndex="99999";
+  resDiv.style.background="#fff";
+  resDiv.style.border="1px solid #e2e8f0";
+  resDiv.style.borderRadius="0 0 8px 8px";
+  resDiv.style.boxShadow="0 4px 16px rgba(0,0,0,0.15)";
+}
+function ocultarBuscador(){
+  var resDiv=document.getElementById("tb-bp-resultados");
+  if(resDiv){resDiv.style.display="none";resDiv.innerHTML="";}
 }
 document.addEventListener("click",function(e){
   var wrap=document.getElementById("tb-buscar-wrap");
   var res=document.getElementById("tb-bp-resultados");
-  if(wrap&&res&&!wrap.contains(e.target)){res.style.display="none";res.innerHTML="";}
+  var inp=document.getElementById("tb-bp-texto");
+  if(!wrap||!res) return;
+  if(wrap.contains(e.target)) return;
+  if(res.contains(e.target)) return;
+  ocultarBuscador();
 });
+document.getElementById("tb-bp-texto").addEventListener("focus",function(){
+  positionarBuscador();
+  buscarSeccionTexto();
+});
+window.addEventListener("resize",function(){positionarBuscador();});
+(function(){
+  var res=document.getElementById("tb-bp-resultados");
+  if(res) document.body.appendChild(res);
+})();
 
 var _ultimasPartes=[];
 
