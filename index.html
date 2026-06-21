@@ -1749,10 +1749,17 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <h2>Novedades Diarias</h2>
             <p id="home-fecha-sub">Cargando...</p>
           </div>
-          <div class="home-header-kpi">
-            <div class="home-kpi red"><div class="kpi-val" id="hkpi-sar">—</div><div class="kpi-lbl">SAR Pendientes</div></div>
-            <div class="home-kpi amber"><div class="kpi-val" id="hkpi-mas">—</div><div class="kpi-lbl">MAS Pendientes</div></div>
-            <div class="home-kpi"><div class="kpi-val" id="hkpi-gc">—</div><div class="kpi-lbl">Nav. GC</div></div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <a href="https://gis.prefecturanaval.gob.ar/portal/apps/webappviewer/index.html?id=040254f910294105abd0adb9bd44c61f" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.25)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='rgba(255,255,255,0.3)'">
+              <span style="font-size:16px;">🗺️</span>
+              <span>Abrir Sistema GC</span>
+              <span style="font-size:10px;opacity:.7;">↗</span>
+            </a>
+            <div class="home-header-kpi">
+              <div class="home-kpi red"><div class="kpi-val" id="hkpi-sar">—</div><div class="kpi-lbl">SAR Pendientes</div></div>
+              <div class="home-kpi amber"><div class="kpi-val" id="hkpi-mas">—</div><div class="kpi-lbl">MAS Pendientes</div></div>
+              <div class="home-kpi"><div class="kpi-val" id="hkpi-gc">—</div><div class="kpi-lbl">Nav. GC</div></div>
+            </div>
           </div>
         </div>
 
@@ -2958,6 +2965,11 @@ function mostrarHome() {
     <div class="home-header">
       <div class="home-header-left">
         <h2>Reporte de Novedades</h2>
+        <a href="https://gis.prefecturanaval.gob.ar/portal/apps/webappviewer/index.html?id=040254f910294105abd0adb9bd44c61f" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
+          <span>🗺️</span>
+          <span>Abrir Sistema GC</span>
+          <span style="font-size:9px;opacity:.6;">↗</span>
+        </a>
       </div>
       <div class="home-header-kpi">
         ${todos.map(t => `
