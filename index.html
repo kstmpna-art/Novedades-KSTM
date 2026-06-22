@@ -160,6 +160,9 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   display:flex;align-items:center;
   padding:0 20px;flex-shrink:0;box-shadow:var(--shadow-sm);z-index:500;
 }
+.fs-active #topbar .tb-nav-right,
+.fs-active #topbar .tb-right {display:none !important}
+.fs-active #topbar {box-shadow:none !important;border-bottom-color:transparent !important;background:rgba(255,255,255,0.85) !important;backdrop-filter:blur(8px);}
 @media (max-width:768px){
   #topbar{flex-wrap:nowrap;height:auto;padding:4px 8px;gap:4px;}
 }
@@ -290,6 +293,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   .hb-nav-mobile{display:block}
   .hb-nav-title{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;padding:8px 14px 2px;margin-top:4px;}
   .hb-nav-mobile .sb-act-btn{font-size:12px;padding:6px 14px;}
+  .home-header-left a[href*="prefecturanaval"]{background:rgba(255,255,255,0.22) !important;border-color:rgba(255,255,255,0.45) !important;font-size:12px !important;padding:8px 14px !important;}
   .home-dash-grid{display:flex;flex-direction:column;gap:8px;height:auto !important;overflow-x:hidden;}
   .home-dash-grid > div{overflow:visible !important;}
   #home-dash-wrap{overflow:visible !important;flex:none !important;height:auto !important;}
@@ -1205,6 +1209,15 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   padding-left: 36px;
   font-size: 12px;
 }
+.chk-sec {
+  display:inline-flex;align-items:center;gap:3px;
+  padding:4px 8px;background:#f4f7fb;border:1px solid #d8e2ef;border-radius:6px;
+  font-size:11px;font-weight:600;color:#1a2e48;cursor:pointer;transition:all .12s;
+  user-select:none;
+}
+.chk-sec:hover {background:#e8f4fd;border-color:#5a7a9a;}
+.chk-sec input[type="checkbox"] {accent-color:#1d6fa4;margin:0;width:13px;height:13px;cursor:pointer;}
+.chk-sec:has(input:checked) {background:#e8f4fd;border-color:#1d6fa4;color:#0f2744;}
 </style>
 </head>
 <body>
@@ -1383,6 +1396,26 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
     <div style="margin-bottom:12px">
       <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:2px">📅 Fecha del parte</label>
       <input type="date" id="exportFecha" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:6px;text-align:center">☑ Secciones a incluir</label>
+      <div id="exportSecciones" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center">
+        <label class="chk-sec"><input type="checkbox" value="av" checked>Aviación</label>
+        <label class="chk-sec"><input type="checkbox" value="gc" checked>Guardacostas</label>
+        <label class="chk-sec"><input type="checkbox" value="salv" checked>Salvamento</label>
+        <label class="chk-sec"><input type="checkbox" value="trafico" checked>Tráfico Marítimo</label>
+        <label class="chk-sec"><input type="checkbox" value="puertos" checked>Puertos</label>
+        <label class="chk-sec"><input type="checkbox" value="det" checked>Determinantes</label>
+        <label class="chk-sec"><input type="checkbox" value="dragas" checked>Dragas</label>
+        <label class="chk-sec"><input type="checkbox" value="met" checked>Metaneros</label>
+        <label class="chk-sec"><input type="checkbox" value="alert" checked>Alertas</label>
+        <label class="chk-sec"><input type="checkbox" value="bq" checked>Bq.Infracción</label>
+        <label class="chk-sec"><input type="checkbox" value="vis" checked>Visitas</label>
+        <label class="chk-sec"><input type="checkbox" value="mov" checked>Mov.Portuario</label>
+        <label class="chk-sec"><input type="checkbox" value="pbip" checked>PBIP</label>
+        <label class="chk-sec"><input type="checkbox" value="nov" checked>Nov.Varias</label>
+        <label class="chk-sec"><input type="checkbox" value="pers" checked>Personal</label>
+      </div>
     </div>
     <div class="modal-btns" style="justify-content:center">
       <button onclick="exportarPDF()" id="btnPDF" class="btn-exp-pdf">📕 PDF</button>
@@ -1731,8 +1764,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
           <button class="sb-act-btn ghost" onclick="irSeccion('VELEROS_OC');cerrarHamburger()">⛵ Veleros Oceánicos</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('CRUCEROS');cerrarHamburger()">🛳️ Cruceros</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('VISITAS');cerrarHamburger()">📋 Visitas</button>
-          <button class="sb-act-btn ghost" onclick="irSeccion('NOVEDADES');cerrarHamburger()">📝 Novedades Varias</button>
-        </div>
+           <button class="sb-act-btn ghost" onclick="irSeccion('NOVEDADES');cerrarHamburger()">📝 Novedades Varias</button>
+          <div class="hb-nav-title">🗺️ Sistema GC</div>
+          <a href="https://gis.prefecturanaval.gob.ar/portal/apps/webappviewer/index.html?id=040254f910294105abd0adb9bd44c61f" target="_blank" rel="noopener noreferrer" class="sb-act-btn ghost" style="text-decoration:none;display:flex;align-items:center;gap:6px">🌐 Abrir Sistema GC ↗</a>
+         </div>
         <div class="hb-sep"></div>
         <button class="sb-act-btn ghost" id="btn-auto-rotate" onclick="toggleAutoRotacion()">▶ Auto</button>
         <button class="sb-act-btn ghost" onclick="actualizarSistema();cerrarHamburger()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
@@ -1797,7 +1832,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxScU2xLMHNe6h1gzaWrJe1G7SAoG16lu1HMsHUt3bBmCN0gDS2YZAqxbP2kDyXi-tprg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw_GAAAKg3k8VL7k2NrkQ6KdHQy_jYXprZ-lnf8S3ieeZczem8_KXC6DdYU_7MViE3eKg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -1816,6 +1851,7 @@ let seccionDashActiva = null;
 let rolSeleccionado = "admin";
 let preavisosUrl = null;
 let preavisosFileName = null;
+let _ultimaFechaExport = "";
 
 /* ================================================================
    LOGIN
@@ -5263,26 +5299,22 @@ function filtrarPartes(){
 function toggleBriefing(){
   const yaFull = !!document.fullscreenElement;
   if (!yaFull) {
-    document.getElementById("topbar").style.display = "none";
     document.body.classList.add("fs-active");
     mostrarHome();
     if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
   } else {
-    document.getElementById("topbar").style.display = "";
     document.body.classList.remove("fs-active");
     if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
   }
 }
 document.addEventListener("fullscreenchange", function() {
   if (!document.fullscreenElement) {
-    document.getElementById("topbar").style.display = "";
     document.body.classList.remove("fs-active");
   }
 });
 document.addEventListener("fullscreenchange", function(){
   if (!document.fullscreenElement) {
     document.getElementById("sidebar").style.display = "";
-    document.getElementById("topbar").style.display = "";
     document.body.classList.remove("fs-active");
   }
 });
@@ -5327,13 +5359,11 @@ function abrirModalExport(){
   document.getElementById("bpFechaLabel").textContent = "";
   document.getElementById("bpResultados").innerHTML = "";
   var ef = document.getElementById("exportFecha");
-  if (!ef.value) {
-    var fStr = datosGlobales ? (datosGlobales.fecha || "") : "";
-    if (fStr) {
-      var p = fStr.split("/");
-      if (p.length === 3) {
-        ef.value = p[2] + "-" + p[1] + "-" + p[0];
-      }
+  var fStr = _ultimaFechaExport || (datosGlobales ? (datosGlobales.fecha || "") : "");
+  if (fStr) {
+    var p = fStr.split("/");
+    if (p.length === 3) {
+      ef.value = p[2] + "-" + p[1] + "-" + p[0];
     }
   }
 }
@@ -5348,7 +5378,9 @@ async function exportarPDF(){
     _firmanteOficial=(document.getElementById("firmanteOficial")||{}).value||"";
     var fechaEl=document.getElementById("exportFecha");
     var fechaStr=fechaEl&&fechaEl.value?function(d){var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}(fechaEl.value):datosGlobales.fecha||"";
+    _ultimaFechaExport = fechaStr;
     var fechaPalabras=_fechaPalabras(fechaStr);
+    _exportSeccionesFilter = new Set(Array.from(document.querySelectorAll("#exportSecciones input:checked")).map(function(cb){return cb.value;}));
     var cuerpo=_buildParteCuerpo();
     var html=_buildParteHTML(cuerpo,fechaStr,fechaPalabras);
     var w=window.open("","_blank");
@@ -5383,15 +5415,19 @@ async function subirBase64(file){
       reader.onerror=reject;
       reader.readAsDataURL(file);
     });
-    status.textContent="Guardando en Drive...";status.style.color="#555";
-    var fechaEl=document.getElementById("exportFecha");
-    var fechaStr=fechaEl&&fechaEl.value?function(d){var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}(fechaEl.value):(datosGlobales?datosGlobales.fecha||"":"");
+    status.style.display="none";
     var ext=file.name.toLowerCase().split(".").pop();
     var mimeType = ext === "pdf" ? "application/pdf" :
                    ext === "doc" ? "application/msword" :
                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    var fechaArchivo = fechaStr || "";
-    var nomArchivo = "Parte de novedades " + fechaArchivo + "." + ext;
+    var fechaStr = _ultimaFechaExport || (function(){
+      var fe = document.getElementById("exportFecha");
+      if (fe && fe.value) { var p = fe.value.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
+      return datosGlobales ? (datosGlobales.fecha || "") : "";
+    })();
+    var nomArchivo = "Parte de novedades " + (fechaStr || "") + "." + ext;
+    if(!confirm("¿Desea guardar \u00ab" + nomArchivo + "\u00bb en Drive?")) return;
+    status.style.display="block";status.textContent="Guardando en Drive...";status.style.color="#555";
     
     var params = new URLSearchParams();
     params.set("accion", "subirParte");
@@ -5789,9 +5825,11 @@ function _filas(id,tipo){
 }
 
 function _buildParteCuerpo(){
+  function _secH(key){return !_exportSeccionesFilter||_exportSeccionesFilter.has(key);}
   var cuerpo="";
   // 1. AVIACION
   var avSec=_sec("AVIACION");
+  if(_secH("av")){
   if(avSec){
     cuerpo+=_seccionTitulo(1,"SERVICIO DE AVIACI\u00d3N");
     var avFilas=avSec.filas||[];
@@ -5815,8 +5853,9 @@ function _buildParteCuerpo(){
     if(aviRealizados.length>1){cuerpo+=_subTitulo("Vuelos realizados "+(subReal||""));cuerpo+=_renderTabla(aviRealizados.slice(1),["Aeronave","Procedencia","Destino","Novedad"]);}
     if(aviPrevistos.length>1){cuerpo+=_subTitulo("Vuelos previstos "+(subPrev||""));cuerpo+=_renderTabla(aviPrevistos.slice(1),["Aeronave","Procedencia","Destino","Novedad"]);}
     if(aviRealizados.length<=1&&aviPrevistos.length<=1) cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de aviaci\u00f3n.</div>';
-  }
+  }}
   // 2. GUARDACOSTAS
+  if(_secH("gc")){
   var gcSec=_sec("GC");
   var convSec=_sec("CONVENIO");
   var araSec=_sec("ARA");
@@ -5867,12 +5906,15 @@ function _buildParteCuerpo(){
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
       }
     }
-  }
+  }}
   // 3. SALVAMENTO
+  if(_secH("salv")){
   var salvSec=_sec("SALVAMENTO");
   cuerpo+=_seccionTitulo(3,"SERVICIO DE SALVAMENTO, BUCEO Y DOTACIONES DE SEGURIDAD");
   cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+  }
   // 4. TRAFICO MARITIMO
+  if(_secH("trafico")){
   var kstmSec=_sec("KSTM");
   var resSec=_sec("RESERVA");
   var sarSec=_sec("SAR");
@@ -5959,8 +6001,9 @@ function _buildParteCuerpo(){
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin ejercicios.</div>';
       }
     }
-  }
+  }}
   // 5. PUERTOS
+  if(_secH("puertos")){
   var pSec=_sec("PUERTOS");
   if(pSec){
     cuerpo+=_seccionTitulo(5,"ESTADO DE PUERTOS");
@@ -5974,8 +6017,9 @@ function _buildParteCuerpo(){
     }else{
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
     }
-  }
+  }}
   // 6. DETERMINANTES
+  if(_secH("det")){
   function _parseNum(v){return parseFloat(String(v).replace(",","."));}
   var detSec=_sec("DETERMINANTES");
   if(detSec){
@@ -6011,8 +6055,9 @@ function _buildParteCuerpo(){
     if(!detTablaFilas.length&&!detTextoRows.length){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin determinantes.</div>';
     }
-  }
+  }}
   // 7. DRAGAS
+  if(_secH("dragas")){
   var dragSec=_sec("DRAGAS");
   if(dragSec){
     cuerpo+=_seccionTitulo(7,"DRAGAS");
@@ -6027,8 +6072,9 @@ function _buildParteCuerpo(){
     }else{
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin dragas operando.</div>';
     }
-  }
+  }}
   // 8. METANEROS
+  if(_secH("met")){
   var metSec=_sec("METANEROS");
   if(metSec){
     cuerpo+=_seccionTitulo(8,"METANEROS");
@@ -6057,8 +6103,9 @@ function _buildParteCuerpo(){
     if(!metTermRows.length&&!metPrevRows.length){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de metaneros.</div>';
     }
-  }
+  }}
   // 9. ALERTAS
+  if(_secH("alert")){
   var alSec=_sec("ALERTA");
   if(alSec){
     cuerpo+=_seccionTitulo(9,"ALERTAS METEOROL\u00d3GICAS");
@@ -6069,8 +6116,9 @@ function _buildParteCuerpo(){
     }else{
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
     }
-  }
+  }}
   // 10. BUQUES INFRACCION
+  if(_secH("bq")){
   var bqSec=_sec("BUQUES");
   if(bqSec){
     cuerpo+=_seccionTitulo(10,"BUQUES INFRACCIONADOS DEC. 256/10");
@@ -6080,8 +6128,9 @@ function _buildParteCuerpo(){
     }else{
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin registros.</div>';
     }
-  }
+  }}
   // 11. VISITAS
+  if(_secH("vis")){
   var visSec=_sec("VISITAS");
   if(visSec){
     cuerpo+=_seccionTitulo(11,"VISITAS");
@@ -6091,8 +6140,9 @@ function _buildParteCuerpo(){
     }else{
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin visitas previstas.</div>';
     }
-  }
+  }}
   // 12. MOVIMIENTO PORTUARIO
+  if(_secH("mov")){
   var movIds=["MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4"];
   var movSecs=movIds.map(function(id){return _sec(id);}).filter(function(s){return s;});
   if(movSecs.length){
@@ -6111,8 +6161,9 @@ function _buildParteCuerpo(){
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de movimiento portuario.</div>';
       }
     });
-  }
+  }}
   // 13. PBIP
+  if(_secH("pbip")){
   var pbipSec=_sec("PBIP");
   if(pbipSec){
     cuerpo+=_seccionTitulo(13,"PBIP");
@@ -6122,19 +6173,21 @@ function _buildParteCuerpo(){
     }else{
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin registros PBIP.</div>';
     }
-  }
+  }}
   // 14. NOVEDADES VARIAS
+  if(_secH("nov")){
   var novSec=_sec("NOVEDADES");
   if(novSec){
     cuerpo+=_seccionTitulo(14,"NOVEDADES VARIAS");
     cuerpo+=_renderFilas(novSec);
-  }
+  }}
   // 15. PERSONAL
+  if(_secH("pers")){
   var persSec=_sec("PERSONAL_COSTERA");
   if(persSec){
     cuerpo+=_seccionTitulo(15,"PERSONAL");
     cuerpo+=_renderFilas(persSec);
-  }
+  }}
   return cuerpo;
 }
 
@@ -6257,8 +6310,10 @@ function exportarWord(){
     _firmanteOficial=(document.getElementById("firmanteOficial")||{}).value||"";
     var fechaEl=document.getElementById("exportFecha");
     var fechaStr=fechaEl&&fechaEl.value?function(d){var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}(fechaEl.value):datosGlobales.fecha||"";
+    _ultimaFechaExport = fechaStr;
     var fechaFile=fechaStr.replace(/\//g,"-")||"hoy";
     var fechaPalabras=_fechaPalabras(fechaStr);
+    _exportSeccionesFilter = new Set(Array.from(document.querySelectorAll("#exportSecciones input:checked")).map(function(cb){return cb.value;}));
     var cuerpo=_buildParteCuerpo();
     var docHTML=_buildParteHTML(cuerpo,fechaStr,fechaPalabras);
     var blob=new Blob(["\ufeff",docHTML],{type:"application/msword"});
