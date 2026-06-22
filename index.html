@@ -1380,6 +1380,10 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <input type="text" id="firmanteOficial" placeholder="Nombre..." style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit">
       </div>
     </div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:2px">📅 Fecha del parte</label>
+      <input type="date" id="exportFecha" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit">
+    </div>
     <div class="modal-btns" style="justify-content:center">
       <button onclick="exportarPDF()" id="btnPDF" class="btn-exp-pdf">📕 PDF</button>
       <button onclick="exportarWord()" id="btnWord" class="btn-exp-word">📘 Word</button>
@@ -5322,6 +5326,16 @@ function abrirModalExport(){
   document.getElementById("bpFecha").value = "";
   document.getElementById("bpFechaLabel").textContent = "";
   document.getElementById("bpResultados").innerHTML = "";
+  var ef = document.getElementById("exportFecha");
+  if (!ef.value) {
+    var fStr = datosGlobales ? (datosGlobales.fecha || "") : "";
+    if (fStr) {
+      var p = fStr.split("/");
+      if (p.length === 3) {
+        ef.value = p[2] + "-" + p[1] + "-" + p[0];
+      }
+    }
+  }
 }
 function cerrarModalExport(){document.getElementById("modalExport").classList.remove("activo");}
 document.getElementById("modalExport").addEventListener("click",function(e){if(e.target===this)cerrarModalExport();});
@@ -5332,7 +5346,8 @@ async function exportarPDF(){
   try{
     _firmanteEncargado=(document.getElementById("firmanteEncargado")||{}).value||"";
     _firmanteOficial=(document.getElementById("firmanteOficial")||{}).value||"";
-    var fechaStr=datosGlobales.fecha||"";
+    var fechaEl=document.getElementById("exportFecha");
+    var fechaStr=fechaEl&&fechaEl.value?function(d){var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}(fechaEl.value):datosGlobales.fecha||"";
     var fechaPalabras=_fechaPalabras(fechaStr);
     var cuerpo=_buildParteCuerpo();
     var html=_buildParteHTML(cuerpo,fechaStr,fechaPalabras);
@@ -5369,7 +5384,8 @@ async function subirBase64(file){
       reader.readAsDataURL(file);
     });
     status.textContent="Guardando en Drive...";status.style.color="#555";
-    var fechaStr=datosGlobales?datosGlobales.fecha||"":"";
+    var fechaEl=document.getElementById("exportFecha");
+    var fechaStr=fechaEl&&fechaEl.value?function(d){var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}(fechaEl.value):(datosGlobales?datosGlobales.fecha||"":"");
     var ext=file.name.toLowerCase().split(".").pop();
     var mimeType = ext === "pdf" ? "application/pdf" :
                    ext === "doc" ? "application/msword" :
@@ -5414,19 +5430,23 @@ async function buscarParte(){
   btn.textContent="\u23F3";btn.disabled=true;
   resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">Buscando...</div>';
   try{
-    var params=new URLSearchParams();params.set("accion","buscarParte");params.set("fecha",fechaStr);
+    var params=new URLSearchParams();params.set("accion","buscarParte");params.set("fecha",fechaStr);params.set("_",Date.now());
     var response=await fetch(API_URL+"?"+params.toString(),{method:"GET",redirect:"follow",cache:"no-store"});
-    var text=await response.text();var res=JSON.parse(text);
+    var text=await response.text();var res;
+    try{res=JSON.parse(text);}catch(e){res=null;}
     btn.textContent="\uD83D\uDD0D";btn.disabled=false;
     if(res&&res.ok&&res.partes&&res.partes.length){
-      mostrarResultados(res.partes);
+      var filtradas=res.partes.filter(function(p){return p.fecha===fechaStr;});
+      if(filtradas.length) mostrarResultados(filtradas);
+      else resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">\uD83D\uDCED Sin partes para esa fecha.</div>';
+    }else if(res&&res.error){
+      resDiv.innerHTML='<div style="text-align:center;color:var(--red);padding:20px">\u26A0 '+esc(res.error)+'</div>';
     }else{
-      var msg=(res&&res.error?'\u26A0 '+esc(res.error):'\uD83D\uDCED Sin partes para esa fecha.');
-      resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">'+msg+'</div>';
+      resDiv.innerHTML='<div style="text-align:center;color:var(--text-lt);padding:20px">\uD83D\uDCED Sin partes para esa fecha.</div>';
     }
   }catch(err){
     btn.textContent="\uD83D\uDD0D";btn.disabled=false;
-    resDiv.innerHTML='<div style="text-align:center;color:var(--red);padding:20px">\u26A0 Error: '+esc(err.message||err)+'</div>';
+    resDiv.innerHTML='<div style="text-align:center;color:var(--red);padding:20px">\u26A0 Error de conexi\u00f3n. Prob\u00e1 recargar la p\u00e1gina (Ctrl+F5).</div>';
   }
 }
 
@@ -5885,11 +5905,13 @@ function _buildParteCuerpo(){
       var sarCerrados=sarCasos.filter(function(f){var s=((f.estado||"")+" "+(f.situacion||"")).toUpperCase();return s.includes("CERRADO");}).length;
       var sarPendientes=sarCasos.length-sarCerrados;
       cuerpo+=_subTitulo("Casos SAR (Cerrados: "+sarCerrados+" | Pendientes: "+sarPendientes+")");
-      var sarPendList=sarCasos.filter(function(f){return !((f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO"));});
-      if(sarPendList.length){
-        sarPendList.forEach(function(f){
+      if(sarCasos.length){
+        sarCasos.forEach(function(f){
+          var esCerrado=(f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO");
+          var color=esCerrado?"#2e7d32":"#c0392b";
+          var label=esCerrado?"[Cerrado]":"[Pendiente]";
           cuerpo+='<div style="font-size:12pt;padding:3pt 0;border-bottom:1px dotted #ccc">';
-          cuerpo+='<b style="color:#c0392b">'+_esc(f.buque)+'</b> <span style="color:#c0392b;font-size:10pt;font-weight:600">[Pendiente]</span><br>';
+          cuerpo+='<b style="color:'+color+'">'+_esc(f.buque)+'</b> <span style="color:'+color+';font-size:10pt;font-weight:600">'+label+'</span><br>';
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto||"")+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion||"")+'<br>';
           cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad||"")+'<br>';
@@ -5897,7 +5919,7 @@ function _buildParteCuerpo(){
           cuerpo+='<b>SITUACI\u00d3N:</b> '+_esc(f.situacion||"");
           cuerpo+='</div>';
         });
-      }else if(!sarCerrados){
+      }else{
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
       }
     }
@@ -5906,11 +5928,13 @@ function _buildParteCuerpo(){
       var masCerrados=masCasos.filter(function(f){var s=((f.estado||"")+" "+(f.situacion||"")).toUpperCase();return s.includes("CERRADO");}).length;
       var masPendientes=masCasos.length-masCerrados;
       cuerpo+=_subTitulo("Casos MAS (Cerrados: "+masCerrados+" | Pendientes: "+masPendientes+")");
-      var masPendList=masCasos.filter(function(f){return !((f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO"));});
-      if(masPendList.length){
-        masPendList.forEach(function(f){
+      if(masCasos.length){
+        masCasos.forEach(function(f){
+          var esCerrado=(f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO");
+          var color=esCerrado?"#2e7d32":"#c07c1a";
+          var label=esCerrado?"[Cerrado]":"[Pendiente]";
           cuerpo+='<div style="font-size:12pt;padding:3pt 0;border-bottom:1px dotted #ccc">';
-          cuerpo+='<b style="color:#c07c1a">'+_esc(f.buque)+'</b> <span style="color:#c07c1a;font-size:10pt;font-weight:600">[Pendiente]</span><br>';
+          cuerpo+='<b style="color:'+color+'">'+_esc(f.buque)+'</b> <span style="color:'+color+';font-size:10pt;font-weight:600">'+label+'</span><br>';
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto||"")+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion||"")+'<br>';
           cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad||"")+'<br>';
@@ -5918,7 +5942,7 @@ function _buildParteCuerpo(){
           cuerpo+='<b>SITUACI\u00d3N:</b> '+_esc(f.situacion||"");
           cuerpo+='</div>';
         });
-      }else if(!masCerrados){
+      }else{
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
       }
     }
@@ -6088,11 +6112,16 @@ function _buildParteCuerpo(){
       }
     });
   }
-  // 13. CONFLICTO MEDIO ORIENTE
-  var confSec=_sec("CONFLICTO");
-  if(confSec){
-    cuerpo+=_seccionTitulo(13,"CONFLICTO MEDIO ORIENTE");
-    cuerpo+=_renderFilas(confSec);
+  // 13. PBIP
+  var pbipSec=_sec("PBIP");
+  if(pbipSec){
+    cuerpo+=_seccionTitulo(13,"PBIP");
+    var pbipItems=_filas("PBIP","pbip");
+    if(pbipItems.length){
+      cuerpo+=_renderTabla(pbipItems.map(function(f){return f.datos||[];}),["Buque","Identificaci\u00f3n","Situaci\u00f3n","Estado","Fecha inicio","Fecha cierre","Dependencia","Tipo Buque","Bandera","Novedades"]);
+    }else{
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin registros PBIP.</div>';
+    }
   }
   // 14. NOVEDADES VARIAS
   var novSec=_sec("NOVEDADES");
@@ -6226,7 +6255,8 @@ function exportarWord(){
   try{
     _firmanteEncargado=(document.getElementById("firmanteEncargado")||{}).value||"";
     _firmanteOficial=(document.getElementById("firmanteOficial")||{}).value||"";
-    var fechaStr=datosGlobales.fecha||"";
+    var fechaEl=document.getElementById("exportFecha");
+    var fechaStr=fechaEl&&fechaEl.value?function(d){var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}(fechaEl.value):datosGlobales.fecha||"";
     var fechaFile=fechaStr.replace(/\//g,"-")||"hoy";
     var fechaPalabras=_fechaPalabras(fechaStr);
     var cuerpo=_buildParteCuerpo();
