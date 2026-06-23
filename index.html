@@ -2832,14 +2832,48 @@ function renderHomeCards(data, sarN, masN) {
       </div>
 
     </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+
+      <!-- SAR/MAS MAP -->
+      <div class="dash-card" style="background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:visible !important;display:flex;flex-direction:column;">
+        <div style="height:4px;background:linear-gradient(90deg,#dc2626,#a855f7);flex-shrink:0;"></div>
+        <div style="padding:8px 12px 4px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
+            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">🆘 SAR / MAS — Mapa de Posiciones</span>
+            <div>
+              <button onclick="irSeccion('SAR')" style="font-size:9px;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:2px 8px;cursor:pointer;margin-right:4px;">Ver SAR</button>
+              <button onclick="irSeccion('MAS')" style="font-size:9px;font-weight:700;color:#a855f7;background:#faf5ff;border:1px solid #e9d5ff;border-radius:4px;padding:2px 8px;cursor:pointer;">Ver MAS</button>
+            </div>
+          </div>
+        </div>
+        <div style="min-height:400px;">
+          ${aisMapHtmlReadOnly()}
+        </div>
+      </div>
+
+      <!-- DETERMINANTES MAP -->
+      <div class="dash-card" style="background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:visible !important;display:flex;flex-direction:column;">
+        <div style="height:4px;background:linear-gradient(90deg,#1d6fa4,#14b8a6);flex-shrink:0;"></div>
+        <div style="padding:8px 12px 4px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
+            <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">💧 Determinantes — Mapa</span>
+            <button onclick="irSeccion('DETERMINANTES')" style="font-size:9px;font-weight:700;color:#1d6fa4;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;cursor:pointer;">Ver completo</button>
+          </div>
+        </div>
+        <div id="hc-dash-determinantes" style="min-height:400px;cursor:grab;"></div>
+      </div>
+
+    </div>
   `;
 
   // Insertar en el contenedor del home
   document.getElementById("home-dash-wrap").appendChild(bloque);
 
-  // ── Fijar altura del grid por JS ──
+  // ── Fijar altura del grid por JS (solo >1400px) ──
   if (!window._fixGridH) {
     window._fixGridH = function() {
+      if (window.innerWidth <= 1400) return;
       var _wrap = document.getElementById("home-dash-wrap");
       var _grid = _wrap ? _wrap.querySelector(".home-dash-grid") : null;
       if (_grid && _wrap) {
@@ -2870,8 +2904,14 @@ function renderHomeCards(data, sarN, masN) {
         }
         initPuertosMap("hc-dash-puertos", closedList, portFilas);
       }
-    } catch(e) { console.error("Error gráficos home:", e); }
-  }, 100);
+    } catch(e) { console.error("Error gráficos home puertos:", e); }
+    try {
+      if (document.getElementById("hc-ais-map")) initHcAisMap();
+    } catch(e) { console.error("Error gráficos home AIS:", e); }
+    try {
+      if (document.getElementById("hc-dash-determinantes")) initDeterminantesMap("hc-dash-determinantes");
+    } catch(e) { console.error("Error gráficos home determinantes:", e); }
+  }, 300);
 }
 
 /* ================================================================
@@ -3061,7 +3101,7 @@ function mostrarSeccion(id) {
     DRAGAS:"Dragas Operando", DETERMINANTES:"Determinantes",
     MOV_BAJO_PARANA:"Mov. — Bajo Paraná", MOV_DELTA:"Mov. — Delta",
     MOV_ZONA3:"Mov. — Río de la Plata", MOV_ZONA4:"Mov. — Mar Norte",
-    BUQUES:"Buques Infracción", VISITAS:"Resumen Movimientos portuarios",
+    BUQUES:"Buques Infracción", VISITAS:"Visitas previstas",
     NOVEDADES:"Novedades Varias", PERSONAL_COSTERA:"Personal Costera",
     METANEROS:"Metaneros", PBIP:"PBIP",
     VELEROS_OC:"Veleros Oceánicos", CRUCEROS:"Cruceros"
@@ -3177,7 +3217,7 @@ function mapaGisHtml() {
 }
 
 /* ── AIS MAP (AISStream WebSocket) ──────────────────────────── */
-let _aisMap = null, _aisMarkers = {}, _aisManualVessels = [], _aisWs = null, _aisCurrentSection = null, _aisReconnectTimer = null, _aisBuffer = {};
+let _aisMap = null, _aisMarkers = {}, _aisManualVessels = [], _aisWs = null, _aisCurrentSection = null, _aisReconnectTimer = null, _aisBuffer = {}, _aisPinSections = {};
 
 function aisInitMap() {
   const el = document.getElementById("ais-map");
@@ -3213,7 +3253,7 @@ function _aisGuardarPins() {
   var data = {};
   _aisManualVessels.forEach(function(id) {
     var e = _aisBuffer[id];
-    if (e) data[id] = { name: e.name, lat: e.lat, lon: e.lon, createdAt: e.createdAt, ts: e.ts };
+    if (e) data[id] = { name: e.name, lat: e.lat, lon: e.lon, createdAt: e.createdAt, ts: e.ts, section: _aisPinSections[id] || "" };
   });
   llamarAPI("guardarPines", { pines: JSON.stringify(data) }).catch(function(e) { console.warn("[AIS] Error guardando pines:", e); });
 }
@@ -3227,6 +3267,7 @@ async function _aisCargarPins() {
       if (!_aisBuffer[id]) {
         _aisBuffer[id] = { name: d.name, lat: d.lat, lon: d.lon, ts: d.createdAt || d.ts || "", data: { MetaData: { MMSI: id, ShipName: d.name, latitude: d.lat, longitude: d.lon } }, manual: true, createdAt: d.createdAt || d.ts || "" };
       }
+      if (d.section) _aisPinSections[id] = d.section;
     });
   } catch(e) { console.warn("[AIS] Error cargando pines:", e); }
 }
@@ -3394,10 +3435,11 @@ async function aisStartRefresh(seccionId) {
   if (!aisInitMap()) { setTimeout(function() { if (_aisCurrentSection === seccionId) aisStartRefresh(seccionId); }, 300); return; }
   // force map to render properly
   setTimeout(function() { if (_aisMap) _aisMap.invalidateSize(); }, 50);
-  // Plot manual vessels DIRECTLY (bypass search-term matching)
+  // Plot manual vessels DIRECTLY (bypass search-term matching) — only for current section
   _aisManualVessels.forEach(function(v) {
     var entry = _aisBuffer[v];
-    if (entry && _aisCurrentSection === seccionId && _aisMap) {
+    var pinSection = _aisPinSections[v] || "";
+    if (entry && _aisCurrentSection === seccionId && _aisMap && (!pinSection || pinSection === seccionId)) {
       var fakeData = { MetaData: { MMSI: v, ShipName: entry.name, latitude: entry.lat, longitude: entry.lon } };
       // directly create marker if not already present
       if (!_aisMarkers[v]) {
@@ -3416,7 +3458,7 @@ async function aisStartRefresh(seccionId) {
   setTimeout(function() { if (document.getElementById("ais-vessel-list")) _aisRenderLista(); }, 30);
   // Then plot case-matched vessels from buffer (skip manual IDs)
   var searchTerms = aisExtraerNombres(seccionId);
-  var count = _aisManualVessels.length;
+  var count = _aisManualVessels.filter(function(v) { var s = _aisPinSections[v] || ""; return !s || s === seccionId; }).length;
   Object.keys(_aisBuffer).forEach(function(mmsi) {
     if (_aisManualVessels.indexOf(mmsi) !== -1) return; // already plotted above
     var entry = _aisBuffer[mmsi];
@@ -3433,6 +3475,7 @@ async function aisStartRefresh(seccionId) {
 function aisLimpiarManuales() {
   _aisManualVessels = [];
   _aisTrackedMMSIs = [];
+  _aisPinSections = {};
   llamarAPI("guardarPines", { pines: "{}" }).catch(function() {});
   // clear pin inputs
   ["ais-pin-name","ais-pin-lat","ais-pin-lon","ais-mmsi-input"].forEach(function(id) {
@@ -3459,6 +3502,7 @@ function aisEliminarVessel(id) {
   if (!confirm("¿Está seguro que desea eliminar " + _n + "?")) return;
   if (_aisMarkers[id] && _aisMap) { _aisMap.removeLayer(_aisMarkers[id]); delete _aisMarkers[id]; }
   delete _aisBuffer[id];
+  delete _aisPinSections[id];
   _aisManualVessels = _aisManualVessels.filter(function(v) { return v !== id; });
   _aisTrackedMMSIs = _aisTrackedMMSIs.filter(function(v) { return v !== id; });
   _aisGuardarPins();
@@ -3501,6 +3545,7 @@ function aisAgregarManual() {
   var val = input.value.trim();
   if (!val) return;
   _aisManualVessels.push(val);
+  _aisPinSections[val] = _aisCurrentSection || "";
   if (/^\d{5,}$/.test(val) && _aisTrackedMMSIs.indexOf(val) === -1) _aisTrackedMMSIs.push(val);
   input.value = "";
 
@@ -3593,6 +3638,7 @@ function aisPinManual() {
     var fakeId = oldId;
     var fakeData = { MetaData: { MMSI: fakeId, ShipName: name, latitude: lat, longitude: lon } };
     _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true, createdAt: e.createdAt || new Date().toISOString() };
+    _aisPinSections[fakeId] = _aisCurrentSection || _aisPinSections[fakeId] || "";
     if (_aisCurrentSection && _aisMap) {
       aisProcessPosition(fakeData, _aisCurrentSection);
       _aisMap.setView([lat, lon], 7);
@@ -3606,6 +3652,7 @@ function aisPinManual() {
   _aisBuffer[fakeId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString(), data: fakeData, manual: true, createdAt: new Date().toISOString() };
   // add to manual vessels so it persists in the list
   _aisManualVessels.push(fakeId);
+  _aisPinSections[fakeId] = _aisCurrentSection || "";
   if (_aisCurrentSection && _aisMap) {
     aisProcessPosition(fakeData, _aisCurrentSection);
     _aisMap.setView([lat, lon], 7);
@@ -3613,28 +3660,193 @@ function aisPinManual() {
   _aisGuardarPins();
 }
 
-function aisMapHtml() {
-  return '<div id="ais-map-wrap" class="activo" style="display:block">' +
+function aisMapHtml(suffix) {
+  var s = suffix || "";
+  return '<div id="ais-map-wrap'+s+'" class="activo" style="display:block">' +
     '<div class="ais-map-header">' +
       '<h3>Posiciones AIS en vivo</h3>' +
       '<div class="ais-map-controls">' +
-        '<input type="text" id="ais-mmsi-input" placeholder="IMO / MMSI / nombre" onkeydown="if(event.key===\'Enter\')aisAgregarManual()" style="width:110px">' +
-        '<button onclick="aisAgregarManual()" title="Agregar por MMSI/nombre">+ AIS</button>' +
-        '<button onclick="if(_aisMap)_aisMap.fitBounds([[-55,-73],[-22,-54]])" title="Ver Argentina completa" style="background:#64748b;color:#fff">🗺️ ARG</button>' +
-        '<button onclick="aisLimpiarManuales()" title="Limpiar todos" style="background:#ef4444;color:#fff">✕</button>' +
+        '<input type="text" id="ais-mmsi-input'+s+'" placeholder="IMO / MMSI / nombre" onkeydown="if(event.key===\'Enter\')aisAgregarManual'+s+'()" style="width:110px">' +
+        '<button onclick="aisAgregarManual'+s+'()" title="Agregar por MMSI/nombre">+ AIS</button>' +
+        '<button onclick="if(_aisMap'+s+')_aisMap'+s+'.fitBounds([[-55,-73],[-22,-54]])" title="Ver Argentina completa" style="background:#64748b;color:#fff">🗺️ ARG</button>' +
+        '<button onclick="aisLimpiarManuales'+s+'()" title="Limpiar todos" style="background:#ef4444;color:#fff">✕</button>' +
       '</div>' +
     '</div>' +
     '<div style="display:flex;gap:4px;padding:4px 8px;background:#f0f4ff;border-bottom:1px solid var(--gray-200);align-items:center;flex-wrap:wrap;font-size:11px">' +
       '<span style="font-weight:700;color:#8b5cf6">📍</span>' +
-      '<input type="text" id="ais-pin-name" placeholder="Nombre" style="width:80px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
-      '<input type="text" id="ais-pin-lat" placeholder="Lat (ej: 26° 56\' S)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
-      '<input type="text" id="ais-pin-lon" placeholder="Lon (ej: 58° 29\' W)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
-      '<button id="ais-pin-btn" onclick="aisPinManual()" style="padding:3px 8px;background:#8b5cf6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">+ Pin</button>' +
+      '<input type="text" id="ais-pin-name'+s+'" placeholder="Nombre" style="width:80px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
+      '<input type="text" id="ais-pin-lat'+s+'" placeholder="Lat (ej: 26° 56\' S)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
+      '<input type="text" id="ais-pin-lon'+s+'" placeholder="Lon (ej: 58° 29\' W)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
+      '<button id="ais-pin-btn'+s+'" onclick="aisPinManual'+s+'()" style="padding:3px 8px;background:#8b5cf6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">+ Pin</button>' +
     '</div>' +
-    '<div id="ais-map" style="height:520px;width:100%"></div>' +
-    '<div class="ais-map-msg" id="ais-map-msg">Inicializando mapa AIS...</div>' +
-    '<div id="ais-vessel-list" style="padding:4px 12px 6px;font-size:10px;background:#f8fafc;border-top:1px solid var(--gray-200);max-height:80px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:3px 8px;"></div>' +
+    '<div id="ais-map'+s+'" style="height:520px;width:100%"></div>' +
+    '<div class="ais-map-msg" id="ais-map-msg'+s+'">Inicializando mapa AIS...</div>' +
+    '<div id="ais-vessel-list'+s+'" style="padding:4px 12px 6px;font-size:10px;background:#f8fafc;border-top:1px solid var(--gray-200);max-height:80px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:3px 8px;"></div>' +
   '</div>';
+}
+
+function aisMapHtmlReadOnly() {
+  return '<div style="display:block">' +
+    '<div id="hc-ais-map" style="height:380px;width:100%"></div>' +
+    '<div class="ais-map-msg" id="hc-ais-map-msg">Cargando posiciones SAR/MAS...</div>' +
+  '</div>';
+}
+
+var _hcAisMap = null, _hcAisMarkers = {};
+function initHcAisMap() {
+  var el = document.getElementById("hc-ais-map");
+  if (!el) return;
+  if (_hcAisMap) { try { _hcAisMap.remove(); } catch(e) {} _hcAisMap = null; }
+  _hcAisMarkers = {};
+  _hcAisMap = L.map(el, { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(_hcAisMap);
+  L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(_hcAisMap);
+  if (typeof datosGlobales === "undefined" || !datosGlobales) return;
+  var secSAR = datosGlobales.secciones.find(function(s) { return s.id === "SAR"; });
+  var secMAS = datosGlobales.secciones.find(function(s) { return s.id === "MAS"; });
+  var allCases = [];
+  if (secSAR) {
+    (secSAR.filas || []).forEach(function(f) {
+      if (f && f.tipo === "caso_especial") allCases.push({ tipo: "SAR", f: f });
+    });
+  }
+  if (secMAS) {
+    (secMAS.filas || []).forEach(function(f) {
+      if (f && f.tipo === "caso_especial") allCases.push({ tipo: "MAS", f: f });
+    });
+  }
+  var bounds = [];
+  allCases.forEach(function(item) {
+    var pos = (item.f.posicion || "").trim();
+    if (!pos) return;
+    var lat = NaN, lon = NaN;
+    var dm = pos.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])?/i);
+    if (dm) {
+      lat = parseFloat(dm[1]) + parseFloat(dm[2])/60 + parseFloat(dm[3])/3600;
+      lon = NaN;
+      var m2 = pos.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])\s*,?\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])?/i);
+      if (m2) {
+        lat = parseFloat(m2[1]) + parseFloat(m2[2])/60 + parseFloat(m2[3])/3600;
+        if (m2[4] && /[SW]/i.test(m2[4])) lat = -lat;
+        lon = parseFloat(m2[5]) + parseFloat(m2[6])/60 + parseFloat(m2[7])/3600;
+        if (m2[8] && /[SW]/i.test(m2[8])) lon = -lon;
+      }
+    }
+    if (isNaN(lat) || isNaN(lon)) {
+      var decMatch = pos.match(/(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)/);
+      if (decMatch) {
+        var v1 = parseFloat(decMatch[1]), v2 = parseFloat(decMatch[2]);
+        if (v1 >= -90 && v1 <= 10 && v2 >= -80 && v2 <= -30) { lat = v1; lon = v2; }
+        else if (v2 >= -90 && v2 <= 10 && v1 >= -80 && v1 <= -30) { lat = v2; lon = v1; }
+      }
+    }
+    if (isNaN(lat) || isNaN(lon)) return;
+    var cerrado = ((item.f.estado || "") + " " + (item.f.situacion || "")).toUpperCase().includes("CERRADO");
+    var color = item.tipo === "SAR" ? (cerrado ? "#22c55e" : "#dc2626") : (cerrado ? "#10b981" : "#a855f7");
+    var icon = L.divIcon({ className: "", html: '<div style="width:14px;height:14px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>', iconSize: [14,14], iconAnchor: [7,7] });
+    var marker = L.marker([lat, lon], { icon: icon }).addTo(_hcAisMap);
+    marker.bindPopup('<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5"><b style="color:#0f2744">' + esc(item.f.buque || "") + '</b><br><span style="color:' + color + ';font-weight:600">' + item.tipo + (cerrado ? ' — CERRADO' : ' — PENDIENTE') + '</span><br><span style="color:#666">' + esc(item.f.asunto || "") + '</span><br><span style="color:#666">📍 ' + esc(pos) + '</span></div>');
+    _hcAisMarkers[item.f.buque] = marker;
+    bounds.push([lat, lon]);
+  });
+  if (bounds.length > 1) _hcAisMap.fitBounds(bounds, { padding: [30, 30] });
+  else if (bounds.length === 1) _hcAisMap.setView(bounds[0], 8);
+  var msg = document.getElementById("hc-ais-map-msg");
+  if (msg) msg.textContent = bounds.length + " caso" + (bounds.length !== 1 ? "s" : "") + " con posición en mapa.";
+  setTimeout(function() { if (_hcAisMap) _hcAisMap.invalidateSize(); }, 200);
+}
+
+function _parsePosition(pos) {
+  if (!pos || typeof pos !== "string") return null;
+  pos = pos.trim();
+  if (!pos) return null;
+  var lat = NaN, lon = NaN;
+
+  // Normalize: remove "Lat." / "Long." prefixes and parentheses around NSEW
+  var norm = pos.replace(/lat\.?\s*/gi, "").replace(/long\.?\s*/gi, "");
+  norm = norm.replace(/\(\s*([NSEW])\s*\)/gi, "$1");
+
+  // 1. DMS with seconds: 28°51'71"S 59°06'84"W (with any separator including \n)
+  var m2 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])\s*[\/,\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])?/i);
+  if (m2) {
+    lat = parseFloat(m2[1]) + parseFloat(m2[2])/60 + parseFloat(m2[3])/3600;
+    if (m2[4] && /[SW]/i.test(m2[4])) lat = -lat;
+    lon = parseFloat(m2[5]) + parseFloat(m2[6])/60 + parseFloat(m2[7])/3600;
+    if (m2[8] && /[SW]/i.test(m2[8])) lon = -lon;
+  }
+
+  // 2. DMS without seconds: 28°06'S 058°55'W
+  if (isNaN(lat) || isNaN(lon)) {
+    var m1 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*([NSEW])\s*[\/,\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*([NSEW])?/i);
+    if (m1) {
+      lat = parseFloat(m1[1]) + parseFloat(m1[2])/60;
+      if (m1[3] && /[SW]/i.test(m1[3])) lat = -lat;
+      lon = parseFloat(m1[4]) + parseFloat(m1[5])/60;
+      if (m1[6] && /[SW]/i.test(m1[6])) lon = -lon;
+    }
+  }
+
+  // 3. Degrees only: 28.123°S 58.917°W
+  if (isNaN(lat) || isNaN(lon)) {
+    var m0 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*([NSEW])\s*[\/,\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*([NSEW])?/i);
+    if (m0) {
+      lat = parseFloat(m0[1]);
+      if (m0[2] && /[SW]/i.test(m0[2])) lat = -lat;
+      lon = parseFloat(m0[3]);
+      if (m0[4] && /[SW]/i.test(m0[4])) lon = -lon;
+    }
+  }
+
+  // 4. Decimal: -38.123, -56.456
+  if (isNaN(lat) || isNaN(lon)) {
+    var decMatch = norm.match(/(-?\d+(?:\.\d+)?)\s*[,\s\/]\s*(-?\d+(?:\.\d+)?)/);
+    if (decMatch) {
+      var v1 = parseFloat(decMatch[1]), v2 = parseFloat(decMatch[2]);
+      if (v1 >= -90 && v1 <= 10 && v2 >= -80 && v2 <= -30) { lat = v1; lon = v2; }
+      else if (v2 >= -90 && v2 <= 10 && v1 >= -80 && v1 <= -30) { lat = v2; lon = v1; }
+    }
+  }
+
+  if (isNaN(lat) || isNaN(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return { lat: lat, lon: lon };
+}
+
+function initVistaCompletaMasMap() {
+  var el = document.getElementById("sec-mas-map");
+  if (!el) return;
+  var map = L.map(el, { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+  L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(map);
+  var sec = datosGlobales && datosGlobales.secciones.find(function(s) { return s.id === "MAS"; });
+  if (!sec) return;
+  var bounds = [];
+  (sec.filas || []).forEach(function(f) {
+    if (!f || f.tipo !== "caso_especial") return;
+    var posStr = (f.posicion || "").trim();
+    var coords = _parsePosition(posStr);
+    if (!coords) return;
+    var cerrado = ((f.estado || "") + " " + (f.situacion || "")).toUpperCase().includes("CERRADO");
+    var color = cerrado ? "#10b981" : "#a855f7";
+    var nombre = f.buque || "";
+    var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + color + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(nombre) + '</span></div>', iconSize: [14 + (nombre.length * 6), 18], iconAnchor: [7, 9] });
+    var marker = L.marker([coords.lat, coords.lon], { icon: icon }).addTo(map);
+    marker.bindPopup('<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5"><b style="color:#0f2744">' + esc(nombre) + '</b><br><span style="color:' + color + ';font-weight:600">MAS' + (cerrado ? ' — CERRADO' : ' — PENDIENTE') + '</span><br><span style="color:#666">📍 ' + esc(posStr) + '</span></div>');
+    bounds.push([coords.lat, coords.lon]);
+  });
+  if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30] });
+  else if (bounds.length === 1) map.setView(bounds[0], 8);
+  if (bounds.length === 0) {
+    var totalCasos = (sec.filas || []).filter(function(f) { return f && f.tipo === "caso_especial"; }).length;
+    if (totalCasos > 0) {
+      L.control.attribution({ position: "bottomright" }).addTo(map);
+      var msgDiv = document.createElement("div");
+      msgDiv.style.cssText = "background:rgba(255,255,255,0.92);padding:12px 16px;border-radius:8px;font-size:13px;color:#666;text-align:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.15)";
+      msgDiv.textContent = "Sin posiciones georreferenciadas en " + totalCasos + " caso(s).";
+      el.appendChild(msgDiv);
+    }
+  }
+  setTimeout(function() { map.invalidateSize(); }, 200);
 }
 
 /* ================================================================
@@ -3787,6 +3999,17 @@ function renderSeccion(sec) {
       }
     });
     if (sec.id==="SAR"||sec.id==="MAS") {
+      if (sec.id === "MAS" && window._vistaCompletaMode) {
+        return `<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="flex:1;min-width:280px;">${h||`<div class="empty">Sin casos.</div>`}</div>
+          <div style="flex:1;min-width:280px;position:sticky;top:8px;align-self:flex-start;">
+            <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm);">
+              <div style="padding:8px 12px;background:var(--sky);border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between"><span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px">🗺️ Posiciones MAS</span><button onclick="mostrarSeccion('MAS')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--blue);background:#fff;color:var(--blue);cursor:pointer;font-weight:600">Ver mapa completo</button></div>
+              <div id="sec-mas-map" style="height:450px;width:100%;cursor:grab;"></div>
+            </div>
+          </div>
+        </div>`;
+      }
       return `<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
         <div style="flex:1;min-width:280px;">${h||`<div class="empty">Sin casos.</div>`}</div>
         <div style="flex:1;min-width:280px;position:sticky;top:8px;align-self:flex-start;">${aisMapHtml()}</div>
@@ -5324,6 +5547,7 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape")cerrarZoom()
 
 function mostrarVistaCompleta(){
   if (!datosGlobales) return;
+  window._vistaCompletaMode = true;
   document.getElementById("home-view").classList.remove("home-visible");
   document.getElementById("home-view").style.display = "none";
   document.getElementById("section-view").style.display = "block";
@@ -5342,7 +5566,37 @@ function mostrarVistaCompleta(){
     html += `<div class="bloque-sub" style="font-size:15px;margin:16px 0 8px 0;">${esc(titulo)}</div>`;
     try { html += renderSeccion(sec) || ""; } catch(e) { html += `<div class="item-card" style="color:var(--red)">Error al cargar: ${esc(e.message)}</div>`; }
   });
+  window._vistaCompletaMode = false;
   document.getElementById("visor").innerHTML = html || '<div class="empty">Sin datos.</div>';
+
+  setTimeout(function() {
+    try {
+      if (document.getElementById("sec-puertos-map")) {
+        const pSec2 = datosGlobales.secciones.find(s => s.id === "PUERTOS");
+        let closed2 = [], portFilas2 = [];
+        if (pSec2) {
+          portFilas2 = (pSec2.filas||[]).filter(f=>f&&f.tipo==="puerto");
+          closed2 = portFilas2.map(f=>f.datos[0]||"").filter(Boolean);
+        }
+        initPuertosMap("sec-puertos-map", closed2, portFilas2);
+      }
+    } catch(e) { console.error("Vista completa - puertos:", e); }
+    try {
+      if (document.getElementById("sec-determinantes-map")) {
+        initDeterminantesMap("sec-determinantes-map");
+      }
+    } catch(e) { console.error("Vista completa - determinantes:", e); }
+    try {
+      if (document.getElementById("ais-map")) {
+        aisStartRefresh("SAR");
+      }
+    } catch(e) { console.error("Vista completa - AIS SAR:", e); }
+    try {
+      if (document.getElementById("sec-mas-map")) {
+        initVistaCompletaMasMap();
+      }
+    } catch(e) { console.error("Vista completa - AIS MAS:", e); }
+  }, 300);
 }
 
 /* ================================================================
@@ -5767,7 +6021,7 @@ function _pFecha(s){
 }
 
 function _calcDias2(zarpada,regreso) {
-  var ini=_pFecha(zarpada),fin=_pFecha(regreso);
+  var ini=parseDate(zarpada),fin=parseDate(regreso);
   if(!ini||!fin) return {navegando:"?",restantes:"?"};
   var hoy=new Date();hoy.setHours(0,0,0,0);
   return {navegando:Math.max(0,Math.floor((hoy-ini)/86400000)),restantes:Math.max(0,Math.floor((fin-hoy)/86400000))};
@@ -5850,12 +6104,12 @@ function _filas(id,tipo){
 
 function _buildParteCuerpo(){
   function _secH(key){return !_exportSeccionesFilter||_exportSeccionesFilter.has(key);}
-  var cuerpo="";
+  var cuerpo="", secCounter=0;
   // 1. AVIACION
   var avSec=_sec("AVIACION");
   if(_secH("av")){
   if(avSec){
-    cuerpo+=_seccionTitulo(1,"SERVICIO DE AVIACI\u00d3N");
+    cuerpo+=_seccionTitulo(++secCounter,"SERVICIO DE AVIACI\u00d3N");
     var avFilas=avSec.filas||[];
     var aviRealizados=[], aviPrevistos=[];
     var aviMode="realizados", subReal="", subPrev="";
@@ -5884,12 +6138,12 @@ function _buildParteCuerpo(){
   var convSec=_sec("CONVENIO");
   var araSec=_sec("ARA");
   if(gcSec||convSec||araSec){
-    cuerpo+=_seccionTitulo(2,"SERVICIO DE BUQUES GUARDACOSTAS");
+    cuerpo+=_seccionTitulo(++secCounter,"SERVICIO DE BUQUES GUARDACOSTAS");
     var gcFilas=_filas("GC","fila");
     if(gcFilas.length){
       var hoy=new Date();hoy.setHours(0,0,0,0);
-      var gcAct=gcFilas.filter(function(f){var d=_pFecha(f.datos[1]);return !d||d<=hoy;});
-      var gcPrev=gcFilas.filter(function(f){var d=_pFecha(f.datos[1]);return d&&d>hoy;});
+      var gcAct=gcFilas.filter(function(f){var d=parseDate(f.datos[1]);return !d||d<=hoy;});
+      var gcPrev=gcFilas.filter(function(f){var d=parseDate(f.datos[1]);return d&&d>hoy;});
       if(gcAct.length){
         cuerpo+=_subTitulo("Guardacostas en navegaci\u00f3n ("+gcAct.length+")");
         gcAct.forEach(function(f){
@@ -5919,7 +6173,7 @@ function _buildParteCuerpo(){
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
       }
     }
-    if(araSec){
+    if(araSec && !_exportSoloTextoDet){
       cuerpo+=_subTitulo("Buques ARA");
       var araFilas=_filas("ARA","fila");
       if(araFilas.length){
@@ -5934,7 +6188,7 @@ function _buildParteCuerpo(){
   // 3. SALVAMENTO
   if(_secH("salv")){
   var salvSec=_sec("SALVAMENTO");
-  cuerpo+=_seccionTitulo(3,"SERVICIO DE SALVAMENTO, BUCEO Y DOTACIONES DE SEGURIDAD");
+  cuerpo+=_seccionTitulo(++secCounter,"SERVICIO DE SALVAMENTO, BUCEO Y DOTACIONES DE SEGURIDAD");
   cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
   }
   // 4. TRAFICO MARITIMO
@@ -5946,7 +6200,7 @@ function _buildParteCuerpo(){
   var regSec=_sec("REGATAS");
   var ejerSec=_sec("EJER.ARMAS");
   if(kstmSec||resSec||sarSec||masSec||regSec||ejerSec){
-    cuerpo+=_seccionTitulo(4,"SERVICIO DE TR\u00c1FICO MAR\u00cdTIMO");
+    cuerpo+=_seccionTitulo(++secCounter,"SERVICIO DE TR\u00c1FICO MAR\u00cdTIMO");
     if(kstmSec){
       cuerpo+=_subTitulo("Pilotaje / Conserva");
       var kFilasTabla=(kstmSec.filas||[]).filter(function(f){return f&&f.tipo==="fila"&&f.datos&&f.datos.length>=4;});
@@ -5962,7 +6216,7 @@ function _buildParteCuerpo(){
       });
       if(!kTiene) cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
     }
-    if(resSec){
+    if(resSec && !_exportSoloTextoDet){
       cuerpo+=_subTitulo("Reserva de Canal");
       cuerpo+=_renderFilas(resSec);
     }
@@ -5981,7 +6235,7 @@ function _buildParteCuerpo(){
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto||"")+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion||"")+'<br>';
           cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad||"")+'<br>';
-          cuerpo+='<b>CARACTER\u00cdSTICA:</b> '+_esc(f.caracteristica||"")+'<br>';
+          cuerpo+='<b>CARACTER\u00cdSTICA:</b> '+_esc(f.caracteristicas||"")+'<br>';
           cuerpo+='<b>SITUACI\u00d3N:</b> '+_esc(f.situacion||"");
           cuerpo+='</div>';
         });
@@ -6004,7 +6258,7 @@ function _buildParteCuerpo(){
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto||"")+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion||"")+'<br>';
           cuerpo+='<b>NOVEDAD:</b> '+_esc(f.novedad||"")+'<br>';
-          cuerpo+='<b>CARACTER\u00cdSTICA:</b> '+_esc(f.caracteristica||"")+'<br>';
+          cuerpo+='<b>CARACTER\u00cdSTICA:</b> '+_esc(f.caracteristicas||"")+'<br>';
           cuerpo+='<b>SITUACI\u00d3N:</b> '+_esc(f.situacion||"");
           cuerpo+='</div>';
         });
@@ -6012,11 +6266,11 @@ function _buildParteCuerpo(){
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
       }
     }
-    if(regSec){
+    if(regSec && !_exportSoloTextoDet){
       cuerpo+=_subTitulo("Regatas / Eventos N\u00e1uticos");
       cuerpo+=_renderFilas(regSec);
     }
-    if(ejerSec){
+    if(ejerSec && !_exportSoloTextoDet){
       cuerpo+=_subTitulo("Ejercicios de Armas");
       var armas=_filas("EJER.ARMAS","arma");
       if(armas.length){
@@ -6030,7 +6284,7 @@ function _buildParteCuerpo(){
   if(_secH("puertos")){
   var pSec=_sec("PUERTOS");
   if(pSec){
-    cuerpo+=_seccionTitulo(5,"ESTADO DE PUERTOS");
+    cuerpo+=_seccionTitulo(++secCounter,"ESTADO DE PUERTOS");
     var puertos=_filas("PUERTOS","puerto");
     if(puertos.length){
       cuerpo+='<ul style="margin:2pt 0;padding-left:16pt;font-size:12pt">';
@@ -6047,7 +6301,7 @@ function _buildParteCuerpo(){
   function _parseNum(v){return parseFloat(String(v).replace(",","."));}
   var detSec=_sec("DETERMINANTES");
   if(detSec){
-    cuerpo+=_seccionTitulo(6,"DETERMINANTES");
+    cuerpo+=_seccionTitulo(++secCounter,"DETERMINANTES");
     var detFilasAll=_filas("DETERMINANTES","fila");
     var detTablaFilas=detFilasAll.filter(function(f){var d=f.datos||[];return !isNaN(_parseNum(d[11]))&&!isNaN(_parseNum(d[12]));});
     var detTextoRows=detFilasAll.filter(function(f){var d=f.datos||[];return isNaN(_parseNum(d[11]))||isNaN(_parseNum(d[12]));});
@@ -6084,7 +6338,7 @@ function _buildParteCuerpo(){
   if(_secH("dragas")){
   var dragSec=_sec("DRAGAS");
   if(dragSec){
-    cuerpo+=_seccionTitulo(7,"DRAGAS");
+    cuerpo+=_seccionTitulo(++secCounter,"DRAGAS");
     var dragFilas=(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";});
     var dragCount=dragFilas.length;
     if(dragCount){
@@ -6101,7 +6355,7 @@ function _buildParteCuerpo(){
   if(_secH("met")){
   var metSec=_sec("METANEROS");
   if(metSec){
-    cuerpo+=_seccionTitulo(8,"METANEROS");
+    cuerpo+=_seccionTitulo(++secCounter,"METANEROS");
     var metTermRows=[], metPrevRows=[];
     var mode="terminales";
     (metSec.filas||[]).forEach(function(f){
@@ -6132,7 +6386,7 @@ function _buildParteCuerpo(){
   if(_secH("alert")){
   var alSec=_sec("ALERTA");
   if(alSec){
-    cuerpo+=_seccionTitulo(9,"ALERTAS METEOROL\u00d3GICAS");
+    cuerpo+=_seccionTitulo(++secCounter,"ALERTAS METEOROL\u00d3GICAS");
     cuerpo+='<div style="margin:2pt 0"><a href="https://www.smn.gob.ar" style="font-size:12pt;color:#1a6fa4">Servicio Meteorol\u00f3gico Nacional</a></div>';
     var alFilas=_filas("ALERTA","fila");
     if(alFilas.length){
@@ -6145,7 +6399,7 @@ function _buildParteCuerpo(){
   if(_secH("bq")){
   var bqSec=_sec("BUQUES");
   if(bqSec){
-    cuerpo+=_seccionTitulo(10,"BUQUES INFRACCIONADOS DEC. 256/10");
+    cuerpo+=_seccionTitulo(++secCounter,"BUQUES INFRACCIONADOS DEC. 256/10");
     var bqFilas=_filas("BUQUES","fila");
     if(bqFilas.length){
       cuerpo+=_renderTabla(bqFilas.map(function(f){return f.datos||[];}),["Buques","2010-2023","2024","2025","2026","TOTAL"]);
@@ -6157,7 +6411,7 @@ function _buildParteCuerpo(){
   if(_secH("vis")){
   var visSec=_sec("VISITAS");
   if(visSec){
-    cuerpo+=_seccionTitulo(11,"VISITAS");
+    cuerpo+=_seccionTitulo(++secCounter,"VISITAS");
     var visFilas=_filas("VISITAS","fila");
     if(visFilas.length){
       cuerpo+=_renderTabla(visFilas.map(function(f){return f.datos||[];}),["D\u00eda/HS","Aut./Sol.","Actividad","S/Mozo","Pers.","Proyecci\u00f3n","Aut. Ext."]);
@@ -6170,7 +6424,7 @@ function _buildParteCuerpo(){
   var movIds=["MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4"];
   var movSecs=movIds.map(function(id){return _sec(id);}).filter(function(s){return s;});
   if(movSecs.length){
-    cuerpo+=_seccionTitulo(12,"MOVIMIENTO PORTUARIO");
+    cuerpo+=_seccionTitulo(++secCounter,"MOVIMIENTO PORTUARIO");
     movSecs.forEach(function(s){
       cuerpo+=_subTitulo(s.titulo||s.id);
       var buques=(s.filas||[]).filter(function(f){return f&&f.tipo==="buque";});
@@ -6190,7 +6444,7 @@ function _buildParteCuerpo(){
   if(_secH("pbip")){
   var pbipSec=_sec("PBIP");
   if(pbipSec){
-    cuerpo+=_seccionTitulo(13,"PBIP");
+    cuerpo+=_seccionTitulo(++secCounter,"PBIP");
     var pbipItems=_filas("PBIP","pbip");
     if(pbipItems.length){
       cuerpo+=_renderTabla(pbipItems.map(function(f){return f.datos||[];}),["Buque","Identificaci\u00f3n","Situaci\u00f3n","Estado","Fecha inicio","Fecha cierre","Dependencia","Tipo Buque","Bandera","Novedades"]);
@@ -6202,14 +6456,14 @@ function _buildParteCuerpo(){
   if(_secH("nov")){
   var novSec=_sec("NOVEDADES");
   if(novSec){
-    cuerpo+=_seccionTitulo(14,"NOVEDADES VARIAS");
+    cuerpo+=_seccionTitulo(++secCounter,"NOVEDADES VARIAS");
     cuerpo+=_renderFilas(novSec);
   }}
   // 15. PERSONAL
   if(_secH("pers")){
   var persSec=_sec("PERSONAL_COSTERA");
   if(persSec){
-    cuerpo+=_seccionTitulo(15,"PERSONAL");
+    cuerpo+=_seccionTitulo(++secCounter,"PERSONAL");
     cuerpo+=_renderFilas(persSec);
   }}
   return cuerpo;
@@ -6228,7 +6482,7 @@ function _buildResumenCards(){
   var masCasos=_filas("MAS","caso_especial");var masPend=masCasos.filter(function(f){return !((f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO"));});
   if(masPend.length>0){_addCard("MAS PEND.",masPend.length,"#fdf6ea");masPend.forEach(function(f){sMAS.push("<b>"+_esc(f.buque)+"</b>: "+_esc(f.novedad||""));});}
   // GC activos
-  var gcFilas=_filas("GC","fila");var gcAct=gcFilas.filter(function(f){var d=_pFecha(f.datos[1]);return !d||d<=hoy;});
+  var gcFilas=_filas("GC","fila");var gcAct=gcFilas.filter(function(f){var d=parseDate(f.datos[1]);return !d||d<=hoy;});
   if(gcAct.length>0){_addCard("BUQ. GC",gcAct.length,"#edf7f2");gcAct.forEach(function(f){sGC.push("<b>"+_esc(f.datos[0])+"</b>: "+_esc(f.datos[3]||"SIN NOVEDADES"));});}
   // AVIACION
   var avSec=_sec("AVIACION");var avCount=avSec?(avSec.filas||[]).filter(function(f){return f&&f.tipo==="partes";}).length:0;if(avCount>0)_addCard("VUELOS",avCount,"#e8f4fd");
@@ -6963,6 +7217,72 @@ function avanzarAutoRotacion() {
 .chat-spkr:hover { background: rgba(255,255,255,.1); color: #fff; }
 .chat-spkr.speaking { color: #1a73e8; }
 .chat-msg.assistant .msg-text { display: inline; }
+
+/* ── RESPONSIVE: CELULARES Y TABLETS ───────────────────────────── */
+@media (max-width: 1400px) {
+  #home-view.home-visible { overflow: visible; flex: none; }
+  #home-view.home-visible > #home-dash-wrap { overflow: visible; flex: none; height: auto !important; }
+  .home-dash-grid { height: auto !important; grid-template-columns: 1fr !important; display: flex !important; flex-direction: column; gap: 8px; }
+  .home-dash-grid > div { overflow: visible !important; }
+  #home-dash-wrap { height: auto !important; flex: none !important; overflow: visible !important; }
+  .tb-section-sub { display: none; }
+  .tb-section-title { font-size: 11px; }
+  .tb-tab { font-size: 10px; padding: 5px 6px; white-space: nowrap; }
+  .services-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid { grid-template-columns: 1fr; }
+  .home-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .home-header-kpi { overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 4px; gap: 0; }
+  .home-header-kpi::-webkit-scrollbar { height: 2px; }
+  .home-header-kpi::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+  .home-kpi { flex-shrink: 0; padding: 3px 12px; }
+  #hc-dash-puertos { height: 250px !important; min-height: 250px !important; }
+  #btn-auto-rotate { font-size: 11px; padding: 4px 8px; }
+  .buques-charts-grid { grid-template-columns: 1fr !important; }
+  .buques-chart-card .chart-wrap { height: 180px; }
+  .buques-kpi .kpi-val { font-size: 16px; }
+  .buques-kpi .kpi-lbl { font-size: 9px; }
+  .tbl-wrap { border-radius: 8px; }
+  .pna-table { font-size: 11px; }
+  .pna-table th { font-size: 9px; padding: 5px 6px; }
+  .pna-table td { font-size: 10px; padding: 4px 6px; }
+  .avi-table th { font-size: 9px; padding: 4px 6px; }
+  .avi-table td { font-size: 10px; padding: 4px 6px; }
+  .tbl-title { font-size: 10px; padding: 6px; }
+  .item-card { padding: 10px 12px; font-size: 12px; }
+  .bloque-sub { font-size: 11px; margin: 10px 0 6px; }
+  .buque-name { font-size: 13px; }
+  .empty { font-size: 11px; }
+  .sep { margin: 6px 0; }
+  #hamburger-panel { width: 100vw; min-width: 100vw; left: -100vw; border-radius: 0; }
+  #hamburger-panel.open { left: 0; }
+  #ais-map { height: 40vh; }
+  .dash-header { flex-direction: column; text-align: center; padding: 14px 16px; }
+  .dash-header h2 { font-size: 15px; }
+  .dash-close-btn { font-size: 11px; padding: 5px 10px; }
+  #statusbar { flex-wrap: wrap; gap: 4px; font-size: 9px; padding: 3px 8px; }
+  #statusbar span { gap: 3px; }
+}
+@media (max-width: 1024px) and (orientation: portrait) {
+  #visor > div[style*="display:flex"] { flex-direction: column !important; }
+  #visor > div[style*="display:flex"] > div { min-width: 0 !important; }
+}
+.tbl-wrap { -webkit-overflow-scrolling: touch; overflow-x: auto; }
+.pna-table th, .pna-table td, .avi-table th, .avi-table td { white-space: nowrap; }
+@media (max-width: 768px) {
+  #modalExport .modal-box { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; padding: 16px; display: flex; flex-direction: column; }
+  #modalExport .modal-box h2 { font-size: 14px; }
+  #modalExport .modal-btns { flex-direction: column; }
+  #modalExport .modal-btns button { width: 100%; min-height: 44px; font-size: 13px; }
+  #modalExport #exportSecciones { flex: 1; overflow-y: auto; }
+  #modalCaso .modal-box { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; padding: 16px; }
+  #modalCaso .form-grid { grid-template-columns: 1fr; }
+  #modalPin .pin-box { width: 100%; max-width: 320px; margin: 0 16px; }
+}
+@media (max-width: 480px) {
+  #chat-modal { width: 100dvw; height: 100dvh; bottom: 0; right: 0; border-radius: 0; }
+  #chat-btn { width: 52px; height: 52px; font-size: 22px; bottom: 16px; right: 16px; }
+}
 </style>
 
 <div id="chat-btn" title="Consultar al asistente IA">💬</div>
