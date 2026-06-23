@@ -1417,6 +1417,11 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
         <label class="chk-sec"><input type="checkbox" value="pers" checked>Personal</label>
       </div>
     </div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px;flex-wrap:wrap">
+      <button onclick="seleccionarResumen()" style="padding:5px 10px;background:var(--gold);color:var(--navy-dk);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📋 Resumen</button>
+      <button onclick="seleccionarTodo()" style="padding:5px 10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">☑ Todo</button>
+      <button onclick="limpiarSeleccion()" style="padding:5px 10px;background:var(--gray-200);color:var(--text-md);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">☐ Limpiar</button>
+    </div>
     <div class="modal-btns" style="justify-content:center">
       <button onclick="exportarPDF()" id="btnPDF" class="btn-exp-pdf">📕 PDF</button>
       <button onclick="exportarWord()" id="btnWord" class="btn-exp-word">📘 Word</button>
@@ -3323,7 +3328,14 @@ function aisProcessPosition(data, seccionId) {
   if (_aisMarkers[id]) {
     _aisMarkers[id].setLatLng([lat, lon]);
   } else {
-    var iconColor = _aisVesselColor(id);
+    var isManualPin = String(id).indexOf("MANUAL_") === 0;
+    var iconColor;
+    if (isManualPin) {
+      var midx = _aisManualVessels.indexOf(String(id));
+      iconColor = AIS_PALETTE[midx >= 0 ? midx % AIS_PALETTE.length : 0];
+    } else {
+      iconColor = _aisVesselColor(id);
+    }
     var icon = L.divIcon({
       className: "",
       html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + iconColor + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(name) + '</span></div>',
@@ -3334,8 +3346,6 @@ function aisProcessPosition(data, seccionId) {
     var course = data.courseOverGround != null ? data.courseOverGround + "°" : "—";
     var dest = data.destination || "—";
     var shipType = data.shipType || "—";
-
-    var isManualPin = String(id).indexOf("MANUAL_") === 0;
     var fechaTexto = "";
     if (isManualPin && _aisBuffer[id]) {
       var src = _aisBuffer[id].createdAt || _aisBuffer[id].ts;
@@ -3391,7 +3401,7 @@ async function aisStartRefresh(seccionId) {
       var fakeData = { MetaData: { MMSI: v, ShipName: entry.name, latitude: entry.lat, longitude: entry.lon } };
       // directly create marker if not already present
       if (!_aisMarkers[v]) {
-        var iconColor = _aisVesselColor(v);
+        var iconColor = AIS_PALETTE[_aisManualVessels.indexOf(v) % AIS_PALETTE.length];
         var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + iconColor + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(entry.name) + '</span></div>', iconSize: [14 + (entry.name.length * 6), 18], iconAnchor: [7, 9] });
         var _fts = entry.createdAt || entry.ts;
         var _fecha = _fts ? new Date(_fts).toLocaleString("es-AR", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "—";
@@ -3623,14 +3633,6 @@ function aisMapHtml() {
     '</div>' +
     '<div id="ais-map" style="height:520px;width:100%"></div>' +
     '<div class="ais-map-msg" id="ais-map-msg">Inicializando mapa AIS...</div>' +
-    '<div class="ais-map-footer">' +
-      '<div class="ais-map-legend">' +
-        '<span><span class="ais-legend-dot sar"></span>SAR</span>' +
-        '<span><span class="ais-legend-dot mas"></span>MAS</span>' +
-        '<span><span class="ais-legend-dot manual"></span>Manual</span>' +
-      '</div>' +
-      '<span id="ais-last-update">—</span>' +
-    '</div>' +
     '<div id="ais-vessel-list" style="padding:4px 12px 6px;font-size:10px;background:#f8fafc;border-top:1px solid var(--gray-200);max-height:80px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:3px 8px;"></div>' +
   '</div>';
 }
@@ -3787,7 +3789,7 @@ function renderSeccion(sec) {
     if (sec.id==="SAR"||sec.id==="MAS") {
       return `<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
         <div style="flex:1;min-width:280px;">${h||`<div class="empty">Sin casos.</div>`}</div>
-        <div style="flex:1;min-width:280px;">${aisMapHtml()}</div>
+        <div style="flex:1;min-width:280px;position:sticky;top:8px;align-self:flex-start;">${aisMapHtml()}</div>
       </div>`;
     }
     return (h||`<div class="empty">Sin casos.</div>`) + mapaGisHtml();
@@ -5351,9 +5353,31 @@ function abrirNovedadPAPE(){if(!datosGlobales||!datosGlobales.urlPAPE){alert("�
 function abrirAnpyn(){var win=window.open();win.location="https://www.argentina.gob.ar/economia/agencia-nacional-de-puertos-y-navegacion/planillas-de-determinantes";}
 
 /* ================================================================
-   EXPORT - WORD, PDF & GUARDAR PARTE
-   =============================================================== */
+    EXPORT - WORD, PDF & GUARDAR PARTE
+    =============================================================== */
+
+/* ── Selección rápida de secciones para exportar ────────────── */
+var _exportSoloTextoDet = false; // modo resumen → solo texto suelto en determinantes
+
+function seleccionarResumen() {
+  document.querySelectorAll("#exportSecciones input[type=checkbox]").forEach(function(cb){ cb.checked = false; });
+  ["av","gc","trafico","det","vis","bq","pbip","nov","pers"].forEach(function(v){
+    var el = document.querySelector("#exportSecciones input[value='"+v+"']");
+    if (el) el.checked = true;
+  });
+  _exportSoloTextoDet = true;
+}
+function seleccionarTodo() {
+  document.querySelectorAll("#exportSecciones input[type=checkbox]").forEach(function(cb){ cb.checked = true; });
+  _exportSoloTextoDet = false;
+}
+function limpiarSeleccion() {
+  document.querySelectorAll("#exportSecciones input[type=checkbox]").forEach(function(cb){ cb.checked = false; });
+  _exportSoloTextoDet = false;
+}
+
 function abrirModalExport(){
+  _exportSoloTextoDet = false;
   document.getElementById("modalExport").classList.add("activo");
   document.getElementById("bpFecha").value = "";
   document.getElementById("bpFechaLabel").textContent = "";
@@ -5876,7 +5900,7 @@ function _buildParteCuerpo(){
         });
       }
       if(gcPrev.length){
-        cuerpo+=_subTitulo("Previstas ("+gcPrev.length+")");
+        cuerpo+=_subTitulo("Guardacostas previstos ("+gcPrev.length+")");
         gcPrev.forEach(function(f){
           cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
           cuerpo+='<b>'+_esc(f.datos[0])+'</b> \u2014 Zarpe: '+_esc(f.datos[1])+' | ETA: '+_esc(f.datos[2])+' | '+_esc(f.datos[3]||"");
@@ -6027,7 +6051,7 @@ function _buildParteCuerpo(){
     var detFilasAll=_filas("DETERMINANTES","fila");
     var detTablaFilas=detFilasAll.filter(function(f){var d=f.datos||[];return !isNaN(_parseNum(d[11]))&&!isNaN(_parseNum(d[12]));});
     var detTextoRows=detFilasAll.filter(function(f){var d=f.datos||[];return isNaN(_parseNum(d[11]))||isNaN(_parseNum(d[12]));});
-    if(detTablaFilas.length){
+    if(detTablaFilas.length && !_exportSoloTextoDet){
       var calados=detTablaFilas.map(function(f){return _parseNum(f.datos[8]);}).filter(function(v){return!isNaN(v);});
       var minCalado=calados.length?Math.min.apply(null,calados):null;
       var h='<table style="width:100%;border-collapse:collapse;font-size:11pt;margin:3pt 0">';
