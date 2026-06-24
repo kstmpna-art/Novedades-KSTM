@@ -1839,7 +1839,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbw_GAAAKg3k8VL7k2NrkQ6KdHQy_jYXprZ-lnf8S3ieeZczem8_KXC6DdYU_7MViE3eKg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwP7ltEbhlr7xn_HSOVZcsEJYapbXbI1o_4tWHwha-Pi9JGMpgH_klk8FSPe7qX7O0Rbg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -4727,13 +4727,14 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
 
   if (filasKstm.length) {
     h += `<div class="tbl-wrap" style="margin-bottom:16px"><table class="pna-table">
-      <tr><th>Buque (Pto ZR - Pto PU)</th><th>Fecha ZR</th><th>Fecha PU</th><th>Situación - FH Amarre</th></tr>`;
+      <tr><th>Buque (Pto ZR - Pto PU)</th><th>Tipo de Navegación</th><th>Fecha ZR</th><th>Fecha PU</th><th>Situación - FH Amarre</th></tr>`;
     filasKstm.forEach(function(f) {
       var d = f.datos;
       h += `<tr><td style="text-align:left;font-weight:600;">${esc(d[0]||"")}</td>
         <td>${esc(d[1]||"")}</td>
         <td>${esc(d[2]||"")}</td>
-        <td style="text-align:left">${esc(d[3]||"")}</td></tr>`;
+        <td>${esc(d[3]||"")}</td>
+        <td style="text-align:left">${esc(d[4]||"")}</td></tr>`;
     });
     h += `</table></div>`;
   }
