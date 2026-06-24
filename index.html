@@ -163,6 +163,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .fs-active #topbar .tb-nav-right,
 .fs-active #topbar .tb-right {display:none !important}
 .fs-active #topbar {box-shadow:none !important;border-bottom-color:transparent !important;background:rgba(255,255,255,0.85) !important;backdrop-filter:blur(8px);}
+.fs-active #home-maps-grid { display: grid !important; }
+#home-maps-grid { display: none !important; }
 @media (max-width:768px){
   #topbar{flex-wrap:nowrap;height:auto;padding:4px 8px;gap:4px;}
 }
@@ -261,7 +263,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
 /* ── HOME / SERVICIOS ─────────────────────────────────────────── */
 #home-view.home-visible{display:flex !important;flex-direction:column;flex:1;min-height:0;overflow-y:auto;}
-#home-view.home-visible > #home-dash-wrap{min-height:0;flex:1;overflow:hidden;}
+#home-view.home-visible > #home-dash-wrap{min-height:0;flex:1;}
+#home-graficos-bloque{min-height:100%;}
 .home-header{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);
   border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:12px;
@@ -1839,7 +1842,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwP7ltEbhlr7xn_HSOVZcsEJYapbXbI1o_4tWHwha-Pi9JGMpgH_klk8FSPe7qX7O0Rbg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwFfIs6vOVgiOBYrceB3jMqebDRp6nj58zICOlJlK5w1oXGxLFhQxj2uRqYaF_dUJEY9Q/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -2887,13 +2890,12 @@ function renderHomeCards(data, sarN, masN) {
   // ── Fijar altura del grid por JS (solo >1400px) ──
   if (!window._fixGridH) {
     window._fixGridH = function() {
-      if (window.innerWidth <= 1400) return;
       var _wrap = document.getElementById("home-dash-wrap");
-      var _grid = _wrap ? _wrap.querySelector(".home-dash-grid") : null;
-      if (_grid && _wrap) {
-        var _wh = _wrap.clientHeight;
-        if (_wh > 50) { _grid.style.height = _wh + "px"; }
-      }
+      if (!_wrap || !_wrap.querySelector) return;
+      var _grid = _wrap.querySelector(".home-dash-grid");
+      if (!_grid) return;
+      var _wh = _wrap.clientHeight;
+      if (_wh > 50) { _grid.style.height = _wh + "px"; }
     };
     window.addEventListener("resize", window._fixGridH);
   }
@@ -2989,6 +2991,27 @@ function toggleBuscarMobile() {
 }
 function abrirGrupo(grupoId) {}
 window.addEventListener("resize",()=>{});
+
+function toggleBriefing() {
+  const el = document.getElementById("main-body");
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    el.classList.add("fs-active");
+  } else {
+    document.exitFullscreen();
+    el.classList.remove("fs-active");
+  }
+}
+document.addEventListener("fullscreenchange",()=>{
+  const el = document.getElementById("main-body");
+  el.classList.toggle("fs-active",!!document.fullscreenElement);
+  if (!document.fullscreenElement) {
+    const hv = document.getElementById("home-view");
+    if (hv && hv.classList.contains("home-visible")) {
+      mostrarHome();
+    }
+  }
+});
 
 function mostrarHome() {
   cerrarDropdowns();
@@ -4362,12 +4385,22 @@ function renderSeccion(sec) {
     let h=`<div class="tbl-wrap"><div class="tbl-title">SITUACIÓN DE BUQUES</div><table class="pna-table"><tr><th>Dep.</th><th>N° T.P</th><th>Muelles</th><th style="color:var(--gold-lt)">B/ Amar.</th><th>M/ Libres</th><th>Radas</th><th>Cap. Radas</th><th style="color:var(--gold-lt)">C/B Fond.</th><th>Disp. Rada</th></tr>`;
     if(!buques.length) h+=`<tr><td colspan="9" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
     buques.forEach(f=>{
+      const sub=(f.datos[0]||"").startsWith("<<SUBTITULO>>");
+      if (sub) {
+        h+=`<tr><td colspan="9" style="text-align:center;font-weight:700;color:var(--text);background:var(--gray-100);padding:6px;font-size:13px">${esc(f.datos[0].replace("<<SUBTITULO>>",""))}</td></tr>`;
+        return;
+      }
       const tot=(f.datos[0]||"").toUpperCase().includes("TOTAL");
       h+=`<tr${tot?' class="total-row"':''}><td class="dep">${esc(f.datos[0]||"")}</td><td class="num-red">${esc(f.datos[1]||"")}</td><td class="num-red">${esc(f.datos[2]||"")}</td><td class="num-amber">${esc(f.datos[3]||"")}</td><td>${esc(f.datos[4]||"")}</td><td>${esc(f.datos[5]||"")}</td><td>${esc(f.datos[6]||"")}</td><td class="num-amber">${esc(f.datos[7]||"")}</td><td class="num-red">${esc(f.datos[8]||"")}</td></tr>`;
     });
     h+=`</table></div><div class="tbl-wrap" style="margin-top:16px"><div class="tbl-title">MOVIMIENTOS DE BUQUES</div><table class="pna-table"><tr><th rowspan="2">Dep.</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th rowspan="2">T.Mov.</th></tr><tr><th>B/C</th><th>B/T</th><th>B/C</th><th>B/T</th><th>B/P</th><th>B/Port</th><th>B/C</th><th>B/Port</th></tr>`;
     if(!movs.length) h+=`<tr><td colspan="10" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
     movs.forEach(f=>{
+      const sub=(f.datos[0]||"").startsWith("<<SUBTITULO>>");
+      if (sub) {
+        h+=`<tr><td colspan="10" style="text-align:center;font-weight:700;color:var(--text);background:var(--gray-100);padding:6px;font-size:13px">${esc(f.datos[0].replace("<<SUBTITULO>>",""))}</td></tr>`;
+        return;
+      }
       const tot=(f.datos[0]||"").toUpperCase().includes("TOTAL");
       h+=`<tr${tot?' class="total-row"':''}><td class="dep">${f.datos[0]||""}</td>${f.datos.slice(1).map(v=>`<td class="num-red">${esc(v)}</td>`).join("")}</tr>`;
     });
@@ -6126,8 +6159,8 @@ function _buildParteCuerpo(){
         if(aviMode==="previstos") aviPrevistos.push(row); else aviRealizados.push(row);
       }
     });
-    if(aviRealizados.length>1){cuerpo+=_subTitulo("Vuelos realizados "+(subReal||""));cuerpo+=_renderTabla(aviRealizados.slice(1),["Aeronave","Procedencia","Destino","Novedad"]);}
-    if(aviPrevistos.length>1){cuerpo+=_subTitulo("Vuelos previstos "+(subPrev||""));cuerpo+=_renderTabla(aviPrevistos.slice(1),["Aeronave","Procedencia","Destino","Novedad"]);}
+    if(aviRealizados.length>1){cuerpo+=_subTitulo("Vuelos realizados "+(subReal||""));cuerpo+=_renderTabla(aviRealizados.slice(1),["Aeronave","Horario","Destino","Novedad"]);}
+    if(aviPrevistos.length>1){cuerpo+=_subTitulo("Vuelos previstos "+(subPrev||""));cuerpo+=_renderTabla(aviPrevistos.slice(1),["Aeronave","Horario","Destino","Novedad"]);}
     if(aviRealizados.length<=1&&aviPrevistos.length<=1) cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de aviaci\u00f3n.</div>';
   }}
   // 2. GUARDACOSTAS
@@ -6205,7 +6238,7 @@ function _buildParteCuerpo(){
       var kFilasOtros=(kstmSec.filas||[]).filter(function(f){return f&&f.tipo!=="fila";});
       var kTiene=kFilasTabla.length||kFilasOtros.length;
       if(kFilasTabla.length){
-        cuerpo+=_renderTabla(kFilasTabla.map(function(f){return f.datos;}),["Buque (Pto ZR - Pto PU)","Fecha ZR","Fecha PU","Situaci\u00f3n - FH Amarre"]);
+        cuerpo+=_renderTabla(kFilasTabla.map(function(f){return f.datos;}),["Buque (Pto ZR - Pto PU)","Tipo de Navegación","Fecha ZR","Fecha PU","Situaci\u00f3n - FH Amarre"]);
       }
       kFilasOtros.forEach(function(f){
         if(f.tipo==="subtitulo") cuerpo+='<div style="font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;font-size:12pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
@@ -6238,7 +6271,7 @@ function _buildParteCuerpo(){
           cuerpo+='</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos Pendientes/Cerrados.</div>';
       }
     }
     if(masSec){
@@ -6261,7 +6294,7 @@ function _buildParteCuerpo(){
           cuerpo+='</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos activos.</div>';
+        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos Pendientes/Cerrados.</div>';
       }
     }
     if(regSec && !_exportSoloTextoDet){
@@ -6426,12 +6459,22 @@ function _buildParteCuerpo(){
     movSecs.forEach(function(s){
       cuerpo+=_subTitulo(s.titulo||s.id);
       var buques=(s.filas||[]).filter(function(f){return f&&f.tipo==="buque";});
+      var buquesNorm=buques.filter(function(f){return !(f.datos[0]||"").startsWith("<<SUBTITULO>>");});
+      var buquesSub=buques.filter(function(f){return (f.datos[0]||"").startsWith("<<SUBTITULO>>");});
       var movs=(s.filas||[]).filter(function(f){return f&&f.tipo==="movimiento";});
-      if(buques.length){
-        cuerpo+=_renderTabla(buques.map(function(f){return f.datos||[];}),["Dep.","N\u00b0 T.P","Muelles","B/Amar.","M/Libres","Radas","Cap.Radas","C/B Fond.","Disp.Rada"]);
+      var movsNorm=movs.filter(function(f){return !(f.datos[0]||"").startsWith("<<SUBTITULO>>");});
+      var movsSub=movs.filter(function(f){return (f.datos[0]||"").startsWith("<<SUBTITULO>>");});
+      buquesSub.forEach(function(f){
+        cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;padding:1pt 0;border-bottom:1px solid #c0c0c0">'+_esc(f.datos[0].replace("<<SUBTITULO>>",""))+'</div>';
+      });
+      if(buquesNorm.length){
+        cuerpo+=_renderTabla(buquesNorm.map(function(f){return f.datos||[];}),["Dep.","N\u00b0 T.P","Muelles","B/Amar.","M/Libres","Radas","Cap.Radas","C/B Fond.","Disp.Rada"]);
       }
-      if(movs.length){
-        cuerpo+=_renderTabla(movs.map(function(f){return f.datos||[];}),["Dep.","Arr. B/C","Arr. B/T","Zarp. B/C","Zarp. B/T","Arr. B/P","Arr. B/Port","Zarp. B/C","Zarp. B/Port","T.Mov"]);
+      movsSub.forEach(function(f){
+        cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;padding:1pt 0;border-bottom:1px solid #c0c0c0">'+_esc(f.datos[0].replace("<<SUBTITULO>>",""))+'</div>';
+      });
+      if(movsNorm.length){
+        cuerpo+=_renderTabla(movsNorm.map(function(f){return f.datos||[];}),["Dep.","Arr. B/C","Arr. B/T","Zarp. B/C","Zarp. B/T","Arr. B/P","Arr. B/Port","Zarp. B/C","Zarp. B/Port","T.Mov"]);
       }
       if(!buques.length&&!movs.length){
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de movimiento portuario.</div>';
@@ -6475,32 +6518,34 @@ function _buildResumenCards(){
   var sSAR=[],sMAS=[],sGC=[],sPuertos=[],sDragas=[],sAlertas=[],sMetaneros=[],sCalado=[];
   // SAR pendientes
   var sarCasos=_filas("SAR","caso_especial");var sarPend=sarCasos.filter(function(f){return !((f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO"));});
-  if(sarPend.length>0){_addCard("SAR PEND.",sarPend.length,"#fdf0ef");sarPend.forEach(function(f){sSAR.push("<b>"+_esc(f.buque)+"</b>: "+_esc(f.novedad||""));});}
+  _addCard("SAR PEND.",sarPend.length,"#fdf0ef");
+  sarPend.forEach(function(f){sSAR.push("<b>"+_esc(f.buque)+"</b>: "+_esc(f.novedad||""));});
   // MAS pendientes
   var masCasos=_filas("MAS","caso_especial");var masPend=masCasos.filter(function(f){return !((f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO"));});
-  if(masPend.length>0){_addCard("MAS PEND.",masPend.length,"#fdf6ea");masPend.forEach(function(f){sMAS.push("<b>"+_esc(f.buque)+"</b>: "+_esc(f.novedad||""));});}
+  _addCard("MAS PEND.",masPend.length,"#fdf6ea");
+  masPend.forEach(function(f){sMAS.push("<b>"+_esc(f.buque)+"</b>: "+_esc(f.novedad||""));});
   // GC activos
   var gcFilas=_filas("GC","fila");var gcAct=gcFilas.filter(function(f){var d=parseDate(f.datos[1]);return !d||d<=hoy;});
   if(gcAct.length>0){_addCard("BUQ. GC",gcAct.length,"#edf7f2");gcAct.forEach(function(f){sGC.push("<b>"+_esc(f.datos[0])+"</b>: "+_esc(f.datos[3]||"SIN NOVEDADES"));});}
   // AVIACION
   var avSec=_sec("AVIACION");var avCount=avSec?(avSec.filas||[]).filter(function(f){return f&&f.tipo==="partes";}).length:0;if(avCount>0)_addCard("VUELOS",avCount,"#e8f4fd");
   // Puertos cerrados
-  var puertos=_filas("PUERTOS","puerto");if(puertos.length>0){_addCard("PUERTOS",puertos.length,"#edf1f7");puertos.forEach(function(f){var hr=_esc(f.datos[2]||""),mot=_esc(f.datos[3]||"");sPuertos.push("<b>"+_esc(f.datos[0])+"</b>"+(hr?" - "+hr:"")+(mot?" | "+mot:""));});}
+  var puertos=_filas("PUERTOS","puerto");if(puertos.length>0){_addCard("PUERTOS CERRADOS",puertos.length,"#edf1f7");puertos.forEach(function(f){var hr=_esc(f.datos[2]||""),mot=_esc(f.datos[3]||"");sPuertos.push("<b>"+_esc(f.datos[0])+"</b>"+(hr?" - "+hr:"")+(mot?" | "+mot:""));});}
   // Dragas
   var dragSec=_sec("DRAGAS");var dragCount=dragSec?(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).length:0;if(dragCount>0){_addCard("DRAGAS",dragCount,"#e8f4fd");(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).forEach(function(f){var raw=(f.datos||[]).filter(function(v){return v&&String(v).trim();});sDragas.push("<b>"+_esc(raw[0]||"")+"</b>: "+raw.slice(1).map(function(v){return _esc(v);}).join(" | "));});}
   // Alertas
-  var alertas=_filas("ALERTA","fila");if(alertas.length>0){_addCard("ALERTAS",alertas.length,"#fdf6ea");alertas.forEach(function(f){var d=f.datos||[];sAlertas.push("<b>N°"+_esc(d[0])+"</b> - "+_esc(d[1])+": "+_esc(d[2]));});}
+  var alertas=_filas("ALERTA","fila");if(alertas.length>0){_addCard("ALERTAS MET.",alertas.length,"#fdf6ea");alertas.forEach(function(f){var d=f.datos||[];sAlertas.push("<b>N°"+_esc(d[0])+"</b> - "+_esc(d[1])+": "+_esc(d[2]));});}
   // Metaneros
   var metSec=_sec("METANEROS");var metTermRows=[],metPrevRows=[],metMode="terminales";
   if(metSec){(metSec.filas||[]).forEach(function(f){if(!f)return;if(f.tipo==="subtitulo"){var t=(f.texto||"").toUpperCase();if(t.includes("TERMINA")||t.includes("PREVISION")){metMode=t.includes("TERMINA")?"terminales":"previsiones";return;}}if(f.tipo==="fila"){if(metMode==="terminales")metTermRows.push(f.datos);else metPrevRows.push(f.datos);}});if(!metTermRows.length&&!metPrevRows.length){(metSec.filas||[]).forEach(function(f){if(f&&f.tipo==="fila"){if((f.datos||[]).length>=8)metTermRows.push(f.datos);else metPrevRows.push(f.datos);}});}}
-  if(metPrevRows.length>0){_addCard("MET. PREV.",metPrevRows.length,"#edf7f2");metPrevRows.forEach(function(r){r=r||[];var buque=_esc(r[1]||""),arr=_esc(r[2]||""),zarp=_esc(r[3]||""),desc=_esc(r[4]||""),carga=_esc(r[5]||"");var info=[arr?"Arr: "+arr:"",zarp?"Zarp: "+zarp:"",desc?"Desc: "+desc:"",carga?"Carga: "+carga:""].filter(function(v){return v;}).join(" | ");sMetaneros.push("<b>"+buque+"</b>: "+info);});}
+  if(metPrevRows.length>0){_addCard("METANEROS PREV.",metPrevRows.length,"#edf7f2");metPrevRows.forEach(function(r){r=r||[];var buque=_esc(r[1]||""),arr=_esc(r[2]||""),zarp=_esc(r[3]||""),desc=_esc(r[4]||""),carga=_esc(r[5]||"");var info=[arr?"Arr: "+arr:"",zarp?"Zarp: "+zarp:"",desc?"Desc: "+desc:"",carga?"Carga: "+carga:""].filter(function(v){return v;}).join(" | ");sMetaneros.push("<b>"+buque+"</b>: "+info);});}
   // Determinantes - calado minimo con ubicacion
   function _parseNum(v){return parseFloat(String(v).replace(",","."));}
   var detFilas=_filas("DETERMINANTES","fila");var detConCalado=detFilas.filter(function(f){return !isNaN(_parseNum(f.datos[8]));});
   if(detConCalado.length>0){
     var minCal=detConCalado.reduce(function(a,b){return _parseNum(a.datos[8])<_parseNum(b.datos[8])?a:b;});
     var km=_esc(minCal.datos[3]||""),nom=_esc(minCal.datos[2]||""),cal=_parseNum(minCal.datos[8]).toFixed(2);
-    _addCard("DETERMINANTE",cal,"#fdf6ea",(km?"Km "+km+" ":"")+nom);
+    _addCard("DETERMINANTE (Mts)",cal,"#fdf6ea",(km?"Km "+km+" ":"")+nom);
     sCalado.push(cal+"m - "+nom+(km?" (KM "+km+")":""));
   }
   // Build card table (Word-compatible)
