@@ -4382,29 +4382,25 @@ function renderSeccion(sec) {
   if (sec.tipo==="portuario") {
     const buques=filas.filter(f=>f&&f.tipo==="buque");
     const movs=filas.filter(f=>f&&f.tipo==="movimiento");
+    const subs=[...buques.filter(f=>(f.datos[0]||"").startsWith("<<SUBTITULO>>")),...movs.filter(f=>(f.datos[0]||"").startsWith("<<SUBTITULO>>"))];
+    const buquesNorm=buques.filter(f=>!(f.datos[0]||"").startsWith("<<SUBTITULO>>"));
+    const movsNorm=movs.filter(f=>!(f.datos[0]||"").startsWith("<<SUBTITULO>>"));
     let h=`<div class="tbl-wrap"><div class="tbl-title">SITUACIÓN DE BUQUES</div><table class="pna-table"><tr><th>Dep.</th><th>N° T.P</th><th>Muelles</th><th style="color:var(--gold-lt)">B/ Amar.</th><th>M/ Libres</th><th>Radas</th><th>Cap. Radas</th><th style="color:var(--gold-lt)">C/B Fond.</th><th>Disp. Rada</th></tr>`;
-    if(!buques.length) h+=`<tr><td colspan="9" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
-    buques.forEach(f=>{
-      const sub=(f.datos[0]||"").startsWith("<<SUBTITULO>>");
-      if (sub) {
-        h+=`<tr><td colspan="9" style="text-align:center;font-weight:700;color:var(--text);background:var(--gray-100);padding:6px;font-size:13px">${esc(f.datos[0].replace("<<SUBTITULO>>",""))}</td></tr>`;
-        return;
-      }
+    if(!buquesNorm.length) h+=`<tr><td colspan="9" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
+    buquesNorm.forEach(f=>{
       const tot=(f.datos[0]||"").toUpperCase().includes("TOTAL");
       h+=`<tr${tot?' class="total-row"':''}><td class="dep">${esc(f.datos[0]||"")}</td><td class="num-red">${esc(f.datos[1]||"")}</td><td class="num-red">${esc(f.datos[2]||"")}</td><td class="num-amber">${esc(f.datos[3]||"")}</td><td>${esc(f.datos[4]||"")}</td><td>${esc(f.datos[5]||"")}</td><td>${esc(f.datos[6]||"")}</td><td class="num-amber">${esc(f.datos[7]||"")}</td><td class="num-red">${esc(f.datos[8]||"")}</td></tr>`;
     });
     h+=`</table></div><div class="tbl-wrap" style="margin-top:16px"><div class="tbl-title">MOVIMIENTOS DE BUQUES</div><table class="pna-table"><tr><th rowspan="2">Dep.</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th rowspan="2">T.Mov.</th></tr><tr><th>B/C</th><th>B/T</th><th>B/C</th><th>B/T</th><th>B/P</th><th>B/Port</th><th>B/C</th><th>B/Port</th></tr>`;
-    if(!movs.length) h+=`<tr><td colspan="10" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
-    movs.forEach(f=>{
-      const sub=(f.datos[0]||"").startsWith("<<SUBTITULO>>");
-      if (sub) {
-        h+=`<tr><td colspan="10" style="text-align:center;font-weight:700;color:var(--text);background:var(--gray-100);padding:6px;font-size:13px">${esc(f.datos[0].replace("<<SUBTITULO>>",""))}</td></tr>`;
-        return;
-      }
+    if(!movsNorm.length) h+=`<tr><td colspan="10" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
+    movsNorm.forEach(f=>{
       const tot=(f.datos[0]||"").toUpperCase().includes("TOTAL");
       h+=`<tr${tot?' class="total-row"':''}><td class="dep">${f.datos[0]||""}</td>${f.datos.slice(1).map(v=>`<td class="num-red">${esc(v)}</td>`).join("")}</tr>`;
     });
     h+=`</table></div>`;
+    subs.forEach(f=>{
+      h+=`<div style="margin-top:8px;padding:8px 12px;background:var(--gray-100);border-radius:var(--radius);font-weight:700;color:var(--text);font-size:13px">${esc(f.datos[0].replace("<<SUBTITULO>>",""))}</div>`;
+    });
     return h;
   }
 
@@ -6464,18 +6460,16 @@ function _buildParteCuerpo(){
       var movs=(s.filas||[]).filter(function(f){return f&&f.tipo==="movimiento";});
       var movsNorm=movs.filter(function(f){return !(f.datos[0]||"").startsWith("<<SUBTITULO>>");});
       var movsSub=movs.filter(function(f){return (f.datos[0]||"").startsWith("<<SUBTITULO>>");});
-      buquesSub.forEach(function(f){
-        cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;padding:1pt 0;border-bottom:1px solid #c0c0c0">'+_esc(f.datos[0].replace("<<SUBTITULO>>",""))+'</div>';
-      });
+      var subsTodos=buquesSub.concat(movsSub);
       if(buquesNorm.length){
         cuerpo+=_renderTabla(buquesNorm.map(function(f){return f.datos||[];}),["Dep.","N\u00b0 T.P","Muelles","B/Amar.","M/Libres","Radas","Cap.Radas","C/B Fond.","Disp.Rada"]);
       }
-      movsSub.forEach(function(f){
-        cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;padding:1pt 0;border-bottom:1px solid #c0c0c0">'+_esc(f.datos[0].replace("<<SUBTITULO>>",""))+'</div>';
-      });
       if(movsNorm.length){
         cuerpo+=_renderTabla(movsNorm.map(function(f){return f.datos||[];}),["Dep.","Arr. B/C","Arr. B/T","Zarp. B/C","Zarp. B/T","Arr. B/P","Arr. B/Port","Zarp. B/C","Zarp. B/Port","T.Mov"]);
       }
+      subsTodos.forEach(function(f){
+        cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;padding:2pt 0;border-bottom:1px solid #c0c0c0">'+_esc(f.datos[0].replace("<<SUBTITULO>>",""))+'</div>';
+      });
       if(!buques.length&&!movs.length){
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de movimiento portuario.</div>';
       }
