@@ -2100,7 +2100,18 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
   const map = L.map(el, { zoomControl:false, attributionControl:false }).setView([-40,-63], 4);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 }).addTo(map);
   L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
-  const closedSet = new Set(closedCodes);
+  const closedSet = new Set();
+  closedCodes.forEach(function(item) {
+    const raw = (item || "").trim();
+    if (!raw) return;
+    closedSet.add(raw);
+    const lower = raw.toLowerCase();
+    Object.keys(puertosNombres).forEach(function(k) {
+      if (lower === k.toLowerCase() || lower === puertosNombres[k].toLowerCase()) {
+        closedSet.add(k);
+      }
+    });
+  });
   if (!window._puertosMarkers) window._puertosMarkers = {};
   window._puertosMap = map;
   var portLookup = {};
@@ -2111,7 +2122,7 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
       // try to match by code key or by full name
       Object.keys(puertosNombres).forEach(function(k) {
         var match = pName === k.toLowerCase() || pName === puertosNombres[k].toLowerCase();
-        if (match) portLookup[k] = { hora: d[2] || "", motivo: d[3] || "" };
+        if (match) portLookup[k] = { fecha: d[1] || "", hora: d[2] || "", motivo: d[3] || "" };
       });
     });
   }
@@ -2127,6 +2138,7 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
     const icon = L.divIcon({html, iconSize:[12,12], iconAnchor:[6,6], className:""});
     var extra = "";
     if (isClosed && portLookup[code]) {
+      if (portLookup[code].fecha) extra += '<br><span style="font-size:11px;color:#4a6480">📅 ' + esc(portLookup[code].fecha) + '</span>';
       if (portLookup[code].hora) extra += '<br><span style="font-size:11px;color:#4a6480">🕐 ' + esc(portLookup[code].hora) + '</span>';
       if (portLookup[code].motivo) extra += '<br><span style="font-size:11px;color:#4a6480">📌 ' + esc(portLookup[code].motivo) + '</span>';
     }
