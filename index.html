@@ -297,6 +297,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   .home-dash-grid{display:flex;flex-direction:column;gap:8px;height:auto !important;overflow-x:hidden;}
   .home-dash-grid > div{overflow:visible !important;}
   #home-dash-wrap{overflow:visible !important;flex:none !important;height:auto !important;}
+  #home-maps-grid{grid-template-columns:1fr !important;gap:8px !important;}
+  #home-maps-grid .dash-card{transform:none !important;}
   #hc-dash-puertos{height:250px !important;min-height:250px !important;}
   #windy-iframe-home{min-height:250px !important;height:250px !important;}
   .home-dash-grid #windy-iframe-home,.home-dash-grid #hc-dash-puertos{touch-action:pan-y;}
@@ -2833,10 +2835,10 @@ function renderHomeCards(data, sarN, masN) {
 
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+    <div id="home-maps-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
 
       <!-- SAR/MAS MAP -->
-      <div class="dash-card" style="background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:visible !important;display:flex;flex-direction:column;">
+      <div class="dash-card" style="background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
         <div style="height:4px;background:linear-gradient(90deg,#dc2626,#a855f7);flex-shrink:0;"></div>
         <div style="padding:8px 12px 4px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;">
@@ -3719,31 +3721,13 @@ function initHcAisMap() {
   allCases.forEach(function(item) {
     var pos = (item.f.posicion || "").trim();
     if (!pos) return;
-    var lat = NaN, lon = NaN;
-    var dm = pos.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])?/i);
-    if (dm) {
-      lat = parseFloat(dm[1]) + parseFloat(dm[2])/60 + parseFloat(dm[3])/3600;
-      lon = NaN;
-      var m2 = pos.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])\s*,?\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])?/i);
-      if (m2) {
-        lat = parseFloat(m2[1]) + parseFloat(m2[2])/60 + parseFloat(m2[3])/3600;
-        if (m2[4] && /[SW]/i.test(m2[4])) lat = -lat;
-        lon = parseFloat(m2[5]) + parseFloat(m2[6])/60 + parseFloat(m2[7])/3600;
-        if (m2[8] && /[SW]/i.test(m2[8])) lon = -lon;
-      }
-    }
-    if (isNaN(lat) || isNaN(lon)) {
-      var decMatch = pos.match(/(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)/);
-      if (decMatch) {
-        var v1 = parseFloat(decMatch[1]), v2 = parseFloat(decMatch[2]);
-        if (v1 >= -90 && v1 <= 10 && v2 >= -80 && v2 <= -30) { lat = v1; lon = v2; }
-        else if (v2 >= -90 && v2 <= 10 && v1 >= -80 && v1 <= -30) { lat = v2; lon = v1; }
-      }
-    }
-    if (isNaN(lat) || isNaN(lon)) return;
+    var coords = _parsePosition(pos);
+    if (!coords) return;
+    var lat = coords.lat, lon = coords.lon;
     var cerrado = ((item.f.estado || "") + " " + (item.f.situacion || "")).toUpperCase().includes("CERRADO");
     var color = item.tipo === "SAR" ? (cerrado ? "#22c55e" : "#dc2626") : (cerrado ? "#10b981" : "#a855f7");
-    var icon = L.divIcon({ className: "", html: '<div style="width:14px;height:14px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>', iconSize: [14,14], iconAnchor: [7,7] });
+    var nombre = item.f.buque || "";
+    var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + color + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(nombre) + '</span></div>', iconSize: [14 + (nombre.length * 6), 18], iconAnchor: [7, 9] });
     var marker = L.marker([lat, lon], { icon: icon }).addTo(_hcAisMap);
     marker.bindPopup('<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5"><b style="color:#0f2744">' + esc(item.f.buque || "") + '</b><br><span style="color:' + color + ';font-weight:600">' + item.tipo + (cerrado ? ' — CERRADO' : ' — PENDIENTE') + '</span><br><span style="color:#666">' + esc(item.f.asunto || "") + '</span><br><span style="color:#666">📍 ' + esc(pos) + '</span></div>');
     _hcAisMarkers[item.f.buque] = marker;
@@ -3754,6 +3738,7 @@ function initHcAisMap() {
   var msg = document.getElementById("hc-ais-map-msg");
   if (msg) msg.textContent = bounds.length + " caso" + (bounds.length !== 1 ? "s" : "") + " con posición en mapa.";
   setTimeout(function() { if (_hcAisMap) _hcAisMap.invalidateSize(); }, 200);
+  setTimeout(function() { if (_hcAisMap) _hcAisMap.invalidateSize(); }, 800);
 }
 
 function _parsePosition(pos) {
