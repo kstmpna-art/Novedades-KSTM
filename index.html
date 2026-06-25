@@ -417,6 +417,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .dash-header h2{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:#fff}
 .dash-card{transition:transform .2s ease,box-shadow .2s ease;position:relative}
 .dash-card:hover{transform:scale(1.02);box-shadow:0 8px 25px rgba(0,0,0,0.12);z-index:2}
+#windy-dash-card:hover{transform:none !important;box-shadow:0 8px 25px rgba(0,0,0,0.12);z-index:2;border-color:var(--blue) !important}
 .dash-header p{font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px}
 .dash-close-btn{
   background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);
@@ -2828,7 +2829,7 @@ function renderHomeCards(data, sarN, masN) {
       </div>
 
       <!-- RIGHT COLUMN: Windy Map -->
-      <div class="dash-card" style="flex:1;min-width:280px;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
+      <div class="dash-card" id="windy-dash-card" style="flex:1;min-width:280px;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;">
         <div style="height:4px;background:linear-gradient(90deg,#1d6fa4,#2d8bc8);flex-shrink:0;"></div>
         <div style="background:var(--navy);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;letter-spacing:.5px;text-transform:uppercase;">🗺️ Mapa Meteorológico — Windy</span>
@@ -6522,7 +6523,7 @@ function _buildResumenCards(){
   var gcFilas=_filas("GC","fila");var gcAct=gcFilas.filter(function(f){var d=parseDate(f.datos[1]);return !d||d<=hoy;});
   if(gcAct.length>0){_addCard("BUQ. GC",gcAct.length,"#edf7f2");gcAct.forEach(function(f){sGC.push("<b>"+_esc(f.datos[0])+"</b>: "+_esc(f.datos[3]||"SIN NOVEDADES"));});}
   // AVIACION
-  var avSec=_sec("AVIACION");var avCount=avSec?(avSec.filas||[]).filter(function(f){return f&&f.tipo==="partes";}).length:0;if(avCount>0)_addCard("VUELOS",avCount,"#e8f4fd");
+  var avSec=_sec("AVIACION");if(avSec){var _avReal=0,_avPrev=0,_avMode="realizados";(avSec.filas||[]).forEach(function(f){if(!f)return;if(f.tipo==="subtitulo"){var t=(f.texto||"").toUpperCase();if(t.includes("PREVIST")||t.includes("PREVISION")||t.includes("PROGRAMAD")){_avMode="previstos";return;}_avMode="realizados";return;}if(f.tipo==="partes"){if(_avMode==="previstos")_avPrev++;else _avReal++;}});if(_avReal>0||_avPrev>0)_addCard("Vuelos Real.\/Prev.",_avReal+"/"+_avPrev,"#e8f4fd");}
   // Puertos cerrados
   var puertos=_filas("PUERTOS","puerto");if(puertos.length>0){_addCard("PUERTOS CERRADOS",puertos.length,"#edf1f7");puertos.forEach(function(f){var hr=_esc(f.datos[2]||""),mot=_esc(f.datos[3]||"");sPuertos.push("<b>"+_esc(f.datos[0])+"</b>"+(hr?" - "+hr:"")+(mot?" | "+mot:""));});}
   // Dragas
