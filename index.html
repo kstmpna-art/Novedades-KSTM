@@ -4063,6 +4063,21 @@ function renderSeccion(sec) {
        style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
       ⚠️ Advertencias
     </a>
+    <a href="https://www.hidro.gov.ar/" target="_blank"
+       class="tb-btn primary"
+       style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;background:var(--green);border-color:var(--green)">
+      🌊 SHN - Página principal
+    </a>
+    <a href="https://www.hidro.gov.ar/oceanografia/alturashorarias.asp" target="_blank"
+       class="tb-btn outline"
+       style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-color:var(--green);color:var(--green)">
+      🌊 SHN - Alturas de marea
+    </a>
+    <a href="https://www.hidro.gov.ar/oceanografia/pronostico.asp" target="_blank"
+       class="tb-btn outline"
+       style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-color:var(--green);color:var(--green)">
+      🌊 SHN - Pronóstico Mareológico
+    </a>
   </div>
 
   <!-- TABLA DE ALERTAS (desde la planilla) -->
@@ -4351,8 +4366,8 @@ function renderSeccion(sec) {
     filasData.forEach((f, fi) => {
       const cVal = parseNum(f.datos[8]);
       const esMin = minCalado !== null && cVal === minCalado;
-      const rowBg = esMin ? 'style="background:#fef9c3;border-left:4px solid #eab308"' : '';
-      const cColor = esMin ? 'color:#a16207' : '';
+      const rowBg = esMin ? 'style="background:#fef9c3;border-left:4px solid #eab308;font-weight:700"' : '';
+      const cColor = esMin ? 'color:#a16207;font-weight:700' : '';
       h += `<tr ${rowBg} onclick="var m=window._detMap;if(m&&m.markers[${fi}]){m.markers[${fi}].openPopup();m.map.flyTo(m.markers[${fi}].getLatLng(),10)}" style="cursor:pointer">
         <td style="font-weight:700;color:var(--navy);text-align:left">${esc(f.datos[13]||"")}</td>
         <td style="text-align:left">${esc(f.datos[2]||"")}</td>
@@ -6357,10 +6372,10 @@ function _buildParteCuerpo(){
         var d=f.datos||[];
         var cVal=_parseNum(d[8]);
         var esMin=minCalado!==null&&cVal===minCalado;
-        var rowStyle=esMin?' style="background-color:#ffff99"':'';
+        var rowStyle=esMin?' style="background-color:#ffff99;font-weight:700"':'';
         h+='<tr'+rowStyle+'>';
         var cells=[d[13]||"",d[2]||"",d[3]||"",d[10]||"",d[8]||"",d[6]||""];
-        for(var j=0;j<cells.length;j++) h+='<td style="border:1px solid #ccc;padding:2pt 4pt;text-align:'+(j===0?'left':'center')+'">'+_esc(cells[j])+'</td>';
+        for(var j=0;j<cells.length;j++) h+='<td style="border:1px solid #ccc;padding:2pt 4pt;text-align:'+(j===0?'left':'center')+(esMin?';font-weight:700':'')+'">'+_esc(cells[j])+'</td>';
         h+='</tr>';
       });
       h+='</table>';
