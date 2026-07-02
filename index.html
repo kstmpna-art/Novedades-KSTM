@@ -1843,7 +1843,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzmxpkLyKnvLnQKE5lxAw-lsYu4gqZPU9W3R6lG3Oo76VM17oDhVzofC48Z3jJTCIPRcg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxDCu_vPbmu3YwTfMGsfU0cUFU6FT93KrDSSazcW2MEP4JkILhNJ6NMgZ0SRC5bcXCQ-w/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -3919,8 +3919,13 @@ function renderSeccion(sec) {
   }
 
   if (sec.id==="AVIACION") {
-    let h=`<div style="margin-bottom:12px"><button class="tb-btn primary" onclick="abrirAviacion()">📂 Abrir archivo de Aviación del día</button></div>
-      <div class="tbl-wrap"><table class="avi-table">`;
+    let h=`<div style="margin-bottom:12px"><button class="tb-btn primary" onclick="abrirAviacion()">📂 Abrir archivo de Aviación del día</button></div>`;
+    if (sec.medios && sec.medios.length > 0) {
+      h+=`<div class="bloque-sub" style="color:var(--amber)">📡 MEDIOS SAR</div>`;
+      sec.medios.forEach(function(m){ h+=`<div class="item-card amber" style="font-size:13px;padding:6px 12px">${esc(m)}</div>`; });
+      h+=`<div class="sep"></div>`;
+    }
+    h+=`<div class="tbl-wrap"><table class="avi-table">`;
     filas.forEach(f=>{
       if(!f) return;
       if(f.tipo==="subtitulo") h+=`<tr><td colspan="4" class="avi-sub">${esc(f.texto)}</td></tr>`;
@@ -5691,6 +5696,7 @@ async function exportarPDF(){
     var html=_buildParteHTML(cuerpo,fechaStr,fechaPalabras);
     var w=window.open("","_blank");
     w.document.write(html);
+    w.document.title="Parte de Novedades";
     w.document.close();
     btn.textContent="📕 PDF";btn.disabled=false;cerrarModalExport();
   }catch(err){btn.textContent="📕 PDF";btn.disabled=false;alert("Error al generar PDF: "+(err.message||err));}
@@ -6057,39 +6063,39 @@ function _calcDias2(zarpada,regreso) {
 
 function _renderFila(f){
   if(!f)return "";
-  if(f.tipo==="subtitulo") return '<div style="font-weight:700;color:#1a3a5c;margin:5pt 0 2pt;font-size:12pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
+  if(f.tipo==="subtitulo") return '<div style="font-weight:700;color:#1a3a5c;margin:5pt 0 2pt;font-size:14pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
   if(f.tipo==="separador"||f.tipo==="html") return "";
   if(f.tipo==="partes"){
     var t=(f.partes||[]).map(function(p){return(p.prefijo||"")+(p.negrita?'<b>'+_esc(p.texto)+'</b>':_esc(p.texto));}).join(" | ");
-    return t?'<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+t+'</div>':"";
+    return t?'<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+t+'</div>':"";
   }
   if(f.tipo==="fila"){
     var t=(f.datos||[]).filter(function(v){return v&&String(v).trim();}).join(" | ");
-    return t?'<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+_esc(t)+'</div>':"";
+    return t?'<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+_esc(t)+'</div>':"";
   }
-  if(f.tipo==="texto"&&f.texto) return '<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
-  if(f.tipo==="novedad") return '<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
-  if(f.tipo==="caso_especial") return '<div style="font-size:12pt;padding:2pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.buque)+'</b><br><b>ASUNTO:</b> '+_esc(f.asunto)+'<br><b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br><b>NOVEDAD:</b> '+_esc(f.novedad)+'<br><b>SITUACI\u00d3N:</b> '+_esc(f.situacion)+'</div>';
+  if(f.tipo==="texto"&&f.texto) return '<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
+  if(f.tipo==="novedad") return '<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
+  if(f.tipo==="caso_especial") return '<div style="font-size:14pt;padding:2pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.buque)+'</b><br><b>ASUNTO:</b> '+_esc(f.asunto)+'<br><b>POSICI\u00d3N:</b> '+_esc(f.posicion)+'<br><b>NOVEDAD:</b> '+_esc(f.novedad)+'<br><b>SITUACI\u00d3N:</b> '+_esc(f.situacion)+'</div>';
   if(f.tipo==="arma"){
     var d=f.datos||[];
-    return '<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(d[0])+'</b> \u2014 '+_esc(d[1]||"")+(d[2]?' \u2013 '+_esc(d[2]):"")+'<br><span style="color:#555">'+_esc(d[3]||"")+'</span></div>';
+    return '<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(d[0])+'</b> \u2014 '+_esc(d[1]||"")+(d[2]?' \u2013 '+_esc(d[2]):"")+'<br><span style="color:#555">'+_esc(d[3]||"")+'</span></div>';
   }
   return "";
 }
 
 function _renderFilas(sec){
-  if(!sec||!sec.filas) return '<div style="font-size:12pt;font-style:italic;color:#666">Sin datos.</div>';
+  if(!sec||!sec.filas) return '<div style="font-size:14pt;font-style:italic;color:#666">Sin datos.</div>';
   var h="";
   for(var i=0;i<sec.filas.length;i++){
     var r=_renderFila(sec.filas[i]);
     if(r) h+=r;
   }
-  return h||'<div style="font-size:12pt;font-style:italic;color:#666">Sin novedades.</div>';
+  return h||'<div style="font-size:14pt;font-style:italic;color:#666">Sin novedades.</div>';
 }
 
 function _renderTabla(datos,headers){
-  if(!datos||!datos.length) return '<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
-  var h='<table style="width:100%;border-collapse:collapse;font-size:12pt;margin:3pt 0">';
+  if(!datos||!datos.length) return '<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+  var h='<table style="width:100%;border-collapse:collapse;font-size:14pt;margin:3pt 0">';
   if(headers&&headers.length){
     h+='<tr>';
     for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#003366;color:#fff;font-weight:700;padding:3pt 5pt;text-align:center;font-size:11pt">'+headers[i]+'</td>';
@@ -6109,7 +6115,7 @@ function _seccionTitulo(n,titulo){
 }
 
 function _subTitulo(txt){
-  return '<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:6pt 0 2pt;padding:1pt 0;border-bottom:1px solid #999">'+txt+'</div>';
+  return '<div style="font-size:14pt;font-weight:700;color:#1a3a5c;margin:6pt 0 2pt;padding:1pt 0;border-bottom:1px solid #999">'+txt+'</div>';
 }
 
 function _esc(s){
@@ -6138,6 +6144,12 @@ function _buildParteCuerpo(){
   if(_secH("av")){
   if(avSec){
     cuerpo+=_seccionTitulo(++secCounter,"SERVICIO DE AVIACI\u00d3N");
+    if(avSec.medios && avSec.medios.length > 0){
+      cuerpo+='<div style="font-weight:700;color:#c07c1a;font-size:14pt;margin:6pt 0 3pt;letter-spacing:.5px;text-transform:uppercase;border-bottom:2px solid #fdf6ea;padding-bottom:3pt">MEDIOS SAR</div>';
+      avSec.medios.forEach(function(m){
+        cuerpo+='<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+_esc(m)+'</div>';
+      });
+    }
     var avFilas=avSec.filas||[];
     var aviRealizados=[], aviPrevistos=[];
     var aviMode="realizados", subReal="", subPrev="";
@@ -6158,7 +6170,7 @@ function _buildParteCuerpo(){
     });
     if(aviRealizados.length>1){cuerpo+=_subTitulo("Vuelos realizados "+(subReal||""));cuerpo+=_renderTabla(aviRealizados.slice(1),["Aeronave","Horario","Destino","Novedad"]);}
     if(aviPrevistos.length>1){cuerpo+=_subTitulo("Vuelos previstos "+(subPrev||""));cuerpo+=_renderTabla(aviPrevistos.slice(1),["Aeronave","Horario","Destino","Novedad"]);}
-    if(aviRealizados.length<=1&&aviPrevistos.length<=1) cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de aviaci\u00f3n.</div>';
+    if(aviRealizados.length<=1&&aviPrevistos.length<=1) cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de aviaci\u00f3n.</div>';
   }}
   // 2. GUARDACOSTAS
   if(_secH("gc")){
@@ -6176,7 +6188,7 @@ function _buildParteCuerpo(){
         cuerpo+=_subTitulo("Guardacostas en navegaci\u00f3n ("+gcAct.length+")");
         gcAct.forEach(function(f){
           var nav=_calcDias2(f.datos[1],f.datos[2]);
-          cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
           cuerpo+='<b>'+_esc(f.datos[0])+'</b> \u2014 '+_esc(f.datos[3]||"SIN NOVEDADES")+' \u2014 Navegando: '+nav.navegando+'d | ETA: '+nav.restantes+'d';
           cuerpo+='</div>';
         });
@@ -6184,13 +6196,13 @@ function _buildParteCuerpo(){
       if(gcPrev.length){
         cuerpo+=_subTitulo("Guardacostas previstos ("+gcPrev.length+")");
         gcPrev.forEach(function(f){
-          cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">';
           cuerpo+='<b>'+_esc(f.datos[0])+'</b> \u2014 Zarpe: '+_esc(f.datos[1])+' | ETA: '+_esc(f.datos[2])+' | '+_esc(f.datos[3]||"");
           cuerpo+='</div>';
         });
       }
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin navegaciones activas.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin navegaciones activas.</div>';
     }
     if(convSec){
       cuerpo+=_subTitulo("Convenio PNA-ARA");
@@ -6198,7 +6210,7 @@ function _buildParteCuerpo(){
       if(convFilas.length){
         cuerpo+=_renderTabla(convFilas.slice(1).map(function(f){return f.datos||[];}),["Meses","M/Superficie","Fecha Z-A","D\u00edas Nav.","M/Superficie","Fecha Z-A","D\u00edas Nav."]);
       }else{
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+        cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
       }
     }
     if(araSec && !_exportSoloTextoDet){
@@ -6206,10 +6218,10 @@ function _buildParteCuerpo(){
       var araFilas=_filas("ARA","fila");
       if(araFilas.length){
         araFilas.forEach(function(f){
-          cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.datos[0])+'</b> \u2014 Zarp\u00f3 '+[_esc(f.datos[1]),_esc(f.datos[2]),_esc(f.datos[3])].filter(function(v){return v;}).join(" | ")+'</div>';
+          cuerpo+='<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.datos[0])+'</b> \u2014 Zarp\u00f3 '+[_esc(f.datos[1]),_esc(f.datos[2]),_esc(f.datos[3])].filter(function(v){return v;}).join(" | ")+'</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+        cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
       }
     }
   }}
@@ -6217,7 +6229,7 @@ function _buildParteCuerpo(){
   if(_secH("salv")){
   var salvSec=_sec("SALVAMENTO");
   cuerpo+=_seccionTitulo(++secCounter,"SERVICIO DE SALVAMENTO, BUCEO Y DOTACIONES DE SEGURIDAD");
-  cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+  cuerpo+=salvSec?_renderFilas(salvSec):'<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
   }
   // 4. TRAFICO MARITIMO
   if(_secH("trafico")){
@@ -6238,11 +6250,11 @@ function _buildParteCuerpo(){
         cuerpo+=_renderTabla(kFilasTabla.map(function(f){return f.datos;}),["Buque (Pto ZR - Pto PU)","Tipo de Navegación","Fecha ZR","Fecha PU","Situaci\u00f3n - FH Amarre"]);
       }
       kFilasOtros.forEach(function(f){
-        if(f.tipo==="subtitulo") cuerpo+='<div style="font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;font-size:12pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
-        else if(f.tipo==="texto"&&f.texto) cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
-        else if(f.tipo==="novedad") cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
+        if(f.tipo==="subtitulo") cuerpo+='<div style="font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;font-size:14pt;border-bottom:1px solid #c0c0c0;padding-bottom:1pt">'+_esc(f.texto)+'</div>';
+        else if(f.tipo==="texto"&&f.texto) cuerpo+='<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc">'+f.texto+'</div>';
+        else if(f.tipo==="novedad") cuerpo+='<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(f.titulo)+':</b> '+_esc(f.texto)+'</div>';
       });
-      if(!kTiene) cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
+      if(!kTiene) cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos.</div>';
     }
     if(resSec && !_exportSoloTextoDet){
       cuerpo+=_subTitulo("Reserva de Canal");
@@ -6258,7 +6270,7 @@ function _buildParteCuerpo(){
           var esCerrado=(f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO");
           var color=esCerrado?"#2e7d32":"#c0392b";
           var label=esCerrado?"[Cerrado]":"[Pendiente]";
-          cuerpo+='<div style="font-size:12pt;padding:3pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<div style="font-size:14pt;padding:3pt 0;border-bottom:1px dotted #ccc">';
           cuerpo+='<b style="color:'+color+'">'+_esc(f.buque)+'</b> <span style="color:'+color+';font-size:10pt;font-weight:600">'+label+'</span><br>';
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto||"")+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion||"")+'<br>';
@@ -6268,7 +6280,7 @@ function _buildParteCuerpo(){
           cuerpo+='</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos Pendientes/Cerrados.</div>';
+        cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin casos Pendientes/Cerrados.</div>';
       }
     }
     if(masSec){
@@ -6281,7 +6293,7 @@ function _buildParteCuerpo(){
           var esCerrado=(f.estado||"").toUpperCase().includes("CERRADO")||(f.situacion||"").toUpperCase().includes("CERRADO");
           var color=esCerrado?"#2e7d32":"#c07c1a";
           var label=esCerrado?"[Cerrado]":"[Pendiente]";
-          cuerpo+='<div style="font-size:12pt;padding:3pt 0;border-bottom:1px dotted #ccc">';
+          cuerpo+='<div style="font-size:14pt;padding:3pt 0;border-bottom:1px dotted #ccc">';
           cuerpo+='<b style="color:'+color+'">'+_esc(f.buque)+'</b> <span style="color:'+color+';font-size:10pt;font-weight:600">'+label+'</span><br>';
           cuerpo+='<b>ASUNTO:</b> '+_esc(f.asunto||"")+'<br>';
           cuerpo+='<b>POSICI\u00d3N:</b> '+_esc(f.posicion||"")+'<br>';
@@ -6291,7 +6303,7 @@ function _buildParteCuerpo(){
           cuerpo+='</div>';
         });
       }else{
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin casos Pendientes/Cerrados.</div>';
+        cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin casos Pendientes/Cerrados.</div>';
       }
     }
     if(regSec && !_exportSoloTextoDet){
@@ -6304,7 +6316,7 @@ function _buildParteCuerpo(){
       if(armas.length){
         armas.forEach(function(f){cuerpo+=_renderFila(f);});
       }else{
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin ejercicios.</div>';
+        cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin ejercicios.</div>';
       }
     }
   }}
@@ -6315,13 +6327,13 @@ function _buildParteCuerpo(){
     cuerpo+=_seccionTitulo(++secCounter,"ESTADO DE PUERTOS");
     var puertos=_filas("PUERTOS","puerto");
     if(puertos.length){
-      cuerpo+='<ul style="margin:2pt 0;padding-left:16pt;font-size:12pt">';
+      cuerpo+='<ul style="margin:2pt 0;padding-left:16pt;font-size:14pt">';
       puertos.forEach(function(f){
         cuerpo+='<li style="padding:1.5pt 0"><b>'+_esc(f.datos[0])+'</b>'+(f.datos[2]?' \u2014 '+_esc(f.datos[2]):"")+(f.datos[3]?' | '+_esc(f.datos[3]):"")+'</li>';
       });
       cuerpo+='</ul>';
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
     }
   }}
   // 6. DETERMINANTES
@@ -6356,10 +6368,10 @@ function _buildParteCuerpo(){
     }
     detTextoRows.forEach(function(f){
       var txt=(f.datos||[]).filter(function(v){return v&&String(v).trim();}).join(" | ");
-      if(txt) cuerpo+='<div style="font-size:12pt;padding:2pt 0;border-bottom:1px dotted #ccc">'+_esc(txt)+'</div>';
+      if(txt) cuerpo+='<div style="font-size:14pt;padding:2pt 0;border-bottom:1px dotted #ccc">'+_esc(txt)+'</div>';
     });
     if(!detTablaFilas.length&&!detTextoRows.length){
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin determinantes.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin determinantes.</div>';
     }
   }}
   // 7. DRAGAS
@@ -6370,13 +6382,13 @@ function _buildParteCuerpo(){
     var dragFilas=(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";});
     var dragCount=dragFilas.length;
     if(dragCount){
-      cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;padding:2pt 0">Total de dragas operando: <span style="color:#a86210;font-size:14pt">'+dragCount+'</span></div>';
+      cuerpo+='<div style="font-size:14pt;font-weight:700;color:#1a3a5c;padding:2pt 0">Total de dragas operando: <span style="color:#a86210;font-size:14pt">'+dragCount+'</span></div>';
       dragFilas.forEach(function(f){
         var raw=(f.datos||[]).filter(function(v){return v&&String(v).trim();});
-        cuerpo+='<div style="font-size:12pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(raw[0]||"")+'</b>'+(raw[1]?' \u2014 '+_esc(raw[1]):"")+' \u2014 '+raw.slice(2).map(function(v){return _esc(v);}).join(" \u2014 ")+'</div>';
+        cuerpo+='<div style="font-size:14pt;padding:1.5pt 0;border-bottom:1px dotted #ccc"><b>'+_esc(raw[0]||"")+'</b>'+(raw[1]?' \u2014 '+_esc(raw[1]):"")+' \u2014 '+raw.slice(2).map(function(v){return _esc(v);}).join(" \u2014 ")+'</div>';
       });
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin dragas operando.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin dragas operando.</div>';
     }
   }}
   // 8. METANEROS
@@ -6407,7 +6419,7 @@ function _buildParteCuerpo(){
       cuerpo+=_renderTabla(metPrevRows,["Dependencia","Buque","Arribo","Zarpada","Descarg\u00f3","Carga"]);
     }
     if(!metTermRows.length&&!metPrevRows.length){
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de metaneros.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de metaneros.</div>';
     }
   }}
   // 9. ALERTAS
@@ -6415,12 +6427,12 @@ function _buildParteCuerpo(){
   var alSec=_sec("ALERTA");
   if(alSec){
     cuerpo+=_seccionTitulo(++secCounter,"ALERTAS METEOROL\u00d3GICAS");
-    cuerpo+='<div style="margin:2pt 0"><a href="https://www.smn.gob.ar" style="font-size:12pt;color:#1a6fa4">Servicio Meteorol\u00f3gico Nacional</a></div>';
+    cuerpo+='<div style="margin:2pt 0"><a href="https://www.smn.gob.ar" style="font-size:14pt;color:#1a6fa4">Servicio Meteorol\u00f3gico Nacional</a></div>';
     var alFilas=_filas("ALERTA","fila");
     if(alFilas.length){
       cuerpo+=_renderTabla(alFilas.map(function(f){var d=f.datos||[];return [d[0]||"",d[1]||"",d[2]||"",d[3]||""];}),["Alerta N\u00b0","Zona","Fen\u00f3meno","MOI y destinos"]);
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
     }
   }}
   // 10. BUQUES INFRACCION
@@ -6432,7 +6444,7 @@ function _buildParteCuerpo(){
     if(bqFilas.length){
       cuerpo+=_renderTabla(bqFilas.map(function(f){return f.datos||[];}),["Buques","2010-2023","2024","2025","2026","TOTAL"]);
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin registros.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin registros.</div>';
     }
   }}
   // 11. VISITAS
@@ -6444,7 +6456,7 @@ function _buildParteCuerpo(){
     if(visFilas.length){
       cuerpo+=_renderTabla(visFilas.map(function(f){return f.datos||[];}),["D\u00eda/HS","Aut./Sol.","Actividad","S/Mozo","Pers.","Proyecci\u00f3n","Aut. Ext."]);
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin visitas previstas.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin visitas previstas.</div>';
     }
   }}
   // 12. MOVIMIENTO PORTUARIO
@@ -6463,16 +6475,16 @@ function _buildParteCuerpo(){
       var movsSub=movs.filter(function(f){return (f.datos[0]||"").startsWith("<<SUBTITULO>>");});
       var subsTodos=buquesSub.concat(movsSub);
       if(buquesNorm.length){
-        cuerpo+=_renderTabla(buquesNorm.map(function(f){return f.datos||[];}),["Dep.","N\u00b0 T.P","Muelles","B/Amar.","M/Libres","Radas","Cap.Radas","C/B Fond.","Disp.Rada"]);
+        cuerpo+='<div style="font-size:12pt">'+_renderTabla(buquesNorm.map(function(f){return f.datos||[];}),["Dep.","N\u00b0 T.P","Muelles","B/Amar.","M/Libres","Radas","Cap.Radas","C/B Fond.","Disp.Rada"])+'</div>';
       }
       if(movsNorm.length){
-        cuerpo+=_renderTabla(movsNorm.map(function(f){return f.datos||[];}),["Dep.","Arr. B/C","Arr. B/T","Zarp. B/C","Zarp. B/T","Arr. B/P","Arr. B/Port","Zarp. B/C","Zarp. B/Port","T.Mov"]);
+        cuerpo+='<div style="font-size:12pt">'+_renderTabla(movsNorm.map(function(f){return f.datos||[];}),["Dep.","Arr. B/C","Arr. B/T","Zarp. B/C","Zarp. B/T","Arr. B/P","Arr. B/Port","Zarp. B/C","Zarp. B/Port","T.Mov"])+'</div>';
       }
       subsTodos.forEach(function(f){
-        cuerpo+='<div style="font-size:12pt;font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;padding:2pt 0;border-bottom:1px solid #c0c0c0">'+_esc(f.datos[0].replace("<<SUBTITULO>>",""))+'</div>';
+        cuerpo+='<div style="font-size:14pt;font-weight:700;color:#1a3a5c;margin:4pt 0 2pt;padding:2pt 0;border-bottom:1px solid #c0c0c0">'+_esc(f.datos[0].replace("<<SUBTITULO>>",""))+'</div>';
       });
       if(!buques.length&&!movs.length){
-        cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de movimiento portuario.</div>';
+        cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de movimiento portuario.</div>';
       }
     });
   }}
@@ -6483,9 +6495,21 @@ function _buildParteCuerpo(){
     cuerpo+=_seccionTitulo(++secCounter,"PBIP");
     var pbipItems=_filas("PBIP","pbip");
     if(pbipItems.length){
-      cuerpo+=_renderTabla(pbipItems.map(function(f){return f.datos||[];}),["Buque","Identificaci\u00f3n","Situaci\u00f3n","Estado","Fecha inicio","Fecha cierre","Dependencia","Tipo Buque","Bandera","Novedades"]);
+      pbipItems.forEach(function(f){
+        var d=f.datos||[];
+        cuerpo+='<div style="border:1px solid #ccc;border-left:3pt solid #003366;border-radius:0 6px 6px 0;padding:6pt 10pt;margin-bottom:6pt;page-break-inside:avoid">';
+        cuerpo+='<div style="font-size:14pt;font-weight:700;color:#003366;margin-bottom:3pt">'+_esc(d[0]||"")+'</div>';
+        cuerpo+='<table style="width:100%;border-collapse:collapse;font-size:12pt">';
+        if(d[2]) cuerpo+='<tr><td style="font-weight:700;color:#555;width:120px;padding:1pt 4pt">Situaci\u00f3n:</td><td>'+_esc(d[2])+'</td></tr>';
+        if(d[6]) cuerpo+='<tr><td style="font-weight:700;color:#555;padding:1pt 4pt">Dependencia:</td><td>'+_esc(d[6])+'</td></tr>';
+        if(d[7]) cuerpo+='<tr><td style="font-weight:700;color:#555;padding:1pt 4pt">Tipo Buque:</td><td>'+_esc(d[7])+'</td></tr>';
+        if(d[8]) cuerpo+='<tr><td style="font-weight:700;color:#555;padding:1pt 4pt">Bandera:</td><td>'+_esc(d[8])+'</td></tr>';
+        cuerpo+='</table>';
+        if(d[9]) cuerpo+='<div style="margin-top:4pt;padding-top:4pt;border-top:1px dotted #ccc;font-size:12pt;color:#333">'+_esc(d[9])+'</div>';
+        cuerpo+='</div>';
+      });
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin registros PBIP.</div>';
+      cuerpo+='<div style="font-size:14pt;font-style:italic;color:#666;padding:2pt 0">Sin registros PBIP.</div>';
     }
   }}
   // 14. NOVEDADES VARIAS
@@ -6553,9 +6577,9 @@ function _buildResumenCards(){
         var c=cards[j];
         cardsHtml+='<td style="width:33%;border:none;padding:5px;vertical-align:top">';
         cardsHtml+='<div style="background:'+c.bg+';border-radius:8px;padding:8px 8px;text-align:center;border:1px solid '+(c.bg==="#edf1f7"?"#d8dce0":"#c8d8e8")+'">';
-        cardsHtml+='<div style="font-size:8pt;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px">'+c.label+'</div>';
-        cardsHtml+='<div style="font-size:24pt;font-weight:800;color:#003366;line-height:1.2;margin:2px 0">'+c.val+'</div>';
-        if(c.sub) cardsHtml+='<div style="font-size:6.5pt;font-weight:600;color:#666;margin-top:1px">'+c.sub+'</div>';
+        cardsHtml+='<div style="font-size:12pt;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px">'+c.label+'</div>';
+        cardsHtml+='<div style="font-size:18pt;font-weight:800;color:#003366;line-height:1.2;margin:2px 0">'+c.val+'</div>';
+        if(c.sub) cardsHtml+='<div style="font-size:11pt;font-weight:600;color:#666;margin-top:1px">'+c.sub+'</div>';
         cardsHtml+='</div></td>';
       }
       for(var e=cards.length%3;e>0&&e<3;e++)cardsHtml+='<td style="width:33%;border:none"></td>';
@@ -6566,8 +6590,8 @@ function _buildResumenCards(){
   // Novedades importantes por seccion
   function _secBlock(title,items,borderColor){
     if(!items.length) return '';
-    var h='<div style="margin-top:7pt"><div style="font-size:11pt;font-weight:700;color:#003366;padding-bottom:2pt;border-bottom:1px solid '+(borderColor||'#003366')+';margin-bottom:3pt">'+title+'</div>';
-    items.forEach(function(n){h+='<div style="font-size:10.5pt;color:#1a1a1a;padding:2pt 0 2pt 6pt;border-left:2px solid '+(borderColor||'#c0d0e0')+';margin-bottom:1pt">'+n+'</div>';});
+    var h='<div style="margin-top:7pt"><div style="font-size:14pt;font-weight:700;color:#003366;padding-bottom:2pt;border-bottom:1px solid '+(borderColor||'#003366')+';margin-bottom:3pt">'+title+'</div>';
+    items.forEach(function(n){h+='<div style="font-size:14pt;color:#1a1a1a;padding:2pt 0 2pt 6pt;border-left:2px solid '+(borderColor||'#c0d0e0')+';margin-bottom:1pt">'+n+'</div>';});
     h+='</div>';
     return h;
   }
@@ -6575,7 +6599,7 @@ function _buildResumenCards(){
   console.log("[resumen] sSAR:",sSAR.length,"sMAS:",sMAS.length,"sGC:",sGC.length,"sPuertos:",sPuertos.length,"sDragas:",sDragas.length,"sAlertas:",sAlertas.length,"sMetaneros:",sMetaneros.length,"sCalado:",sCalado.length);
   var hasNews=sSAR.length||sMAS.length||sGC.length||sPuertos.length||sDragas.length||sAlertas.length||sMetaneros.length||sCalado.length;
   if(hasNews){
-    newsHtml='<div style="margin-top:16pt;padding-top:10pt;border-top:2px solid #003366"><div style="font-size:13pt;font-weight:700;color:#003366;margin-bottom:6pt;text-align:center">NOVEDADES</div>';
+    newsHtml='<div style="margin-top:16pt;padding-top:10pt;border-top:2px solid #003366">';
     newsHtml+=_secBlock("SAR - Casos pendientes",sSAR,"#c0392b");
     newsHtml+=_secBlock("MAS - Casos pendientes",sMAS,"#c07c1a");
     newsHtml+=_secBlock("Guardacostas en navegaci\u00f3n",sGC,"#1a9560");
@@ -6586,13 +6610,13 @@ function _buildResumenCards(){
     newsHtml+=_secBlock("Calado cr\u00edtico",sCalado,"#003366");
     newsHtml+='</div>';
   }
-  if(!cards.length&&!hasNews) return '<div style="font-size:11pt;font-style:italic;color:#888;text-align:center;padding:12pt 0">Sin novedades para resumen.</div>';
+  if(!cards.length&&!hasNews) return '<div style="font-size:14pt;font-style:italic;color:#888;text-align:center;padding:12pt 0">Sin novedades para resumen.</div>';
   return cardsHtml+newsHtml;
 }
 
 function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
   var estilo='@page{size:210mm 297mm;margin:22mm 18mm}';
-  estilo+='body{font-family:Arial,sans-serif;font-size:12pt;color:#1a1a1a;line-height:1.5;text-align:justify}';
+  estilo+='body{font-family:Arial,sans-serif;font-size:14pt;color:#1a1a1a;line-height:1.5;text-align:justify}';
   estilo+='table{page-break-inside:avoid}';
   estilo+='h1,h2,h3{font-family:Arial,sans-serif}';
   var header='<div style="text-align:center;border-bottom:2.5px solid #003366;padding-bottom:12px;margin-bottom:18px">';
@@ -6600,11 +6624,12 @@ function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
   header+='<div style="font-size:11pt;color:#666;font-weight:600;margin-top:2px">Autoridad Mar\u00edtima</div>';
   header+='<div style="font-size:9pt;color:#555;text-transform:uppercase;font-weight:600;margin-top:4px;letter-spacing:.3px">DIRECCI\u00d3N DE TR\u00c1FICO MAR\u00cdTIMO, FLUVIAL Y LACUSTRE \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo</div>';
   header+='<div style="font-size:16pt;font-weight:800;color:#003366;margin-top:8pt;letter-spacing:1px">PARTE DE NOVEDADES</div>';
-  header+='<div style="font-size:12pt;font-weight:700;color:#555;margin-top:3pt">'+fechaPalabras+'</div>';
+  header+='<div style="font-size:14pt;font-weight:700;color:#555;margin-top:3pt">'+fechaPalabras+'</div>';
   header+='</div>';
   var resumen=_buildResumenCards();
   var resumenSec='<div style="margin-bottom:8pt;padding:4pt 0"><div style="font-size:14pt;font-weight:700;color:#003366;margin-bottom:10pt;padding-bottom:4pt;border-bottom:2px solid #003366;text-transform:uppercase;letter-spacing:.8px;text-align:center">RESUMEN</div>'+resumen+'</div>';
   var pageBreak='<div style="page-break-after:always;margin:0;padding:0;height:0"></div>';
+  var novedadesTitle='<div style="font-size:14pt;font-weight:700;color:#003366;margin-bottom:10pt;padding-bottom:4pt;border-bottom:2px solid #003366;text-transform:uppercase;letter-spacing:.8px;text-align:center">NOVEDADES</div>';
   var firmaHtml='';
   if(_firmanteEncargado||_firmanteOficial){
     firmaHtml='<div style="margin-top:28pt;padding-top:10pt;border-top:1.5px solid #999">';
@@ -6614,7 +6639,7 @@ function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
     firmaHtml+='</tr></table></div>';
   }
   var footer='<div style="text-align:center;margin-top:24pt;padding-top:8pt;border-top:1px solid #ccc;font-size:8pt;color:#999">PNA \u2014 Direcci\u00f3n de Tr\u00e1fico Mar\u00edtimo, Fluvial y Lacustre \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo \u2014 '+fechaStr+'</div>';
-  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'+estilo+'</style></head><body>'+header+resumenSec+pageBreak+cuerpo+firmaHtml+footer+'</body></html>';
+  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'+estilo+'</style></head><body>'+header+resumenSec+pageBreak+novedadesTitle+cuerpo+firmaHtml+footer+'</body></html>';
 }
 
 function exportarWord(){
