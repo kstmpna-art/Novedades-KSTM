@@ -4109,7 +4109,7 @@ function renderSeccion(sec) {
             <td style="color:var(--text-md)">${esc(fila[2]||"")}</td>`;
       if (idx === 0) {
         h += `<td rowspan="${rs}" style="text-align:left;
-          vertical-align:middle;color:var(--text-md)">${esc(fila[3]||"")}</td>`;
+          vertical-align:middle;color:var(--text-md);word-wrap:break-word;overflow-wrap:break-word;white-space:normal;max-width:260px;">${esc(fila[3]||"")}</td>`;
       }
       h += `</tr>`;
     });
