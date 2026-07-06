@@ -376,8 +376,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .item-card .lbl{color: #5a7a9a;font-size: 12px;font-weight: 700;text-transform: uppercase; letter-spacing: 0.5px;}
 .buque-name{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px}
 .dias-row{display:flex;gap:12px;margin-top:6px;font-size:12px;font-weight:600;flex-wrap:wrap}
-.caso-title{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;margin-bottom:6px}
-.caso-line{font-size:14px;color:#000;margin-bottom:2px;line-height:1.5}
+.caso-title{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px}
+.caso-line{font-size:16px;color:#000;margin-bottom:2px;line-height:1.5}
 .caso-reloj{font-size:13px;font-weight:700;margin-top:8px;font-family:monospace;color:var(--green)}
 .caso-reloj.vencido{color:var(--red)}
 .sep{border-top:1px solid var(--gray-200);margin:10px 0}
@@ -3261,7 +3261,7 @@ function aisInitMap() {
   const el = document.getElementById("ais-map");
   if (!el) { console.warn("[AIS] #ais-map not in DOM yet"); return false; }
   if (_aisMap) { _aisMap.invalidateSize(); return true; }
-  _aisMap = L.map("ais-map", { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
+  _aisMap = L.map("ais-map", { zoomControl: true, attributionControl: false }).fitBounds([[-55,-73],[-22,-54]]);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(_aisMap);
   L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(_aisMap);
   return true;
@@ -3717,7 +3717,7 @@ function aisMapHtml(suffix) {
       '<input type="text" id="ais-pin-lon'+s+'" placeholder="Lon (ej: 58° 29\' W)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
       '<button id="ais-pin-btn'+s+'" onclick="aisPinManual'+s+'()" style="padding:3px 8px;background:#8b5cf6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">+ Pin</button>' +
     '</div>' +
-    '<div id="ais-map'+s+'" style="height:520px;width:100%"></div>' +
+    '<div id="ais-map'+s+'" style="height:670px;width:100%"></div>' +
     '<div class="ais-map-msg" id="ais-map-msg'+s+'">Inicializando mapa AIS...</div>' +
     '<div id="ais-vessel-list'+s+'" style="padding:4px 12px 6px;font-size:10px;background:#f8fafc;border-top:1px solid var(--gray-200);max-height:80px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:3px 8px;"></div>' +
   '</div>';
@@ -3836,7 +3836,7 @@ function _parsePosition(pos) {
 function initVistaCompletaMasMap() {
   var el = document.getElementById("sec-mas-map");
   if (!el) return;
-  var map = L.map(el, { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
+  var map = L.map(el, { zoomControl: true, attributionControl: false }).fitBounds([[-55,-73],[-22,-54]]);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
   L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(map);
   var sec = datosGlobales && datosGlobales.secciones.find(function(s) { return s.id === "MAS"; });
@@ -4031,7 +4031,7 @@ function renderSeccion(sec) {
           <div style="flex:1;min-width:280px;position:sticky;top:8px;align-self:flex-start;">
             <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm);">
               <div style="padding:8px 12px;background:var(--sky);border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between"><span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px">🗺️ Posiciones MAS</span><button onclick="mostrarSeccion('MAS')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--blue);background:#fff;color:var(--blue);cursor:pointer;font-weight:600">Ver mapa completo</button></div>
-              <div id="sec-mas-map" style="height:450px;width:100%;cursor:grab;"></div>
+              <div id="sec-mas-map" style="height:670px;width:100%;cursor:grab;"></div>
             </div>
           </div>
         </div>`;
