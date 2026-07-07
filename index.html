@@ -348,7 +348,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .section-view.active #visor{min-height:0;}
 .bloque-sub{
   font-family:'Outfit',sans-serif;
-  font-size:13px;font-weight:700;color:var(--blue);
+  font-size:14px;font-weight:700;color:var(--blue);
   letter-spacing:.8px;text-transform:uppercase;
   padding:5px 0 4px;border-bottom:2px solid var(--sky);
   margin:14px 0 8px;display:flex;align-items:center;gap:8px;
@@ -1365,7 +1365,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   </div>
 
   <div class="sel-footer">
-    Prefectura Naval Argentina — Dirección de Tráfico Marítimo Fluvial y Lacustre · Versión 1.0
+    Prefectura Naval Argentina — Dirección de Tráfico Marítimo Fluvial y Lacustre · GMT-3
   </div>
 
 </div>
@@ -1830,7 +1830,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
       <span><span class="sdot g"></span>SISTEMA ACTIVO</span>
       <span id="sb-sar-bar"><span class="sdot r"></span>SAR: —</span>
       <span id="sb-mas-bar"><span class="sdot a"></span>MAS: —</span>
-      <span style="margin-left:auto;opacity:.5">GMT-3 — KSTM — PNA</span>
+      <span style="margin-left:auto">Versión 1.0 — KSTM — PNA</span>
     </div>
   </div>
 </div>
@@ -3945,7 +3945,7 @@ function renderSeccion(sec) {
       const d=calcularDias(f.datos[1],f.datos[2]);
       h+=`<div class="item-card green">
         <div class="buque-name" style="color:var(--green)">${esc(f.datos[0])}</div>
-        <div style="font-size:13px;color:var(--text-md);margin-bottom:4px">${esc(f.datos[3]||"SIN NOVEDADES")}</div>
+        <div style="font-size:15px;color:var(--text-md);margin-bottom:4px">${esc(f.datos[3]||"SIN NOVEDADES")}</div>
         <div class="dias-row">
           <span style="color:var(--green)">🕒 Navegando: ${d.navegando} días</span>
           <span style="color:var(--text-lt)">|</span>
@@ -3954,7 +3954,7 @@ function renderSeccion(sec) {
     });
     if(!act.length) h+=`<div class="empty">Sin navegaciones activas.</div>`;
     h+=`<div class="sep"></div><div class="bloque-sub">📅 Previstas <span class="badge blue">${prev.length}</span></div>`;
-    prev.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy)">${esc(f.datos[0])}</div><div style="font-size:12px">Zarpe: <b>${esc(f.datos[1])}</b> | ETA: <b>${esc(f.datos[2])}</b></div><div style="font-size:12px;color:var(--text-lt);margin-top:3px">${esc(f.datos[3]||"")}</div></div>`;});
+    prev.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy)">${esc(f.datos[0])}</div><div style="font-size:13px">Zarpe: <b>${esc(f.datos[1])}</b> | ETA: <b>${esc(f.datos[2])}</b></div><div style="font-size:13px;color:var(--text-lt);margin-top:3px">${esc(f.datos[3]||"")}</div></div>`;});
     if(!prev.length) h+=`<div class="empty">Sin navegaciones previstas.</div>`;
     h+=mapaGisHtml();
     return h;
@@ -3963,7 +3963,7 @@ function renderSeccion(sec) {
   if (sec.id==="ARA") {
     const ff=filas.filter(f=>f&&f.tipo==="fila");
     let h=ff.length?"":` <div class="empty">Sin datos.</div>`;
-    ff.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy)">🚢 ${esc(f.datos[0])}</div><div style="font-size:13px;color:var(--text-md)">ZARPÓ ${[f.datos[1],f.datos[2],f.datos[3]].filter(v=>v).join(" | ")}</div></div>`;});
+    ff.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy);font-size:14px">🚢 ${esc(f.datos[0])}</div><div style="font-size:14px;color:var(--text-md)">ZARPÓ ${[f.datos[1],f.datos[2],f.datos[3]].filter(v=>v).join(" | ")}</div></div>`;});
     return h;
   }
 
@@ -4428,13 +4428,13 @@ function renderSeccion(sec) {
   if (sec.id==="NOVEDADES"||sec.id==="PERSONAL_COSTERA") {
     const items=filas.filter(f=>f&&f.tipo==="novedad");
     let h=items.length?"":` <div class="empty">Sin novedades.</div>`;
-    items.forEach(n=>{h+=`<div class="item-card"><div style="font-weight:600;color:var(--navy);margin-bottom:3px">${esc(n.titulo)}</div><div style="font-size:13px;color:var(--text-md)">${esc(n.texto)}</div></div>`;});
+    items.forEach(n=>{h+=`<div class="item-card"><div style="font-weight:600;color:var(--navy);margin-bottom:3px">${esc(n.titulo)}</div><div style="font-size:14px;color:var(--text-md)">${esc(n.texto)}</div></div>`;});
     return h;
   }
 
   // ── SALVAMENTO (tipo_sers) ──────────────────────────
 if (sec.tipo === "tipo_sers" || sec.id === "SALVAMENTO") {
-  return renderFilasGenericas(filas);
+  return renderFilasGenericas(filas, {fontSize:"14px"});
 }
 
 // ── DRAGAS (tipo_dragas) ────────────────────────────
@@ -4454,7 +4454,7 @@ if (sec.tipo === "tipo_dragas" || sec.id === "DRAGAS") {
 
   let h = `<div style="display:flex;gap:16px;align-items:flex-start;">
     <div style="flex:1;min-width:0;">`;
-  h += renderFilasGenericas(filas) || '<div class="empty">Sin novedades.</div>';
+  h += renderFilasGenericas(filas, {fontSize:"14px"}) || '<div class="empty">Sin novedades.</div>';
   h += `</div>
     <div style="flex:1;min-width:0;">
       <div style="background:#fff;border-radius:var(--radius-lg);padding:0;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column;">
@@ -4567,33 +4567,33 @@ if (sec.tipo === "eventos" || sec.id === "REGATAS") {
     if(f.tipo==="partes"){
       var p=f.partes||[];
       _nombre=p[0]?p[0].texto:"";
-      if(p[1])_detalles.push('<span style="font-weight:600;font-size:11px;">🕐 '+(p[1].prefijo||"")+p[1].texto+'</span>');
-      if(p[2])_detalles.push('<span style="font-size:11px;">🏁 '+(p[2].prefijo||"")+p[2].texto+'</span>');
+      if(p[1])_detalles.push('<span style="font-weight:600;font-size:13px;">🕐 '+(p[1].prefijo||"")+p[1].texto+'</span>');
+      if(p[2])_detalles.push('<span style="font-size:13px;">🏁 '+(p[2].prefijo||"")+p[2].texto+'</span>');
       if(p[3]||p[4]){
         var _part=(p[3]?p[3].texto:""),_emb="",_evt="";
         if(p[4]&&p[4].prefijo&&p[4].prefijo.toLowerCase().indexOf("emb")>=0){_emb=p[4].texto||"";if(p[5])_evt=p[5].texto||"";}
         else if(p[4]){_evt=p[4].texto||"";}
-        _detalles.push('<span style="font-size:11px;">👥 Part: '+_part+(_part&&_emb?' · ':'')+(_emb?'Emb: '+_emb:'')+'</span>');
+        _detalles.push('<span style="font-size:13px;">👥 Part: '+_part+(_part&&_emb?' · ':'')+(_emb?'Emb: '+_emb:'')+'</span>');
         if(_evt)_extra="Evento: "+_evt;
       }
     } else if(f.tipo==="fila"&&f.datos){
       var d=f.datos;
       _nombre=d[3]||"";
       if(d[1])_detalles.push('<span style="font-weight:600;font-size:11px;">🕐 '+d[1]+'</span>');
-      if(d[0])_detalles.push('<span style="font-size:11px;">📍 '+d[0]+'</span>');
-      if(d[4])_detalles.push('<span style="font-size:11px;">🗺️ '+d[4]+'</span>');
+      if(d[0])_detalles.push('<span style="font-size:13px;">📍 '+d[0]+'</span>');
+      if(d[4])_detalles.push('<span style="font-size:13px;">🗺️ '+d[4]+'</span>');
       if(d[5])_extra=d[5];
-      if(d[7]||d[8])_extra+='<div style="margin-top:2px;font-size:11px;color:var(--text-lt);">'+(d[7]?'EMB: '+d[7]:'')+(d[7]&&d[8]?' · ':'')+(d[8]?'PART: '+d[8]:'')+'</div>';
+      if(d[7]||d[8])_extra+='<div style="margin-top:2px;font-size:13px;color:var(--text-lt);">'+(d[7]?'EMB: '+d[7]:'')+(d[7]&&d[8]?' · ':'')+(d[8]?'PART: '+d[8]:'')+'</div>';
     }
     var _bg=_cls==="red"?"#fef2f2":_cls==="amber"?"#fef3c7":_cls==="blue"?"#eff6ff":_cls==="teal"?"#ecfdf5":"#f1f5f9";
     var _fg=_cls==="red"?"#dc2626":_cls==="amber"?"#a86210":_cls==="blue"?"#2563eb":_cls==="teal"?"#059669":"#64748b";
     var r='<div class="item-card '+_cls+'">';
     r+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">';
     r+='<div style="font-weight:700;font-family:\'Outfit\',sans-serif;font-size:14px;color:var(--navy);flex:1;min-width:0;">'+esc(_nombre)+'</div>';
-    r+='<span style="font-size:9px;font-weight:700;text-transform:uppercase;white-space:nowrap;padding:1px 6px;border-radius:4px;background:'+_bg+';color:'+_fg+';">'+_label+'</span>';
+    r+='<span style="font-size:10px;font-weight:700;text-transform:uppercase;white-space:nowrap;padding:1px 6px;border-radius:4px;background:'+_bg+';color:'+_fg+';">'+_label+'</span>';
     r+='</div>';
-    if(_detalles.length)r+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:12px;color:var(--text-md);">'+_detalles.join("")+'</div>';
-    if(_extra)r+='<div style="margin-top:3px;font-size:12px;color:var(--text);">'+esc(_extra)+'</div>';
+    if(_detalles.length)r+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:14px;color:var(--text-md);">'+_detalles.join("")+'</div>';
+    if(_extra)r+='<div style="margin-top:3px;font-size:14px;color:var(--text);">'+esc(_extra)+'</div>';
     r+='</div>';
     return r;
   }
@@ -4776,11 +4776,11 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
   </div>`;
 
   // Renderizar las filas normales debajo del botón
-  h += renderFilasGenericas(filas);
+  h += renderFilasGenericas(filas, {fontSize:"14px"});
   return h;
 }
 
-if (sec.id === "KSTM" || sec.tipo === "simple") {
+  if (sec.id === "KSTM" || sec.tipo === "simple") {
   if (!filas || !filas.length) {
     return `<div class="empty">Sin novedades de Pilotaje.</div>`;
   }
@@ -4825,7 +4825,7 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
             ${esc(partes[0])}
           </div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;
-            font-size:12.5px;color:var(--text-md);font-weight:500">
+            font-size:14px;color:var(--text-md);font-weight:500">
             ${partes.slice(1).map(function(p) { return `<span>${esc(p)}</span>`; }).join(
               `<span style="color:var(--gray-400)">|</span>`
             )}
@@ -4833,7 +4833,7 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
         </div>`;
       } else {
         h += `<div class="item-card">
-          <span style="color:var(--text-md);font-size:13px">
+          <span style="color:var(--text-md);font-size:14px">
             ${esc(f.texto)}
           </span>
         </div>`;
@@ -5039,20 +5039,22 @@ if (sec.id === "KSTM" || sec.tipo === "simple") {
   return renderFilasGenericas(filas);
 }
 
-function renderFilasGenericas(filas) {
+function renderFilasGenericas(filas, opts) {
   if(!filas||!filas.length) return `<div class="empty">Sin novedades.</div>`;
+  var _fs = (opts && opts.fontSize) || "";
+  var _fsStyle = _fs ? ` style="font-size:${_fs}"` : "";
   let h="";
   filas.forEach(f=>{
     if(!f) return;
-    if(f.tipo==="subtitulo") h+=`<div class="bloque-sub">${esc(f.texto)}</div>`;
+    if(f.tipo==="subtitulo") h+=`<div class="bloque-sub"${_fsStyle}>${esc(f.texto)}</div>`;
     else if(f.tipo==="separador") h+=`<div class="sep"></div>`;
-    else if(f.tipo==="html") h+=`<div class="item-card">${f.texto}</div>`;
-    else if(f.tipo==="partes") h+=`<div class="item-card">${partesAHtml(f.partes)}</div>`;
-    else if(f.tipo==="fila") h+=`<div class="item-card">${filaArrayAHtml(f.datos)}</div>`;
-    else if(f.tipo==="arma") h+=`<div class="item-card"><b>${esc(f.datos[0])}</b> | Inicio/Fin: ${esc(f.datos[1])}${f.datos[2]?' – '+esc(f.datos[2]):''} | Obs: ${esc(f.datos[3])}</div>`;
-    else if(f.tipo==="puerto") h+=`<div class="item-card amber">Puerto: <b>${esc(f.datos[0])}</b> | Cierre: ${esc(f.datos[1])} | Hora: ${esc(f.datos[2])} | Motivo: ${esc(f.datos[3])}</div>`;
-    else if(f.tipo==="texto"&&f.texto&&f.texto.trim()) h+=`<div class="item-card">${esc(f.texto)}</div>`;
-    else if(f.tipo==="novedad") h+=`<div class="item-card"><div style="font-weight:600;color:var(--navy);margin-bottom:3px">${esc(f.titulo)}</div><div style="font-size:13px;color:var(--text-md)">${esc(f.texto)}</div></div>`;
+    else if(f.tipo==="html") h+=`<div class="item-card"${_fsStyle}>${f.texto}</div>`;
+    else if(f.tipo==="partes") h+=`<div class="item-card"${_fsStyle}>${partesAHtml(f.partes)}</div>`;
+    else if(f.tipo==="fila") h+=`<div class="item-card"${_fsStyle}>${filaArrayAHtml(f.datos)}</div>`;
+    else if(f.tipo==="arma") h+=`<div class="item-card"${_fsStyle}><b>${esc(f.datos[0])}</b> | Inicio/Fin: ${esc(f.datos[1])}${f.datos[2]?' – '+esc(f.datos[2]):''} | Obs: ${esc(f.datos[3])}</div>`;
+    else if(f.tipo==="puerto") h+=`<div class="item-card amber"${_fsStyle}>Puerto: <b>${esc(f.datos[0])}</b> | Cierre: ${esc(f.datos[1])} | Hora: ${esc(f.datos[2])} | Motivo: ${esc(f.datos[3])}</div>`;
+    else if(f.tipo==="texto"&&f.texto&&f.texto.trim()) h+=`<div class="item-card"${_fsStyle}>${esc(f.texto)}</div>`;
+    else if(f.tipo==="novedad") h+=`<div class="item-card"${_fsStyle}><div style="font-weight:600;color:var(--navy);margin-bottom:3px">${esc(f.titulo)}</div><div style="color:var(--text-md)">${esc(f.texto)}</div></div>`;
   });
   return h||`<div class="empty">Sin novedades.</div>`;
 }
