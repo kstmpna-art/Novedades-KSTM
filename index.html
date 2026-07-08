@@ -5125,7 +5125,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
       if (p.length === 3 && p[2].length === 4) return p[2];
       const m = fecha.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
       return m ? m[3] : "";
-    }).filter(Boolean))].sort().reverse();
+    }).filter(Boolean))].sort();
     h += `<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <button id="sibi-btn-todos" onclick="sibiFiltrar('todos')" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #1d6fa4;background:#1d6fa4;color:#fff;font-family:'Outfit',sans-serif;">Todos (${totalN})</button>
       <button id="sibi-btn-activos" onclick="sibiFiltrar('activos')" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #22c55e;background:#fff;color:#22c55e;font-family:'Outfit',sans-serif;">✅ Activos (${activeN})</button>
@@ -5331,7 +5331,7 @@ function sibiAbrirDashboard() {
   }
   var MESES = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
-  var _allAnios = [...new Set(data.map(function(f) { var fec = _parseFecha((f.datos||[])[4]); return fec ? fec.anio : ""; }).filter(Boolean))].sort().reverse();
+  var _allAnios = [...new Set(data.map(function(f) { var fec = _parseFecha((f.datos||[])[4]); return fec ? fec.anio : ""; }).filter(Boolean))].sort();
   window._sibiDashAnio = "";
   window._sibiDashData = data;
   window._sibiDashCharts = {};
