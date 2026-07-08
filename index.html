@@ -1851,7 +1851,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycby0yoO4CBcYk3YeZ39QPavShlG-sAE3ZAo8vRRw7HYdyjAyDPiuf4F50C0GULVhwKcwRQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyEQjvg-SpzZTzOFzle8M6x_vKyQHHJY8ubfA0IGhrhWCl2pCHcQASvg_CQi_p4JdrxRQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -4444,14 +4444,25 @@ function renderSeccion(sec) {
   if (sec.tipo==="portuario") {
     const buques=filas.filter(f=>f&&f.tipo==="buque");
     const movs=filas.filter(f=>f&&f.tipo==="movimiento");
+    const buquesDataRaw=filas.find(f=>f&&f.tipo==="buques_data");
+    const buquesData=buquesDataRaw?buquesDataRaw.datos:{amarrados:[],fondeados:[]};
     const subs=[...buques.filter(f=>(f.datos[0]||"").startsWith("<<SUBTITULO>>")),...movs.filter(f=>(f.datos[0]||"").startsWith("<<SUBTITULO>>"))];
     const buquesNorm=buques.filter(f=>!(f.datos[0]||"").startsWith("<<SUBTITULO>>"));
     const movsNorm=movs.filter(f=>!(f.datos[0]||"").startsWith("<<SUBTITULO>>"));
+
+    if (!window._portBuquesData) window._portBuquesData = {};
+    window._portBuquesData[sec.id] = buquesData;
+
     let h=`<div class="tbl-wrap"><div class="tbl-title">SITUACIÓN DE BUQUES</div><table class="pna-table"><tr><th>Dep.</th><th>N° T.P</th><th>Muelles</th><th style="color:var(--gold-lt)">B/ Amar.</th><th>M/ Libres</th><th>Radas</th><th>Cap. Radas</th><th style="color:var(--gold-lt)">C/B Fond.</th><th>Disp. Rada</th></tr>`;
     if(!buquesNorm.length) h+=`<tr><td colspan="9" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
     buquesNorm.forEach(f=>{
       const tot=(f.datos[0]||"").toUpperCase().includes("TOTAL");
-      h+=`<tr${tot?' class="total-row"':''}><td class="dep">${esc(f.datos[0]||"")}</td><td class="num-red">${esc(f.datos[1]||"")}</td><td class="num-red">${esc(f.datos[2]||"")}</td><td class="num-amber">${esc(f.datos[3]||"")}</td><td>${esc(f.datos[4]||"")}</td><td>${esc(f.datos[5]||"")}</td><td>${esc(f.datos[6]||"")}</td><td class="num-amber">${esc(f.datos[7]||"")}</td><td class="num-red">${esc(f.datos[8]||"")}</td></tr>`;
+      const dep=(f.datos[0]||"").trim();
+      const amar=parseInt(f.datos[3])||0;
+      const fond=parseInt(f.datos[7])||0;
+      const amarClick=amar>0?`onclick="abrirModalBuques('${sec.id}','${esc(dep)}','amarrados')"`:``;
+      const fondClick=fond>0?`onclick="abrirModalBuques('${sec.id}','${esc(dep)}','fondeados')"`:``;
+      h+=`<tr${tot?' class="total-row"':''}><td class="dep">${esc(dep)}</td><td class="num-red">${esc(f.datos[1]||"")}</td><td class="num-red">${esc(f.datos[2]||"")}</td><td class="num-amber"${amarClick?` style="cursor:pointer;text-decoration:underline;font-weight:700"`:``} ${amarClick}>${esc(f.datos[3]||"")}</td><td>${esc(f.datos[4]||"")}</td><td>${esc(f.datos[5]||"")}</td><td>${esc(f.datos[6]||"")}</td><td class="num-amber"${fondClick?` style="cursor:pointer;text-decoration:underline;font-weight:700"`:``} ${fondClick}>${esc(f.datos[7]||"")}</td><td class="num-red">${esc(f.datos[8]||"")}</td></tr>`;
     });
     h+=`</table></div><div class="tbl-wrap" style="margin-top:16px"><div class="tbl-title">MOVIMIENTOS DE BUQUES</div><table class="pna-table"><tr><th rowspan="2">Dep.</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th colspan="2">Arribos</th><th colspan="2">Zarpadas</th><th rowspan="2">T.Mov.</th></tr><tr><th>B/C</th><th>B/T</th><th>B/C</th><th>B/T</th><th>B/P</th><th>B/Port</th><th>B/C</th><th>B/Port</th></tr>`;
     if(!movsNorm.length) h+=`<tr><td colspan="10" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos.</td></tr>`;
@@ -5186,6 +5197,42 @@ h += `</table></div></div>`;
 
   // ── Fallback para secciones no reconocidas ──
   return renderFilasGenericas(filas);
+}
+
+function abrirModalBuques(secId, dep, tipo) {
+  var data = (window._portBuquesData || {})[secId] || {};
+  var items = tipo === "amarrados" ? (data.amarrados || []) : (data.fondeados || []);
+  var filtered = items.filter(function(b) { return b.dependencia === dep || dep === "TOTAL"; });
+  if (!filtered.length) { filtered = items; }
+
+  var title = tipo === "amarrados" ? "Buques Amarrados" : "Buques Fondeados";
+  var modal = document.createElement("div");
+  modal.id = "modal-buques-portuario";
+  modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);";
+
+  var cols = tipo === "amarrados"
+    ? `<tr><th>Nombre</th><th>Bandera</th><th>Terminal</th><th>FH Amarre</th><th>DEB</th><th>Dependencia</th></tr>`
+    : `<tr><th>Nombre</th><th>Bandera</th><th>FH Fondeo</th><th>Dependencia</th></tr>`;
+
+  var rows = filtered.map(function(b) {
+    if (tipo === "amarrados") {
+      return `<tr><td style="font-weight:700">${esc(b.nombre)}</td><td>${esc(b.bandera)}</td><td>${esc(b.terminal)}</td><td>${esc(b.fhAmarre)}</td><td>${esc(b.deb)}</td><td>${esc(b.dependencia)}</td></tr>`;
+    } else {
+      return `<tr><td style="font-weight:700">${esc(b.nombre)}</td><td>${esc(b.bandera)}</td><td>${esc(b.fhFondeo)}</td><td>${esc(b.dependencia)}</td></tr>`;
+    }
+  }).join("");
+
+  modal.innerHTML = `<div style="background:#fff;border-radius:var(--radius-lg);width:92%;max-width:850px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,0.3);overflow:hidden;">
+    <div style="padding:14px 20px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+      <span style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;color:#fff;">🚢 ${title} — ${dep} (${filtered.length})</span>
+      <button onclick="document.getElementById('modal-buques-portuario').remove()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">✕ Cerrar</button>
+    </div>
+    <div style="padding:16px;overflow-y:auto;flex:1;">
+      <table class="pna-table"><thead>${cols}</thead><tbody>${rows || `<tr><td colspan="${tipo==='amarrados'?7:5}" style="font-style:italic;color:var(--text-lt);text-align:center">Sin datos para esta dependencia.</td></tr>`}</tbody></table>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener("click", function(e) { if (e.target === modal) modal.remove(); });
 }
 
 function renderFilasGenericas(filas, opts) {
