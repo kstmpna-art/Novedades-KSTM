@@ -403,6 +403,11 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .pna-table tr:last-child td{border-bottom:none}
 .pna-table tr:hover td{background:var(--sky)}
 .pna-table tr.total-row td{font-weight:700;background:var(--red-lt);color:var(--red)}
+.pna-table th, .pna-table td, .avi-table th, .avi-table td { white-space: nowrap; }
+.pna-table td:nth-child(2),
+.pna-table td:nth-child(6),
+.pna-table td:nth-child(7),
+.pna-table td:nth-child(8) { white-space: normal; overflow-wrap: break-word; word-break: break-word; }
 .tbl-title{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--blue);text-align:center;background:var(--sky);padding:8px;letter-spacing:.5px;text-transform:uppercase}
 
 /* ── DASHBOARD ────────────────────────────────────────────────── */
@@ -1365,7 +1370,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   </div>
 
   <div class="sel-footer">
-    Prefectura Naval Argentina — Dirección de Tráfico Marítimo Fluvial y Lacustre · GMT-3
+    Prefectura Naval Argentina — Dirección de Tráfico Marítimo Fluvial y Lacustre · Versión 1.0
   </div>
 
 </div>
@@ -1665,6 +1670,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
                 <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('KSTM',this)"><span>🚢</span><span>Pilotaje/Conserva</span><span class="sb-badge blue" id="badge-KSTM"></span></button>
                 <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('RESERVA',this)"><span>🔒</span><span>Reserva de Canal</span><span class="sb-badge blue" id="badge-RESERVA"></span></button>
                 <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('DRAGAS',this)"><span>🚢</span><span>Dragas Operando</span><span class="sb-badge blue" id="badge-DRAGAS"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('MDA_SIBI',this)"><span>🔍</span><span>MDA - SIBI</span><span class="sb-badge blue" id="badge-MDA_SIBI"></span></button>
                 <div class="tb-dd-sep"></div>
                 <!-- SAR/MAS sub -->
                 <div class="tb-dd-sub-wrap" data-dd="dd-sar">
@@ -1764,6 +1770,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
           <button class="sb-act-btn ghost" onclick="irSeccion('REGATAS');cerrarHamburger()">🏁 Regatas/Eventos</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('EJER.ARMAS');cerrarHamburger()">🎯 Ej. Armas</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('DRAGAS');cerrarHamburger()">🏗️ Dragas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MDA_SIBI');cerrarHamburger()">🔍 MDA - SIBI</button>
           <div class="hb-nav-title">🛡️ Seguridad</div>
           <button class="sb-act-btn ghost" onclick="irSeccion('PUERTOS');cerrarHamburger()">🚫 Puertos Cerrados</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('MOV_BAJO_PARANA');cerrarHamburger()">📦 Mov. Bajo Paraná</button>
@@ -1776,6 +1783,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
           <button class="sb-act-btn ghost" onclick="irSeccion('CRUCEROS');cerrarHamburger()">🛳️ Cruceros</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('VISITAS');cerrarHamburger()">📋 Visitas</button>
            <button class="sb-act-btn ghost" onclick="irSeccion('NOVEDADES');cerrarHamburger()">📝 Novedades Varias</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MDA_SIBI');cerrarHamburger()">🔍 MDA - SIBI</button>
           <div class="hb-nav-title">🗺️ Sistema GC</div>
           <a href="https://gis.prefecturanaval.gob.ar/portal/apps/webappviewer/index.html?id=040254f910294105abd0adb9bd44c61f" target="_blank" rel="noopener noreferrer" class="sb-act-btn ghost" style="text-decoration:none;display:flex;align-items:center;gap:6px">🌐 Abrir Sistema GC ↗</a>
          </div>
@@ -1843,7 +1851,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwL2YPkLLfVfLp9a7t7RFp1VQqkNhuvN7Au0A5dC08rHQMBkCXWO9JRNkqR_deo5Fq7yg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby0yoO4CBcYk3YeZ39QPavShlG-sAE3ZAo8vRRw7HYdyjAyDPiuf4F50C0GULVhwKcwRQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -1945,6 +1953,7 @@ function cerrarSesion() {
   document.getElementById("usr-input").value = "";
   document.getElementById("pwd-input").value = "";
   datosGlobales = null; pinVerificado = false; currentUser = null;
+  _datosCache = null; _datosCacheTs = 0;
 }
 
 /* ================================================================
@@ -1959,13 +1968,34 @@ async function llamarAPI(accion, params={}) {
   try { return JSON.parse(t); } catch(e) { console.error("Resp inválida:",t); throw new Error("API no devolvió JSON"); }
 }
 
-async function cargarDatos() {
+// Caché de datos en memoria (evita re-fetchear si son recientes)
+var _datosCache = null;
+var _datosCacheTs = 0;
+var _CACHE_TTL_MS = 60000; // 60 segundos
+
+async function cargarDatos(forzar) {
   try {
+    // Si hay caché fresca y no se pide forzar, usar caché
+    const now = Date.now();
+    if (!forzar && _datosCache && (now - _datosCacheTs) < _CACHE_TTL_MS) {
+      renderizar(_datosCache);
+      iniciarAutoRefresh();
+      if (servicioActivo && servicioActivo !== "KSTM") {
+        mostrarSeccion(defaultSeccionPorServicio(servicioActivo));
+      } else {
+        mostrarHome();
+      }
+      return;
+    }
+
     const data = await llamarAPI("obtenerDatosPNA");
     if (data && data.error) {
       document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error: ${data.error}</div>`;
       return;
     }
+    // Guardar en caché
+    _datosCache = data;
+    _datosCacheTs = Date.now();
     renderizar(data);
     iniciarAutoRefresh();
     // Ir a la sección según el servicio que abrió
@@ -2420,14 +2450,21 @@ function renderizar(data) {
     RESERVA:{id:"badge-RESERVA",tipos:["fila","partes","texto"],cls:"blue"},
     SAR:{id:"badge-SAR",tipo:"caso_especial",cls:"red"},
     MAS:{id:"badge-MAS",tipo:"caso_especial",cls:"amber"},
+    "MDA_SIBI":{id:"badge-MDA_SIBI",tipo:"fila",cls:"purple"},
   };
   data.secciones.forEach(sec => {
     const b = badgeMap[sec.id]; if(!b) return;
     const el = document.getElementById(b.id); if(!el) return;
-    const tipos = b.tipos||[b.tipo];
-    const cnt = (sec.filas||[]).filter(f=>f&&tipos.includes(f.tipo)).length;
-    el.textContent = cnt;
-    el.style.display = cnt?"inline":"none";
+    if (sec.id === "MDA_SIBI") {
+      const cnt = sec.activeCount || 0;
+      el.textContent = cnt;
+      el.style.display = cnt ? "inline" : "none";
+    } else {
+      const tipos = b.tipos||[b.tipo];
+      const cnt = (sec.filas||[]).filter(f=>f&&tipos.includes(f.tipo)).length;
+      el.textContent = cnt;
+      el.style.display = cnt?"inline":"none";
+    }
   });
 
 }
@@ -2675,7 +2712,6 @@ function renderHomeCards(data, sarN, masN) {
           <div style="padding:6px 8px;display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;flex-shrink:0;">
               <span style="font-size:14px;font-weight:800;color:var(--text-lt);letter-spacing:.5px;">SAR / MAS</span>
-              
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;min-height:130px;align-items:center;justify-content:center;">
               <div style="flex:1;min-width:120px;display:flex;justify-content:center;">
@@ -3061,6 +3097,7 @@ function mostrarHome() {
   const metPrev = (datosGlobales.secciones.find(s=>s.id==="METANEROS")?.filas||[]).filter(f=>f&&f.tipo==="fila"&&f.datos&&f.datos.length<=6).length;
   const pbip = cnt("PBIP");
   const veleros = (datosGlobales.secciones.find(s=>s.id==="VELEROS_OC")?.filas||[]).filter(f=>f&&!["subtitulo","separador","html","partes"].includes(f.tipo)&&f.datos&&f.datos.length>=3).length;
+  const sibiActivos = (datosGlobales.secciones.find(s=>s.id==="MDA_SIBI")||{}).activeCount || 0;
 
   // Obtener GC activos/previstas
   const gf = (datosGlobales.secciones.find(s=>s.id==="GC")?.filas||[]).filter(f=>f&&f.tipo==="fila");
@@ -3082,6 +3119,7 @@ function mostrarHome() {
     { v:veleros,l:"Vel. Oc.",sec:"VELEROS_OC", c:"#fff" },
     { v:novedades,l:"Nov. Varias",sec:"NOVEDADES", c:"#fff" },
     { v:visitas,l:"Visitas", sec:"VISITAS", c:"#fff" },
+    { v:sibiActivos,l:"MDA-SIBI", sec:"MDA_SIBI", c:sibiActivos?"#e9d5ff":"#fff" },
   ];
 
   hv.innerHTML = `
@@ -3142,7 +3180,7 @@ function mostrarSeccion(id) {
     BUQUES:"Buques Infracción", VISITAS:"Visitas previstas",
     NOVEDADES:"Novedades Varias", PERSONAL_COSTERA:"Personal Costera",
     METANEROS:"Metaneros", PBIP:"PBIP",
-    VELEROS_OC:"Veleros Oceánicos", CRUCEROS:"Cruceros"
+    VELEROS_OC:"Veleros Oceánicos", CRUCEROS:"Cruceros", MDA_SIBI:"MDA - SIBI"
   };
 
   const sec = datosGlobales && datosGlobales.secciones.find(s => s.id === id);
@@ -3153,7 +3191,7 @@ function mostrarSeccion(id) {
   if (ts2) ts2.textContent = "";
 
   // Mostrar botón dashboard + navegación entre secciones
-  const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+  const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
   const dashWrap = document.getElementById("dash-btn-wrap");
   if (dashWrap) {
     dashWrap.style.display = "flex";
@@ -3205,6 +3243,9 @@ function mostrarSeccion(id) {
       if (dSec) initDeterminantesMap("sec-determinantes-map");
     }, 100);
   }
+  if (id === "MDA_SIBI") {
+    setTimeout(function() { window._sibiEstadoFiltro = "activos"; window._sibiAnioFiltro = ""; sibiAplicarFiltros(); }, 50);
+  }
 
   // AIS Map for SAR/MAS
   if (id === "SAR" || id === "MAS") {
@@ -3231,11 +3272,11 @@ document.addEventListener("keydown", function(e) {
   const sv = document.getElementById("section-view");
   if (sv.style.display !== "block") return;
   if (e.key === "ArrowLeft") {
-    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
     const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
     if (idx > 0) mostrarSeccion(SECCIONES_ORDEN[idx-1]);
   } else if (e.key === "ArrowRight") {
-    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
     const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
     if (idx >= 0 && idx < SECCIONES_ORDEN.length-1) mostrarSeccion(SECCIONES_ORDEN[idx+1]);
   }
@@ -5035,6 +5076,114 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
     return h;
   }
 
+  // ── MDA SIBI ────────────────────────────────────
+  if (sec.id === "MDA_SIBI") {
+    const items = filas.filter(f => f && f.tipo === "fila");
+    const allItems = items;
+    const activeItems = items.filter(f => (f.estado || "").toUpperCase() === "ACTIVO");
+    const finalItems = items.filter(f => (f.estado || "").toUpperCase() === "FINALIZADO");
+    const totalN = allItems.length;
+    const activeN = sec.activeCount || activeItems.length;
+    const finalN = finalItems.length;
+
+    if (!totalN) return `<div class="empty">Sin registros MDA-SIBI.</div>`;
+
+    let h = '';
+
+    // ── KPI Cards ──
+    h += `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px;background:#fff;border-radius:var(--radius-lg);padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid var(--gray-200);text-align:center;border-top:3px solid #1d6fa4;">
+        <div style="font-size:28px;font-family:'Outfit',sans-serif;font-weight:800;color:#1d6fa4;line-height:1;">${totalN}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">TOTAL</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#fff;border-radius:var(--radius-lg);padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid var(--gray-200);text-align:center;border-top:3px solid #22c55e;">
+        <div style="font-size:28px;font-family:'Outfit',sans-serif;font-weight:800;color:#22c55e;line-height:1;">${activeN}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">ACTIVOS</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#fff;border-radius:var(--radius-lg);padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid var(--gray-200);text-align:center;border-top:3px solid #ef4444;">
+        <div style="font-size:28px;font-family:'Outfit',sans-serif;font-weight:800;color:#ef4444;line-height:1;">${finalN}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">FINALIZADOS</div>
+      </div>
+    </div>`;
+
+    // ── Filter Buttons ──
+    const _allBanderas = [...new Set(allItems.map(f => (f.datos[2] || "").toString().trim()).filter(Boolean))].sort();
+    const _allAnios = [...new Set(allItems.map(f => {
+      const fecha = (f.datos[4]||"").toString().trim();
+      const p = fecha.split("/");
+      if (p.length === 3 && p[2].length === 4) return p[2];
+      const m = fecha.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      return m ? m[3] : "";
+    }).filter(Boolean))].sort().reverse();
+    h += `<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+      <button id="sibi-btn-todos" onclick="sibiFiltrar('todos')" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #1d6fa4;background:#1d6fa4;color:#fff;font-family:'Outfit',sans-serif;">Todos (${totalN})</button>
+      <button id="sibi-btn-activos" onclick="sibiFiltrar('activos')" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #22c55e;background:#fff;color:#22c55e;font-family:'Outfit',sans-serif;">✅ Activos (${activeN})</button>
+      <button id="sibi-btn-finalizados" onclick="sibiFiltrar('finalizados')" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #ef4444;background:#fff;color:#ef4444;font-family:'Outfit',sans-serif;">⏹ Finalizados (${finalN})</button>
+      <a href="https://www.seasearcher.com/user/list-configuration/23265" target="_blank" rel="noopener noreferrer" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #7c3aed;background:#7c3aed;color:#fff;font-family:'Outfit',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🔗 PSN actual</a>
+      <button onclick="sibiAbrirDashboard()" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #f59e0b;background:#fff;color:#f59e0b;font-family:'Outfit',sans-serif;display:inline-flex;align-items:center;gap:4px;">📊 Dashboard</button>
+    </div>`;
+    h += `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;font-weight:700;color:var(--text-lt);">Bandera:</span>
+      <select id="sibi-filter-bandera" onchange="sibiAplicarFiltros()" style="padding:5px 8px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid #d8e2ef;font-family:'Outfit',sans-serif;cursor:pointer;background:#fff;color:var(--text);">
+        <option value="">Todas</option>
+        ${_allBanderas.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join("")}
+      </select>
+      <span style="margin-left:8px;font-size:11px;font-weight:700;color:var(--text-lt);">Tipo:</span>
+      <select id="sibi-filter-tipo" onchange="sibiAplicarFiltros()" style="padding:5px 8px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid #d8e2ef;font-family:'Outfit',sans-serif;cursor:pointer;background:#fff;color:var(--text);">
+        <option value="">Todos</option>
+        ${[...new Set(allItems.map(f => (f.datos[3] || "").toString().trim()).filter(Boolean))].sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}
+      </select>
+      <span style="margin-left:8px;font-size:11px;font-weight:700;color:var(--text-lt);">Año:</span>
+      <div id="sibi-btns-anio" style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button onclick="sibiFiltrarAnio('')" class="sibi-anio-btn active" style="padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #1d6fa4;background:#1d6fa4;color:#fff;font-family:'Outfit',sans-serif;">Todos</button>
+        ${_allAnios.map(a => `<button onclick="sibiFiltrarAnio('${a}')" class="sibi-anio-btn" data-anio="${a}" style="padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #d8e2ef;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;">${a}</button>`).join("")}
+      </div>
+    </div>`;
+
+    // ── Layout: Tabla completa ──
+    h += `<div id="sibi-table-wrap">`;
+
+    // Table — force fixed layout with cell text wrapping
+    h += `<div class="tbl-wrap" style="overflow:hidden;max-height:none;">
+  <table class="pna-table" style="width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;">
+    <colgroup>
+      <col style="width:14%">
+      <col style="width:8%">
+      <col style="width:6%">
+      <col style="width:8%">
+      <col style="width:7%">
+      <col style="width:14%">
+      <col style="width:14%">
+      <col style="width:auto">
+    </colgroup>
+    <tr><th>Nombre</th><th>IMO</th><th>Bandera</th><th>Tipo Buque</th><th>Fecha ID</th><th>Procedencia</th><th>Destino</th><th>Observaciones</th></tr>`;
+
+allItems.forEach((f, _sibiIdx) => {
+  const d = f.datos || [];
+  const esActivo = (f.estado || "").toUpperCase() === "ACTIVO";
+  const rowBg = esActivo ? "background:#f0fdf4;" : "background:#f8fafc;opacity:0.7;";
+  const _fechaStr = (d[4]||"").toString().trim();
+  const _fechaParts = _fechaStr.split("/");
+  const _anioVal = _fechaParts.length === 3 && _fechaParts[2].length === 4 ? _fechaParts[2] : ((_fechaStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/)||[])[3] || "");
+  h += `<tr class="sibi-row" data-estado="${esc(f.estado || "")}" data-tipo="${esc((d[3]||"").toString().trim())}" data-bandera="${esc((d[2]||"").toString().trim())}" data-anio="${esc(_anioVal)}" style="${rowBg}">
+    <td style="text-align:center;font-weight:700;overflow-wrap:anywhere;word-break:break-word">${esc(d[1]||"")}</td>
+    <td style="text-align:center;font-weight:600;overflow-wrap:anywhere;word-break:break-word">${esc(d[0]||"")}</td>
+    <td style="text-align:center;overflow-wrap:anywhere;word-break:break-word">${esc(d[2]||"")}</td>
+    <td style="text-align:center;overflow-wrap:anywhere;word-break:break-word">${esc(d[3]||"")}</td>
+    <td style="text-align:center;overflow-wrap:anywhere;word-break:break-word">${esc(d[4]||"")}</td>
+    <td style="text-align:center;overflow-wrap:anywhere;word-break:break-word">${esc(d[5]||"")}</td>
+    <td style="text-align:center;overflow-wrap:anywhere;word-break:break-word">${esc(d[6]||"")}</td>
+    <td style="text-align:left;overflow-wrap:anywhere;word-break:break-word;font-size:12px">${esc(d[7]||"")}</td>
+  </tr>`;
+});
+
+h += `</table></div></div>`;
+
+    // Store data for JS filtering
+    window._sibiData = allItems.map(f => ({datos: f.datos || [], estado: f.estado || ""}));
+    return h;
+  }
+
   // ── Fallback para secciones no reconocidas ──
   return renderFilasGenericas(filas);
 }
@@ -5057,6 +5206,419 @@ function renderFilasGenericas(filas, opts) {
     else if(f.tipo==="novedad") h+=`<div class="item-card"${_fsStyle}><div style="font-weight:600;color:var(--navy);margin-bottom:3px">${esc(f.titulo)}</div><div style="color:var(--text-md)">${esc(f.texto)}</div></div>`;
   });
   return h||`<div class="empty">Sin novedades.</div>`;
+}
+
+/* ── MDA SIBI: FILTRO + MAPA ──────────────────────────── */
+var _sibiMap = null, _sibiMarkers = {}, _sibiBuffer = {}, _sibiManualIds = [], _sibiEditingId = null;
+var SIBI_COLORS = ["#8b5cf6","#3b82f6","#22c55e","#f59e0b","#ef4444","#ec4899","#06b6d4","#f97316","#14b8a6","#6366f1","#e11d48","#84cc16","#0ea5e9","#a855f7","#d946ef","#10b981","#f43f5e","#d97706","#059669","#7c3aed"];
+function _sibiColor(id) {
+  var h = 0;
+  for (var i = 0; i < id.length; i++) h = ((h << 5) - h) + id.charCodeAt(i);
+  return SIBI_COLORS[Math.abs(h) % SIBI_COLORS.length];
+}
+function _sibiIcon(name, id) {
+  var c = _sibiColor(id || name);
+  return L.divIcon({
+    html: '<div style="display:flex;align-items:center;gap:3px;"><div style="width:12px;height:12px;border-radius:50%;background:'+c+';border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></div><span style="font-size:11px;font-weight:700;color:#1e3a5f;background:rgba(255,255,255,0.88);padding:1px 5px;border-radius:3px;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff;border:1px solid '+c+'33;">'+esc(name)+'</span></div>',
+    iconSize: [0, 0],
+    iconAnchor: [6, 6],
+    className: ""
+  });
+}
+
+function sibiFiltrar(tipo) {
+  window._sibiEstadoFiltro = tipo;
+  sibiAplicarFiltros();
+  ["todos","activos","finalizados"].forEach(k => {
+    const btn = document.getElementById("sibi-btn-" + k);
+    if (!btn) return;
+    const isActive = k === tipo;
+    if (k === "todos") { btn.style.background = isActive ? "#1d6fa4" : "#fff"; btn.style.color = isActive ? "#fff" : "#1d6fa4"; }
+    else if (k === "activos") { btn.style.background = isActive ? "#22c55e" : "#fff"; btn.style.color = isActive ? "#fff" : "#22c55e"; }
+    else { btn.style.background = isActive ? "#ef4444" : "#fff"; btn.style.color = isActive ? "#fff" : "#ef4444"; }
+  });
+}
+function sibiFiltrarAnio(anio) {
+  window._sibiAnioFiltro = anio;
+  sibiAplicarFiltros();
+  document.querySelectorAll(".sibi-anio-btn").forEach(b => {
+    const bAnio = b.getAttribute("data-anio") || "";
+    const isActive = bAnio === anio;
+    b.style.background = isActive ? "#1d6fa4" : "#fff";
+    b.style.color = isActive ? "#fff" : "var(--text)";
+    b.style.borderColor = isActive ? "#1d6fa4" : "#d8e2ef";
+  });
+}
+function sibiAplicarFiltros() {
+  var estado = window._sibiEstadoFiltro || "activos";
+  var tipoEl = document.getElementById("sibi-filter-tipo");
+  var banderaEl = document.getElementById("sibi-filter-bandera");
+  var tipo = tipoEl ? tipoEl.value : "";
+  var bandera = banderaEl ? banderaEl.value : "";
+  var anio = window._sibiAnioFiltro || "";
+  var rows = document.querySelectorAll(".sibi-row");
+  rows.forEach(r => {
+    var est = (r.getAttribute("data-estado") || "").toUpperCase();
+    var tip = (r.getAttribute("data-tipo") || "").toUpperCase();
+    var ban = (r.getAttribute("data-bandera") || "").toUpperCase();
+    var ani = r.getAttribute("data-anio") || "";
+    var showEstado = estado === "todos" || (estado === "activos" && est === "ACTIVO") || (estado === "finalizados" && est === "FINALIZADO");
+    var showTipo = !tipo || tip === tipo.toUpperCase();
+    var showBandera = !bandera || ban === bandera.toUpperCase();
+    var showAnio = !anio || ani === anio;
+    r.style.display = (showEstado && showTipo && showBandera && showAnio) ? "" : "none";
+  });
+}
+
+function sibiAbrirDashboard() {
+  var data = window._sibiData || [];
+  if (!data.length) return;
+
+  function _parseFecha(fecha) {
+    if (!fecha) return null;
+    var p = fecha.split("/");
+    if (p.length === 3) return { mes: parseInt(p[1], 10), anio: parseInt(p[2], 10) };
+    var m = fecha.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m) return { mes: parseInt(m[2], 10), anio: parseInt(m[3], 10) };
+    return null;
+  }
+  var MESES = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  var _allAnios = [...new Set(data.map(function(f) { var fec = _parseFecha((f.datos||[])[4]); return fec ? fec.anio : ""; }).filter(Boolean))].sort().reverse();
+  window._sibiDashAnio = "";
+  window._sibiDashData = data;
+  window._sibiDashCharts = {};
+
+  var modal = document.createElement("div");
+  modal.id = "sibi-dashboard-modal";
+  modal.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);";
+  modal.innerHTML = `<div style="background:#fff;border-radius:var(--radius-lg);width:92%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,0.3);overflow:hidden;">
+    <div style="padding:14px 20px;background:var(--navy);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+      <span style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;color:#fff;">📊 Dashboard MDA-SIBI</span>
+      <button onclick="sibiCerrarDashboard()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">✕ Cerrar</button>
+    </div>
+    <div style="padding:12px 20px;border-bottom:1px solid var(--gray-200);display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0;background:var(--gray-100);">
+      <span style="font-size:11px;font-weight:700;color:var(--text-lt);">Año:</span>
+      <button onclick="sibiDashFiltroAnio('')" class="sibi-dash-anio active" style="padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #1d6fa4;background:#1d6fa4;color:#fff;font-family:'Outfit',sans-serif;">Todos</button>
+      ${_allAnios.map(a => `<button onclick="sibiDashFiltroAnio('${a}')" class="sibi-dash-anio" data-anio="${a}" style="padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #d8e2ef;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;">${a}</button>`).join("")}
+    </div>
+    <div style="padding:20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:24px;">
+      <div>
+        <div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Tendencia por Mes</div>
+        <canvas id="sibi-chart-mes" style="max-height:260px;width:100%;"></canvas>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:280px;">
+          <div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Por Bandera</div>
+          <canvas id="sibi-chart-bandera" style="max-height:260px;width:100%;"></canvas>
+        </div>
+        <div style="flex:1;min-width:280px;">
+          <div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Por Tipo de Buque</div>
+          <canvas id="sibi-chart-tipo" style="max-height:260px;width:100%;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener("click", function(e) { if (e.target === modal) sibiCerrarDashboard(); });
+
+  setTimeout(function() { sibiDashRenderCharts(); }, 150);
+}
+
+function sibiDashFiltroAnio(anio) {
+  window._sibiDashAnio = anio;
+  document.querySelectorAll(".sibi-dash-anio").forEach(function(b) {
+    var bA = b.getAttribute("data-anio") || "";
+    var isActive = bA === anio;
+    b.style.background = isActive ? "#1d6fa4" : "#fff";
+    b.style.color = isActive ? "#fff" : "var(--text)";
+    b.style.borderColor = isActive ? "#1d6fa4" : "#d8e2ef";
+  });
+  sibiDashRenderCharts();
+}
+
+function sibiDashRenderCharts() {
+  var data = window._sibiDashData || [];
+  var anio = window._sibiDashAnio || "";
+
+  function _parseFecha(fecha) {
+    if (!fecha) return null;
+    var p = fecha.split("/");
+    if (p.length === 3) return { mes: parseInt(p[1], 10), anio: parseInt(p[2], 10) };
+    var m = fecha.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m) return { mes: parseInt(m[2], 10), anio: parseInt(m[3], 10) };
+    return null;
+  }
+  var MESES = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  var filtered = data.filter(function(f) {
+    if (!anio) return true;
+    var fec = _parseFecha((f.datos||[])[4]);
+    return fec && String(fec.anio) === anio;
+  });
+
+  // Destroy old charts
+  Object.keys(window._sibiDashCharts).forEach(function(k) {
+    if (window._sibiDashCharts[k]) { window._sibiDashCharts[k].destroy(); window._sibiDashCharts[k] = null; }
+  });
+
+  // ── Chart: Por Mes ──
+  var ctxMes = document.getElementById("sibi-chart-mes");
+  if (ctxMes) {
+    var counts = {};
+    filtered.forEach(function(f) {
+      var d = f.datos || [];
+      var fecha = _parseFecha(d[4]);
+      if (!fecha) return;
+      var key = fecha.anio + "-" + String(fecha.mes).padStart(2, "0");
+      var label = MESES[fecha.mes] + " " + fecha.anio;
+      if (!counts[key]) counts[key] = { label: label, total: 0, activos: 0, fin: 0 };
+      counts[key].total++;
+      if ((f.estado || "").toUpperCase() === "ACTIVO") counts[key].activos++;
+      else if ((f.estado || "").toUpperCase() === "FINALIZADO") counts[key].fin++;
+    });
+    var keys = Object.keys(counts).sort();
+    window._sibiDashCharts.mes = new Chart(ctxMes, {
+      type: "bar",
+      data: {
+        labels: keys.map(function(k) { return counts[k].label; }),
+        datasets: [
+          { label: "Total", data: keys.map(function(k) { return counts[k].total; }), backgroundColor: "#1d6fa4", borderRadius: 4 },
+          { label: "Activos", data: keys.map(function(k) { return counts[k].activos; }), backgroundColor: "#22c55e", borderRadius: 4 },
+          { label: "Finalizados", data: keys.map(function(k) { return counts[k].fin; }), backgroundColor: "#ef4444", borderRadius: 4 }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: "top" } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { ticks: { maxRotation: 45 } } } }
+    });
+  }
+
+  // ── Chart: Por Bandera ──
+  var ctxBan = document.getElementById("sibi-chart-bandera");
+  if (ctxBan) {
+    var counts = {};
+    filtered.forEach(function(f) {
+      var d = f.datos || [];
+      var b = (d[2] || "Sin bandera").toString().trim() || "Sin bandera";
+      if (!counts[b]) counts[b] = 0;
+      counts[b]++;
+    });
+    var keys = Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; });
+    var colors = ["#1d6fa4","#22c55e","#f59e0b","#ef4444","#8b5cf6","#ec4899","#06b6d4","#f97316","#14b8a6","#6366f1","#e11d48","#84cc16"];
+    window._sibiDashCharts.bandera = new Chart(ctxBan, {
+      type: "bar",
+      data: {
+        labels: keys,
+        datasets: [{ label: "Buques", data: keys.map(function(k) { return counts[k]; }), backgroundColor: keys.map(function(_, i) { return colors[i % colors.length]; }), borderRadius: 4 }]
+      },
+      options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  }
+
+  // ── Chart: Por Tipo ──
+  var ctxTipo = document.getElementById("sibi-chart-tipo");
+  if (ctxTipo) {
+    var counts = {};
+    filtered.forEach(function(f) {
+      var d = f.datos || [];
+      var t = (d[3] || "Sin tipo").toString().trim() || "Sin tipo";
+      if (!counts[t]) counts[t] = 0;
+      counts[t]++;
+    });
+    var keys = Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; });
+    var colors = ["#8b5cf6","#1d6fa4","#22c55e","#f59e0b","#ef4444","#ec4899","#06b6d4","#f97316","#14b8a6","#6366f1","#e11d48","#84cc16"];
+    window._sibiDashCharts.tipo = new Chart(ctxTipo, {
+      type: "doughnut",
+      data: {
+        labels: keys,
+        datasets: [{ data: keys.map(function(k) { return counts[k]; }), backgroundColor: colors.slice(0, keys.length) }]
+      },
+      options: { responsive: true, plugins: { legend: { position: "right" } } }
+    });
+  }
+}
+
+function sibiCerrarDashboard() {
+  Object.keys(window._sibiDashCharts || {}).forEach(function(k) {
+    if (window._sibiDashCharts[k]) { window._sibiDashCharts[k].destroy(); window._sibiDashCharts[k] = null; }
+  });
+  var m = document.getElementById("sibi-dashboard-modal");
+  if (m) m.remove();
+}
+
+function sibiVolarABuque(nombre) {
+  if (!_sibiMap || !nombre) return;
+  var busqueda = nombre.toUpperCase();
+  var encontrado = null;
+  var idEncontrado = null;
+  Object.keys(_sibiBuffer).forEach(function(id) {
+    var p = _sibiBuffer[id];
+    if (p && p.name && p.name.toUpperCase() === busqueda) {
+      encontrado = p;
+      idEncontrado = id;
+    }
+  });
+  if (encontrado && encontrado.lat != null && encontrado.lon != null) {
+    _sibiMap.setView([encontrado.lat, encontrado.lon], 7, { animate: true });
+    if (_sibiMarkers[idEncontrado]) {
+      _sibiMarkers[idEncontrado].openPopup();
+    }
+  }
+}
+
+function sibiInitMap() {
+  var el = document.getElementById("sibi-map");
+  if (!el) return;
+  // Siempre destruir mapa viejo si existe (evita referencia rota)
+  if (_sibiMap) {
+    try { _sibiMap.remove(); } catch(e) {}
+    _sibiMap = null;
+    _sibiMarkers = {};
+  }
+  _sibiMap = L.map("sibi-map", { zoomControl: true, attributionControl: false }).fitBounds([[-55,-73],[-22,-54]]);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetmap" }).addTo(_sibiMap);
+  L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(_sibiMap);
+  var msg = document.getElementById("sibi-map-msg");
+  if (msg) msg.textContent = "Mapa listo. Use + Pin para agregar posiciones.";
+  sibiCargarPines();
+}
+
+function sibiActualizarLista() {
+  var el = document.getElementById("sibi-pin-list");
+  if (!el) return;
+  var ids = Object.keys(_sibiBuffer);
+  if (!ids.length) { el.innerHTML = '<span style="color:var(--text-lt);font-style:italic">Sin pines guardados</span>'; return; }
+  el.innerHTML = ids.map(function(id) {
+    var e = _sibiBuffer[id];
+    return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 6px;font-size:10px;">' +
+      '<b style="color:var(--navy)">' + esc(e.name || id) + '</b>' +
+      '<button onclick="sibiEditarPin(\'' + id + '\')" style="background:none;border:none;color:#3b82f6;cursor:pointer;font-size:11px;padding:0 2px" title="Editar">✏️</button>' +
+      '<button onclick="sibiEliminarPin(\'' + id + '\')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0 2px" title="Eliminar">✕</button>' +
+      '</span>';
+  }).join("");
+}
+
+function sibiEditarPin(pinId) {
+  var e = _sibiBuffer[pinId];
+  if (!e) return;
+  var nameEl = document.getElementById("sibi-pin-name");
+  var latEl = document.getElementById("sibi-pin-lat");
+  var lonEl = document.getElementById("sibi-pin-lon");
+  if (!nameEl || !latEl || !lonEl) return;
+  nameEl.value = e.name || "";
+  latEl.value = e.lat != null ? e.lat : "";
+  lonEl.value = e.lon != null ? e.lon : "";
+  _sibiEditingId = pinId;
+  var btn = document.getElementById("sibi-pin-btn");
+  if (btn) btn.textContent = "✏️ Upd";
+  nameEl.focus();
+}
+
+function sibiEliminarPin(pinId) {
+  if (_sibiMarkers[pinId]) { _sibiMap.removeLayer(_sibiMarkers[pinId]); delete _sibiMarkers[pinId]; }
+  delete _sibiBuffer[pinId];
+  var idx = _sibiManualIds.indexOf(pinId);
+  if (idx >= 0) _sibiManualIds.splice(idx, 1);
+  sibiGuardarPines();
+  sibiActualizarLista();
+  var msg = document.getElementById("sibi-map-msg");
+  if (msg) msg.textContent = "Pin eliminado.";
+}
+
+function sibiPinManual() {
+  var nameEl = document.getElementById("sibi-pin-name");
+  var latEl = document.getElementById("sibi-pin-lat");
+  var lonEl = document.getElementById("sibi-pin-lon");
+  if (!nameEl || !latEl || !lonEl) return;
+  var name = nameEl.value.trim();
+  var latStr = latEl.value.trim();
+  var lonStr = lonEl.value.trim();
+  if (!name || !latStr || !lonStr) { alert("Completá nombre, latitud y longitud"); return; }
+  var lat = _dmsToDec(latStr);
+  var lon = _dmsToDec(lonStr);
+  if (isNaN(lat) || isNaN(lon)) { alert("Coordenadas inválidas. Usá decimal (-34.5) o DMS (26° 56' 1'' S)"); return; }
+  nameEl.value = ""; latEl.value = ""; lonEl.value = "";
+  nameEl.focus();
+
+  if (_sibiEditingId) {
+    var oldId = _sibiEditingId;
+    _sibiEditingId = null;
+    var btn = document.getElementById("sibi-pin-btn");
+    if (btn) btn.textContent = "+ Pin";
+    var e = _sibiBuffer[oldId];
+    if (!e) return;
+    if (_sibiMarkers[oldId]) { _sibiMap.removeLayer(_sibiMarkers[oldId]); delete _sibiMarkers[oldId]; }
+    _sibiBuffer[oldId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString() };
+    var marker = L.marker([lat, lon], {icon:_sibiIcon(name, oldId)}).addTo(_sibiMap);
+    marker.bindPopup('<div style="font-size:12px;"><b style="color:#1e3a5f;">' + esc(name) + '</b><br>' +
+      '<div style="margin-top:4px;display:flex;gap:4px;">' +
+      '<button onclick="sibiEditarPin(\'' + oldId + '\')" style="padding:2px 8px;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">✏️ Editar</button>' +
+      '<button onclick="sibiEliminarPin(\'' + oldId + '\')" style="padding:2px 8px;background:#ef4444;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">✕ Eliminar</button>' +
+      '</div></div>');
+    _sibiMarkers[oldId] = marker;
+    _sibiMap.setView([lat, lon], 8);
+    sibiGuardarPines();
+    sibiActualizarLista();
+    var msg = document.getElementById("sibi-map-msg");
+    if (msg) msg.textContent = "Pin actualizado: " + name;
+    return;
+  }
+
+  var pinId = "SIBI_" + Date.now();
+  _sibiBuffer[pinId] = { name: name, lat: lat, lon: lon, ts: new Date().toISOString() };
+  _sibiManualIds.push(pinId);
+  var marker = L.marker([lat, lon], {icon:_sibiIcon(name, pinId)}).addTo(_sibiMap);
+  marker.bindPopup('<div style="font-size:12px;"><b style="color:#1e3a5f;">' + esc(name) + '</b><br>' +
+    '<div style="margin-top:4px;display:flex;gap:4px;">' +
+    '<button onclick="sibiEditarPin(\'' + pinId + '\')" style="padding:2px 8px;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">✏️ Editar</button>' +
+    '<button onclick="sibiEliminarPin(\'' + pinId + '\')" style="padding:2px 8px;background:#ef4444;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">✕ Eliminar</button>' +
+    '</div></div>');
+  _sibiMarkers[pinId] = marker;
+  _sibiMap.setView([lat, lon], 8);
+  sibiGuardarPines();
+  sibiActualizarLista();
+  var msg = document.getElementById("sibi-map-msg");
+  if (msg) msg.textContent = "Pin agregado: " + name;
+}
+
+function sibiLimpiarPines() {
+  if (!confirm("¿Limpiar todos los pines?")) return;
+  Object.keys(_sibiMarkers).forEach(function(id) { if (_sibiMap && _sibiMarkers[id]) _sibiMap.removeLayer(_sibiMarkers[id]); });
+  _sibiMarkers = {};
+  _sibiBuffer = {};
+  _sibiManualIds = [];
+  sibiGuardarPines();
+  sibiActualizarLista();
+  var msg = document.getElementById("sibi-map-msg");
+  if (msg) msg.textContent = "Pines limpiados.";
+}
+
+function sibiGuardarPines() {
+  try { localStorage.setItem("sibi_pins", JSON.stringify(_sibiBuffer)); } catch(e) {}
+}
+
+function sibiCargarPines() {
+  try {
+    var raw = localStorage.getItem("sibi_pins");
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (!data || typeof data !== "object") return;
+    Object.keys(data).forEach(function(id) {
+      var p = data[id];
+      if (!p || isNaN(p.lat) || isNaN(p.lon)) return;
+      _sibiBuffer[id] = p;
+      _sibiManualIds.push(id);
+      var marker = L.marker([p.lat, p.lon], {icon:_sibiIcon(p.name || id, id)}).addTo(_sibiMap);
+      marker.bindPopup('<div style="font-size:12px;"><b style="color:#1e3a5f;">' + esc(p.name || id) + '</b><br>' +
+        '<div style="margin-top:4px;display:flex;gap:4px;">' +
+        '<button onclick="sibiEditarPin(\'' + id + '\')" style="padding:2px 8px;background:#3b82f6;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">✏️ Editar</button>' +
+        '<button onclick="sibiEliminarPin(\'' + id + '\')" style="padding:2px 8px;background:#ef4444;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;">✕ Eliminar</button>' +
+        '</div></div>');
+      _sibiMarkers[id] = marker;
+    });
+    sibiActualizarLista();
+    var msg = document.getElementById("sibi-map-msg");
+    if (msg && Object.keys(_sibiBuffer).length) msg.textContent = Object.keys(_sibiBuffer).length + " pin(es) cargado(s).";
+  } catch(e) {}
 }
 
 function parseFechaDraga(str) {
@@ -6773,7 +7335,9 @@ async function guardarCaso(e){
       cerrarModalCaso();
       var secGuardada = data.seccion;
       datosGlobales = null;
-      await cargarDatos();
+      _datosCache = null;
+      _datosCacheTs = 0;
+      await cargarDatos(true);
       if(secGuardada) mostrarSeccion(secGuardada);
     }else{
       alert("⚠ Error al guardar: "+(res&&res.error||"Respuesta inválida"));
@@ -6809,7 +7373,9 @@ async function eliminarCaso(){
       cerrarModalCaso();
       var secGuardada=seccion;
       datosGlobales=null;
-      await cargarDatos();
+      _datosCache = null;
+      _datosCacheTs = 0;
+      await cargarDatos(true);
       if(secGuardada) mostrarSeccion(secGuardada);
     }else{
       alert("⚠ Error al eliminar: "+(res&&res.error||"Respuesta inválida"));
@@ -6914,7 +7480,7 @@ function abrirServicio(id) {
 
   // Cargar datos o ir a la sección correspondiente
   if (!datosGlobales) {
-    cargarDatos();
+    cargarDatos(true);
   } else {
     if (id === "KSTM") {
       mostrarHome();
@@ -6970,6 +7536,7 @@ function cerrarSesion() {
   document.getElementById("usr-input").value = "";
   document.getElementById("pwd-input").value = "";
   datosGlobales = null; pinVerificado = false; currentUser = null;
+  _datosCache = null; _datosCacheTs = 0;
 }
 
 function cambiarCapaWindyHome(capa) {
@@ -7107,6 +7674,8 @@ function actualizarSistema(automatico) {
 
   // Resetear estado
   datosGlobales = null;
+  _datosCache = null;
+  _datosCacheTs = 0;
   _hist = null;
   if (relojInterval) { clearInterval(relojInterval); relojInterval = null; }
 
@@ -7121,7 +7690,7 @@ function actualizarSistema(automatico) {
   `;
 
   // Recargar datos
-  cargarDatos().then(() => {
+  cargarDatos(true).then(() => {
     // Restaurar botón
     if (btn) {
       btn.textContent    = "↺ Actualizar";
@@ -7164,7 +7733,7 @@ const AUTO_ROTACION_SECCIONES = [
   "EJER.ARMAS", "PUERTOS", "ALERTA", "DETERMINANTES",
   "AVIACION", "SALVAMENTO", "RESERVA", "VISITAS",
   "MOV_BAJO_PARANA", "MOV_DELTA", "MOV_ZONA3", "MOV_ZONA4", "BUQUES",
-  "METANEROS", "PBIP", "VELEROS_OC", "CRUCEROS"
+  "METANEROS", "PBIP", "VELEROS_OC", "CRUCEROS", "MDA_SIBI"
 ];
 
 function toggleAutoRotacion() {
@@ -7292,13 +7861,14 @@ function avanzarAutoRotacion() {
 }
 #chat-mic.listening { background: #ef4444; border-color: #ef4444; animation: mic-pulse 1s infinite; }
 @keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+#chat-resumen:hover { background: #1a73e8 !important; border-color: #1a73e8 !important; color: #fff !important; }
 .chat-spkr {
   background: none; border: none; color: #8da5be; font-size: 14px; cursor: pointer;
   padding: 2px 4px; margin-left: 4px; vertical-align: middle; line-height: 1;
   border-radius: 4px; display: inline-flex; align-items: center;
 }
 .chat-spkr:hover { background: rgba(255,255,255,.1); color: #fff; }
-.chat-spkr.speaking { color: #1a73e8; }
+.chat-spkr.speaking { color: #4ade80; background: rgba(74,222,128,.15); }
 .chat-msg.assistant .msg-text { display: inline; }
 
 /* ── RESPONSIVE: CELULARES Y TABLETS ───────────────────────────── */
@@ -7352,6 +7922,9 @@ function avanzarAutoRotacion() {
 }
 .tbl-wrap { -webkit-overflow-scrolling: touch; overflow-x: auto; }
 .pna-table th, .pna-table td, .avi-table th, .avi-table td { white-space: nowrap; }
+.pna-table td:nth-child(2),
+.pna-table td:nth-child(6),
+.pna-table td:nth-child(7) {white-space: normal; overflow-wrap: break-word; word-break: break-word;}
 @media (max-width: 768px) {
   #modalExport .modal-box { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; padding: 16px; display: flex; flex-direction: column; }
   #modalExport .modal-box h2 { font-size: 14px; }
@@ -7376,7 +7949,9 @@ function avanzarAutoRotacion() {
     <button id="chat-cerrar">&times;</button>
   </div>
   <div id="chat-mensajes">
-    <div class="chat-msg assistant">¡Hola! Soy el asistente de análisis de novedades. Hacé cualquier pregunta sobre el parte diario.</div>
+    <div class="chat-msg assistant">¡Hola! Soy el asistente de análisis de novedades. Hacé cualquier pregunta sobre el parte diario.
+      <br><button id="chat-resumen" style="margin-top:8px;padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#d8e2ef;font-size:12px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;letter-spacing:.3px">📋 Resumen del parte</button>
+    </div>
   </div>
   <div id="chat-input-area">
     <button id="chat-mic" title="Dictar por voz">🎤</button>
@@ -7401,6 +7976,102 @@ chatCerrar.addEventListener('click', () => chatModal.classList.remove('abierto')
 chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') enviarMensaje(); });
 chatSend.addEventListener('click', enviarMensaje);
 
+document.getElementById('chat-resumen').addEventListener('click', function() {
+  var resumen = generarResumen();
+  if (resumen) {
+    agregarMensaje(resumen, 'assistant');
+  } else {
+    agregarMensaje('No hay datos cargados para generar el resumen.', 'error');
+  }
+});
+
+function generarResumen() {
+  if (!datosGlobales || !datosGlobales.secciones) return '';
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var partes = [];
+  function _esc(s) { return String(s||'').trim(); }
+  function _sec(id) { return datosGlobales.secciones.find(function(s){return s.id===id;}); }
+  function _filas(id, tipo) { var s = _sec(id); if(!s) return []; var f = s.filas||[]; if(tipo) return f.filter(function(x){return x&&x.tipo===tipo;}); return f.filter(function(x){return x;}); }
+
+  // SAR
+  var sarCasos = _filas('SAR','caso_especial');
+  var sarPend = sarCasos.filter(function(f){return !((f.estado||'').toUpperCase().includes('CERRADO')||(f.situacion||'').toUpperCase().includes('CERRADO'));});
+  if (sarCasos.length > 0) {
+    var txt = 'SAR: ' + sarPend.length + ' pendientes, ' + (sarCasos.length - sarPend.length) + ' cerrados.';
+    sarPend.forEach(function(f, i){ 
+      txt += (i === 0 ? ' ' : ' otro: ') + _esc(f.buque);
+      if (f.novedad) txt += ': ' + _esc(f.novedad);
+      txt += '.';
+    });
+    if (sarPend.length > 2) txt += ' y ' + (sarPend.length - 2) + ' más.';
+    partes.push(txt);
+  }
+
+  // MAS
+  var masCasos = _filas('MAS','caso_especial');
+  var masPend = masCasos.filter(function(f){return !((f.estado||'').toUpperCase().includes('CERRADO')||(f.situacion||'').toUpperCase().includes('CERRADO'));});
+  if (masCasos.length > 0) {
+    var txt = 'MAS: ' + masPend.length + ' pendientes, ' + (masCasos.length - masPend.length) + ' cerrados.';
+    masPend.forEach(function(f, i){ 
+      txt += (i === 0 ? ' ' : ' otro: ') + _esc(f.buque);
+      if (f.novedad) txt += ': ' + _esc(f.novedad);
+      txt += '.';
+    });
+    if (masPend.length > 2) txt += ' y ' + (masPend.length - 2) + ' más.';
+    partes.push(txt);
+  }
+
+  // Guardacostas
+  var gcFilas = _filas('GC','fila');
+  var gcAct = gcFilas.filter(function(f){var d=new Date(f.datos[1]);return !d||d<=hoy;});
+  if (gcAct.length > 0) {
+    var txt = 'Guardacostas: ' + gcAct.length + ' unidades operando. ';
+    gcAct.slice(0,3).forEach(function(f){ 
+      txt += _esc(f.datos[0]) + ': ' + _esc(f.datos[3]) + '. ';
+    });
+    if (gcAct.length > 3) txt += 'y ' + (gcAct.length - 3) + ' más.';
+    partes.push(txt);
+  }
+
+  // Aviación
+  var avSec = _sec('AVIACION');
+  if (avSec) {
+    var avList = [], avPrevList = [], mode = 'realizados';
+    (avSec.filas||[]).forEach(function(f){
+      if(!f) return;
+      if(f.tipo==='subtitulo'){ var t=(f.texto||'').toUpperCase(); if(t.includes('PREVIST')||t.includes('PROGRAMAD')){mode='previstos';return;} mode='realizados'; return; }
+      if(f.tipo==='partes'){
+        var c = f.partes || [];
+        if(c[0] && c[0].texto.toUpperCase() === 'AERONAVE') return;
+        var aeronave = c[0] ? _esc(c[0].texto) : '';
+        var novedad = c[3] ? _esc(c[3].texto) : '';
+        var item = aeronave + (novedad ? ': ' + novedad : '');
+        if(mode==='previstos') avPrevList.push(item); 
+        else avList.push(item);
+      }
+    });
+    if (avList.length > 0 || avPrevList.length > 0) {
+      var txt = 'Aviación: ';
+      if (avList.length > 0) txt += avList.length + ' realizados. ' + avList.slice(0,3).join('. ') + '.';
+      if (avPrevList.length > 0) txt += (avList.length > 0 ? ' ' : '') + avPrevList.length + ' previstos. ' + avPrevList.slice(0,3).join('. ') + '.';
+      partes.push(txt);
+    }
+  }
+
+  // Clima / Alertas
+  var alertas = _filas('ALERTA','fila');
+  if (alertas.length > 0) {
+    var txt = 'Alertas meteorológicas: ' + alertas.length + '. ';
+    alertas.forEach(function(f){ 
+      var d=f.datos||[]; 
+      txt += _esc(d[1]) + ' alerta ' + _esc(d[0]) + ', fenómeno ' + _esc(d[2]) + '. ';
+    });
+    partes.push(txt);
+  }
+
+  return partes.join(' ');
+}
+
 function agregarMensaje(texto, tipo) {
   const div = document.createElement('div');
   div.className = 'chat-msg ' + tipo;
@@ -7422,18 +8093,73 @@ function agregarMensaje(texto, tipo) {
   chatMensajes.scrollTop = chatMensajes.scrollHeight;
 }
 
+function _getVozLatam() {
+  var voces = window.speechSynthesis.getVoices();
+  var latam = ['Google español de Estados Unidos','Google español (Latinoamérica)','Google US Spanish','Microsoft Helena','Microsoft Pablo','Sabina','Google México','Google Argentina'];
+  for (var i = 0; i < latam.length; i++) {
+    var v = voces.find(function(x){ return x.name === latam[i]; });
+    if (v) return v;
+  }
+  var latamLang = voces.filter(function(x){ return x.lang.startsWith('es') && (x.lang.includes('AR') || x.lang.includes('MX') || x.lang.includes('CO') || x.lang.includes('CL') || x.lang.includes('US')); });
+  if (latamLang.length > 0) return latamLang[0];
+  return null;
+}
+if (window.speechSynthesis) { window.speechSynthesis.onvoiceschanged = function(){}; window.speechSynthesis.getVoices(); }
+
+var _speechState = { chunks: [], idx: 0, btn: null, speaking: false, paused: false };
+
+function _playNextChunk() {
+  if (_speechState.idx >= _speechState.chunks.length) {
+    _speechState.speaking = false;
+    _speechState.paused = false;
+    if (_speechState.btn) { _speechState.btn.classList.remove('speaking'); _speechState.btn.textContent = '🔊'; }
+    return;
+  }
+  var utter = new SpeechSynthesisUtterance(_speechState.chunks[_speechState.idx]);
+  utter.lang = 'es-AR';
+  var vozLatam = _getVozLatam();
+  if (vozLatam) utter.voice = vozLatam;
+  utter.rate = 1.2;
+  utter.onend = function() { _speechState.idx++; _playNextChunk(); };
+  utter.onerror = function() { _speechState.speaking = false; _speechState.paused = false; if (_speechState.btn) { _speechState.btn.classList.remove('speaking'); _speechState.btn.textContent = '🔊'; } };
+  window.speechSynthesis.speak(utter);
+}
+
 function hablar(texto, btn) {
   if (!window.speechSynthesis) return;
+  if (_speechState.speaking && _speechState.btn === btn && !_speechState.paused) {
+    window.speechSynthesis.cancel();
+    _speechState.paused = true;
+    btn.textContent = '▶';
+    return;
+  }
+  if (_speechState.paused && _speechState.btn === btn) {
+    _speechState.paused = false;
+    btn.textContent = '⏸';
+    _playNextChunk();
+    return;
+  }
   window.speechSynthesis.cancel();
-  if (btn && btn.classList.contains('speaking')) { btn.classList.remove('speaking'); return; }
   var limpio = texto.replace(/[*_#`~]/g,'').replace(/\|/g,',').replace(/[🔴🟡🟢🟣🔵🟠⚪⬜⬛🟤✅❌❓❗💬🤖🎯⚓🚢✈️⛵🚫🟢🔴🟣]/g,'');
-  const utter = new SpeechSynthesisUtterance(limpio);
-  utter.lang = 'es-AR';
-  utter.rate = 1.1;
-  if (btn) btn.classList.add('speaking');
-  utter.onend = () => { if (btn) btn.classList.remove('speaking'); };
-  utter.onerror = () => { if (btn) btn.classList.remove('speaking'); };
-  window.speechSynthesis.speak(utter);
+  var abreviaturas = {
+    'FH': 'Fecha Hora','RCM': 'Radioconsulta Médica','SVC': 'Servicio','GC': 'Guardacostas','GIC': 'Guardacostas de Investigación Científica','ZEEA': 'Zona Económica Exclusiva del Atlántico','NW': 'Noroeste','MN': 'Millas Náuticas','mn': 'Millas Náuticas','ROU': 'Uruguay','SE': 'Sureste',
+    'B/R': 'Buque Remolcador','MIRP': 'Margen Izquierdo del Río Paraná','MDRP': 'Margen Derecho del Río Paraná','MADR': 'Madryn','MPLA': 'Mar del Plata','KSBB': 'Subcentro Bahía Blanca','KSCR': 'Subcentro Comodoro Rivadavia','ACEVEDO': 'Acevedo','CRIV': 'Comodoro Rivadavia','SCRU': 'Santa Cruz','MAR ARGENTINO': 'Mar Argentino','PNN': 'Prefecto Nacional Naval','PNA': 'Prefectura Naval Argentina','SEAV': 'Servicio de Aviación','EAVI': 'Estación aérea Viedma','EACR': 'Estación aérea Comodoro Rivadavia','PCOL': 'Punta colorada','PA': 'Papa Alfa','PA-62': 'Papa Alfa sesenta y dos','PA-94': 'Papa Alfa noventa y cuatro','PA-41': 'Papa Alfa cuarenta y uno',    'PA-40': 'Papa Alfa cuarenta','VICTOR ANGELESCU': 'Víctor Angelescu','MARIA GLORIA': 'María Gloria','POAVOSA WISDOM VII': 'Poavosa Wisdom Siete','GASTRITI': 'gastritis','HIPERTENSION': 'hipertensión','BRUTUS': 'Brútus'
+  };
+  Object.keys(abreviaturas).forEach(function(k) {
+    if (k.includes(' ')) {
+      limpio = limpio.replace(new RegExp(k.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'), 'gi'), abreviaturas[k]);
+    } else {
+      limpio = limpio.replace(new RegExp('\\b' + k.replace('/', '\\/') + '\\b', 'g'), abreviaturas[k]);
+    }
+  });
+  _speechState.chunks = limpio.match(/[^.!?]+[.!?]+/g) || [limpio];
+  _speechState.idx = 0;
+  _speechState.btn = btn;
+  _speechState.speaking = true;
+  _speechState.paused = false;
+  btn.classList.add('speaking');
+  btn.textContent = '⏸';
+  _playNextChunk();
 }
 
 function enviarMensaje() {
