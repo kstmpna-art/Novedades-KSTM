@@ -5058,7 +5058,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
       var sit = (f.datos[2] || "").toUpperCase();
       var color = "";
       if (sit.includes("ALARMA SASS")) color = "#ECF757";
-      else if (sit.includes("EBOLA")) color = "#5249D0";
+      else if (sit.includes("EBOLA")) color = "#2F62ED";
       else if (sit.includes("MEDIO ORIENTE")) color = "#b3d9ff";
       else if (sit.includes("INCIDENTE DE PROTECCI")) color = "lightgreen";
       var estilo = color ? "background-color:" + color : "";if (color === "#5249D0") estilo += ";color:white";
@@ -5068,7 +5068,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
     h += `<div class="ref-pbip" style="margin-top:8px;font-size:13px;display:flex;gap:16px;flex-wrap:wrap;">`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:#ECF757;vertical-align:middle;margin-right:4px;"></span> Alarma SASS</span>`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:lightgreen;vertical-align:middle;margin-right:4px;"></span> Incidente de protección</span>`;
-    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#5249D0;vertical-align:middle;margin-right:4px;"></span> Ebola</span>`;
+    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#2F62ED;vertical-align:middle;margin-right:4px;"></span> Ebola</span>`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:#b3d9ff;vertical-align:middle;margin-right:4px;"></span> Medio Oriente</span>`;
     h += `</div>`;
     return h;
