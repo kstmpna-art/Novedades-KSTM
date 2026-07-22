@@ -1851,8 +1851,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyEQjvg-SpzZTzOFzle8M6x_vKyQHHJY8ubfA0IGhrhWCl2pCHcQASvg_CQi_p4JdrxRQ/exec";
-const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbwFQqODjqm8Q04DRyrO0pF0yMD8bph5iSE5vyNvB44Tb_YL_Q3W-O6kH7P7IYrsQve9DQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby6xFZxIYq64uG-eFiTbPMrj62agzuj8pv7PLwribS8XMtPZyT3y97jXZZpPZDXL6kJOw/exec";
+const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
    ESTADO GLOBAL
@@ -2061,7 +2061,7 @@ function parsePartesDate(s) {
   var tok=s.trim().split(/\s+/)[0];
   if(!tok) return null;
   var m=tok.match(/^(\d{2})(\d{2})(\d{2})$/);
-  if(!m) return parseRegataDate(s);
+  if(!m) return parseRegataDate(tok);
   var dia=+m[1];
   var hoy2=new Date(),año2=hoy2.getFullYear(),mes2=hoy2.getMonth();
   if(dia>=1&&dia<=31) return new Date(año2,mes2,dia);
@@ -2255,7 +2255,17 @@ function initDeterminantesMap(containerId) {
     bounds.push(coords);
     const cVal = parseN(f.datos[8]);
     const esMin = minCalado !== null && cVal === minCalado;
-    const color = esMin ? "#d32f2f" : "#1d6fa4";
+    const diffCalado = minCalado !== null && !isNaN(cVal) ? cVal - minCalado : null;
+    let color;
+    if (esMin) {
+      color = "#d32f2f";
+    } else if (diffCalado !== null && diffCalado > 1.00) {
+      color = "#22c55e";
+    } else if (diffCalado !== null && diffCalado > 0.60) {
+      color = "#FFEB3B";
+    } else {
+      color = "#c89b15";
+    }
     const icon = L.divIcon({html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:""});
     const marker = L.marker(coords, {icon}).addTo(map).bindPopup(`
       <b style="color:#0f2744;font-size:13px">${esc(d[13]||d[0]||"")}</b><br>
@@ -2292,8 +2302,20 @@ function initDeterminantesMap(containerId) {
     };
     leg.addTo(map);
   }
-  if (bounds.length > 1) { map.fitBounds(bounds, {padding:[30,30]}); }
-  else if (bounds.length === 1) { map.setView(bounds[0], 8); }
+  const colorLeg = L.control({position:"bottomright"});
+  colorLeg.onAdd = function() {
+    const div = L.DomUtil.create("div","");
+    div.style.cssText = "background:#fff;padding:8px 12px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,0.2);font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;line-height:1.8;";
+    div.innerHTML = '<div style="font-weight:800;color:#0f2744;margin-bottom:2px;font-family:Outfit,sans-serif;letter-spacing:.3px">Calado</div>'
+      + '<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#d32f2f;border:1.5px solid #ccc;"></span> Mínimo</div>'
+      + '<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c89b15;border:1.5px solid #ccc;"></span> +0.01 a 0.60</div>'
+      + '<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FFEB3B;border:1.5px solid #ccc;"></span> +0.61 a 1.00</div>'
+      + '<div style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1.5px solid #ccc;"></span> +1.01 o más</div>';
+    return div;
+  };
+  colorLeg.addTo(map);
+  if (bounds.length > 1) { map.fitBounds(bounds, {padding:[60,60]}); }
+  else if (bounds.length === 1) { map.setView(bounds[0], 10); }
   setTimeout(() => map.invalidateSize(), 200);
 }
 function initEjercMap(containerId, cuadrantes) {
@@ -4426,11 +4448,11 @@ function renderSeccion(sec) {
             <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px">🗺️ Mapa de Determinantes</span>
             <div style="display:flex;align-items:center;gap:6px">
               <button onclick="var d=window._detMap;if(d&&d.minMarker){d.map.flyTo(d.minMarker.getLatLng(),10)}" style="font-size:10px;padding:3px 8px;border:none;border-radius:4px;background:#d32f2f;color:#fff;cursor:pointer;font-weight:600">🔴 Determinante</button>
-              <button onclick="var d=window._detMap;if(d&&d.bounds.length>1){d.map.fitBounds(d.bounds,{padding:[30,30]})}else if(d&&d.bounds.length===1){d.map.setView(d.bounds[0],8)}" style="font-size:10px;padding:3px 8px;border:none;border-radius:4px;background:rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-weight:600">Todos</button>
+              <button onclick="var d=window._detMap;if(d&&d.bounds.length>1){d.map.fitBounds(d.bounds,{padding:[60,60]})}else if(d&&d.bounds.length===1){d.map.setView(d.bounds[0],10)}" style="font-size:10px;padding:3px 8px;border:none;border-radius:4px;background:rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-weight:600">Todos</button>
               <span style="font-size:11px;color:rgba(255,255,255,0.5);margin-left:4px">${filasData.length} puntos</span>
             </div>
           </div>
-          <div id="sec-determinantes-map" style="height:450px;cursor:grab;"></div>
+          <div id="sec-determinantes-map" style="height:600px;cursor:grab;"></div>
           <div style="padding:8px 16px;background:var(--gray-100);border-top:1px solid var(--gray-200);font-size:11px;color:var(--text-lt);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
             <span>Puntos críticos de navegación — Fuente: ANPYN</span>
             <span>Usá scroll para hacer zoom · Arrastrá para mover</span>
@@ -5058,7 +5080,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
       var sit = (f.datos[2] || "").toUpperCase();
       var color = "";
       if (sit.includes("ALARMA SASS")) color = "#ECF757";
-      else if (sit.includes("EBOLA")) color = "#FAD99B";
+      else if (sit.includes("EBOLA")) color = "#5249D0";
       else if (sit.includes("MEDIO ORIENTE")) color = "#b3d9ff";
       else if (sit.includes("INCIDENTE DE PROTECCI")) color = "lightgreen";
       var estilo = color ? "background-color:" + color : "";if (color === "#5249D0") estilo += ";color:white";
@@ -5068,7 +5090,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
     h += `<div class="ref-pbip" style="margin-top:8px;font-size:13px;display:flex;gap:16px;flex-wrap:wrap;">`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:#ECF757;vertical-align:middle;margin-right:4px;"></span> Alarma SASS</span>`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:lightgreen;vertical-align:middle;margin-right:4px;"></span> Incidente de protección</span>`;
-    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#FAD99B;vertical-align:middle;margin-right:4px;"></span> Ebola</span>`;
+    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#5249D0;vertical-align:middle;margin-right:4px;"></span> Ebola</span>`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:#b3d9ff;vertical-align:middle;margin-right:4px;"></span> Medio Oriente</span>`;
     h += `</div>`;
     return h;
