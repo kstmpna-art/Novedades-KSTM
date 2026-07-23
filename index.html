@@ -2132,8 +2132,15 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
   if (!el) return;
   el.innerHTML = "";
   const map = L.map(el, {zoomControl:false, attributionControl:false }).setView([-40,-63], 4);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 }).addTo(map);
-  L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 }).addTo(map);
+  L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(map);
+  (function(){
+    var malvinasIcon = L.divIcon({
+      html: '<div style="padding:2px 6px;font-family:Outfit,sans-serif;font-size:10px;font-weight:800;color:#0f2744;white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;">ISLAS MALVINAS</div>',
+      iconSize: [0,0], iconAnchor: [0,0], className: ''
+    });
+    L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(map);
+  })();
   const closedSet = new Set();
   closedCodes.forEach(function(item) {
     const raw = (item || "").trim();
@@ -2220,12 +2227,19 @@ function initDeterminantesMap(containerId) {
   if (!el) return;
   el.innerHTML = "";
   const map = L.map(el, { zoomControl:false, attributionControl:false }).setView([-32,-60], 6);
-  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18 });
-  osm.addTo(map);
+  const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 });
+  esri.addTo(map);
   const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 });
   const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { maxZoom:17 });
-  L.control.layers({"Calles":osm,"Satélite":sat,"Topográfico":topo}, null, {position:"bottomright"}).addTo(map);
-  L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
+  L.control.layers({"Calles":esri,"Satélite":sat,"Topográfico":topo}, null, {position:"bottomright"}).addTo(map);
+  L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(map);
+  (function(){
+    var malvinasIcon = L.divIcon({
+      html: '<div style="padding:2px 6px;font-family:Outfit,sans-serif;font-size:10px;font-weight:800;color:#0f2744;white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;">ISLAS MALVINAS</div>',
+      iconSize: [0,0], iconAnchor: [0,0], className: ''
+    });
+    L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(map);
+  })();
   const sec = datosGlobales?.secciones?.find(s => s.id === "DETERMINANTES");
   const filas = (sec?.filas || []);
   const filasDet = filas.filter(f => f && f.tipo === "fila");
@@ -2322,8 +2336,15 @@ function initEjercMap(containerId, cuadrantes) {
   const el = document.getElementById(containerId);
   if (!el || !cuadrantes || !cuadrantes.length) return;
   const map = L.map(el, { zoomControl: true, attributionControl: false }).setView([-35, -60], 5);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(map);
-  L.control.attribution({position:"bottomleft",prefix:"© OSM"}).addTo(map);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 18 }).addTo(map);
+  L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(map);
+  (function(){
+    var malvinasIcon = L.divIcon({
+      html: '<div style="padding:2px 6px;font-family:Outfit,sans-serif;font-size:10px;font-weight:800;color:#0f2744;white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;">ISLAS MALVINAS</div>',
+      iconSize: [0,0], iconAnchor: [0,0], className: ''
+    });
+    L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(map);
+  })();
   const colors = ["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e"];
   const bounds = [];
   const polos = [];
@@ -3325,8 +3346,16 @@ function aisInitMap() {
   if (!el) { console.warn("[AIS] #ais-map not in DOM yet"); return false; }
   if (_aisMap) { _aisMap.invalidateSize(); return true; }
   _aisMap = L.map("ais-map", { zoomControl: true, attributionControl: false }).fitBounds([[-55,-73],[-22,-54]]);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(_aisMap);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 18 }).addTo(_aisMap);
+  L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(_aisMap);
   L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(_aisMap);
+  (function(){
+    var malvinasIcon = L.divIcon({
+      html: '<div style="padding:2px 6px;font-family:Outfit,sans-serif;font-size:10px;font-weight:800;color:#0f2744;white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;">ISLAS MALVINAS</div>',
+      iconSize: [0,0], iconAnchor: [0,0], className: ''
+    });
+    L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(_aisMap);
+  })();
   return true;
 }
 
@@ -3800,8 +3829,16 @@ function initHcAisMap() {
   if (_hcAisMap) { try { _hcAisMap.remove(); } catch(e) {} _hcAisMap = null; }
   _hcAisMarkers = {};
   _hcAisMap = L.map(el, { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(_hcAisMap);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 18 }).addTo(_hcAisMap);
+  L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(_hcAisMap);
   L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(_hcAisMap);
+  (function(){
+    var malvinasIcon = L.divIcon({
+      html: '<div style="padding:2px 6px;font-family:Outfit,sans-serif;font-size:10px;font-weight:800;color:#0f2744;white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;">ISLAS MALVINAS</div>',
+      iconSize: [0,0], iconAnchor: [0,0], className: ''
+    });
+    L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(_hcAisMap);
+  })();
   if (typeof datosGlobales === "undefined" || !datosGlobales) return;
   var secSAR = datosGlobales.secciones.find(function(s) { return s.id === "SAR"; });
   var secMAS = datosGlobales.secciones.find(function(s) { return s.id === "MAS"; });
@@ -3900,8 +3937,16 @@ function initVistaCompletaMasMap() {
   var el = document.getElementById("sec-mas-map");
   if (!el) return;
   var map = L.map(el, { zoomControl: true, attributionControl: false }).fitBounds([[-55,-73],[-22,-54]]);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 18 }).addTo(map);
+  L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(map);
   L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(map);
+  (function(){
+    var malvinasIcon = L.divIcon({
+      html: '<div style="padding:2px 6px;font-family:Outfit,sans-serif;font-size:10px;font-weight:800;color:#0f2744;white-space:nowrap;letter-spacing:.5px;text-transform:uppercase;">ISLAS MALVINAS</div>',
+      iconSize: [0,0], iconAnchor: [0,0], className: ''
+    });
+    L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(map);
+  })();
   var sec = datosGlobales && datosGlobales.secciones.find(function(s) { return s.id === "MAS"; });
   if (!sec) return;
   var bounds = [];
@@ -5080,17 +5125,17 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
       var sit = (f.datos[2] || "").toUpperCase();
       var color = "";
       if (sit.includes("ALARMA SASS")) color = "#ECF757";
-      else if (sit.includes("EBOLA")) color = "#5249D0";
+      else if (sit.includes("EBOLA")) color = "#FFCC00";
       else if (sit.includes("MEDIO ORIENTE")) color = "#b3d9ff";
       else if (sit.includes("INCIDENTE DE PROTECCI")) color = "lightgreen";
       var estilo = color ? "background-color:" + color : "";if (color === "#5249D0") estilo += ";color:white";
-      h += `<tr${estilo ? ' style="'+estilo+'"' : ''}>${f.datos.map(v => color === "#5249D0" ? `<td style="color:black">${esc(v)}</td>` : `<td>${esc(v)}</td>`).join("")}</tr>`;
+      h += `<tr${estilo ? ' style="'+estilo+'"' : ''}>${f.datos.map((v,i,a) => { var isLast = i === a.length - 1; var extra = isLast ? 'word-wrap:break-word;white-space:normal;max-width:220px' : ''; return color === "#5249D0" ? `<td style="color:black;${extra}">${esc(v)}</td>` : `<td style="${extra}">${esc(v)}</td>`; }).join("")}</tr>`;
     });
     h += `</table></div>`;
     h += `<div class="ref-pbip" style="margin-top:8px;font-size:13px;display:flex;gap:16px;flex-wrap:wrap;">`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:#ECF757;vertical-align:middle;margin-right:4px;"></span> Alarma SASS</span>`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:lightgreen;vertical-align:middle;margin-right:4px;"></span> Incidente de protección</span>`;
-    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#5249D0;vertical-align:middle;margin-right:4px;"></span> Ebola</span>`;
+    h += `<span><span style="display:inline-block;width:14px;height:14px;background:#FFCC00;vertical-align:middle;margin-right:4px;"></span> Ebola</span>`;
     h += `<span><span style="display:inline-block;width:14px;height:14px;background:#b3d9ff;vertical-align:middle;margin-right:4px;"></span> Medio Oriente</span>`;
     h += `</div>`;
     return h;
