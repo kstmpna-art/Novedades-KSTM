@@ -2347,21 +2347,26 @@ function initEjercMap(containerId, cuadrantes) {
   })();
   const colors = ["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#34495e"];
   const bounds = [];
-  const polos = [];
+  const allPolygons = [];
   cuadrantes.forEach(function(c, i) {
-    if (!c.pts || c.pts.length < 3) return;
+    if (!c.areas || !c.areas.length) return;
     const color = colors[i % colors.length];
-    const poly = L.polygon(c.pts, { color: color, weight: 2, fillOpacity: 0.15 }).addTo(map);
-    var popHtml = "<b>" + esc(c.name) + "</b>";
-    if (c.fecha) popHtml += "<br><span style='font-size:11px;color:#555'>" + esc(c.fecha) + "</span>";
-    if (c.obs) popHtml += "<br><span style='font-size:11px;color:#777'>" + esc(c.obs) + "</span>";
-    poly.bindPopup(popHtml, { maxWidth: 300 });
-    poly.on("mouseover", function(){ this.setStyle({fillOpacity:0.3, weight:3}); });
-    poly.on("mouseout", function(){ this.setStyle({fillOpacity:0.15, weight:2}); });
-    c.pts.forEach(function(p){ if (p) bounds.push(p); });
-    polos.push(poly);
+    const cuadrantePolys = [];
+    c.areas.forEach(function(areaPts) {
+      if (!areaPts || areaPts.length < 3) return;
+      const poly = L.polygon(areaPts, { color: color, weight: 2, fillOpacity: 0.15 }).addTo(map);
+      var popHtml = "<b>" + esc(c.label || c.name) + "</b>";
+      if (c.fecha) popHtml += "<br><span style='font-size:11px;color:#555'>" + esc(c.fecha) + "</span>";
+      if (c.obs) popHtml += "<br><span style='font-size:11px;color:#777'>" + esc(c.obs) + "</span>";
+      poly.bindPopup(popHtml, { maxWidth: 300 });
+      poly.on("mouseover", function(){ this.setStyle({fillOpacity:0.3, weight:3}); });
+      poly.on("mouseout", function(){ this.setStyle({fillOpacity:0.15, weight:2}); });
+      areaPts.forEach(function(p){ if (p) bounds.push(p); });
+      cuadrantePolys.push(poly);
+    });
+    allPolygons.push(cuadrantePolys);
     const leg = document.getElementById("legend-" + containerId);
-    if (leg) leg.innerHTML += '<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:' + color + ';border-radius:2px;"></span> ' + esc(c.name) + '</span>';
+    if (leg) leg.innerHTML += '<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:' + color + ';border-radius:2px;"></span> ' + esc(c.label || c.name) + (c.areas.length > 1 ? ' (' + c.areas.length + ' áreas)' : '') + '</span>';
   });
   var fitAll = function() {
     if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30] });
@@ -2369,13 +2374,20 @@ function initEjercMap(containerId, cuadrantes) {
   };
   fitAll();
   setTimeout(function(){ map.invalidateSize(); }, 200);
+  var _areaIdx = {};
   window._ejercMap = {
     flyToCuadrante: function(idx) {
-      if (!polos[idx] || !cuadrantes[idx]) return;
-      var c = cuadrantes[idx];
-      var center = c.pts.reduce(function(a, p) { return [a[0]+p[0]/c.pts.length, a[1]+p[1]/c.pts.length]; }, [0,0]);
-      map.flyTo(center, 10);
-      polos[idx].openPopup();
+      var polys = allPolygons[idx];
+      if (!polys || !polys.length) return;
+      if (_areaIdx[idx] === undefined) _areaIdx[idx] = 0;
+      var areaIdx = _areaIdx[idx];
+      if (areaIdx >= polys.length) areaIdx = 0;
+      var pts = cuadrantes[idx].areas[areaIdx];
+      if (!pts || !pts.length) return;
+      var center = pts.reduce(function(a, p) { return [a[0]+p[0]/pts.length, a[1]+p[1]/pts.length]; }, [0,0]);
+      map.flyTo(center, 12);
+      polys[areaIdx].openPopup();
+      _areaIdx[idx] = (areaIdx + 1) % polys.length;
     },
     fitAll: fitAll
   };
@@ -2502,6 +2514,16 @@ function renderizar(data) {
       const cnt = sec.activeCount || 0;
       el.textContent = cnt;
       el.style.display = cnt ? "inline" : "none";
+    } else if (sec.id === "EJER.ARMAS") {
+      const grupos = {};
+      (sec.filas||[]).filter(f=>f&&f.tipo==="arma").forEach(f=>{
+        const d=f.datos||[];
+        const key=(d[0]||"").trim()+"|||" + (d[2]||"").trim();
+        if(key.trim()!=="|||") grupos[key]=true;
+      });
+      const cnt = Object.keys(grupos).length;
+      el.textContent = cnt;
+      el.style.display = cnt?"inline":"none";
     } else {
       const tipos = b.tipos||[b.tipo];
       const cnt = (sec.filas||[]).filter(f=>f&&tipos.includes(f.tipo)).length;
@@ -2625,7 +2647,18 @@ function renderHomeCards(data, sarN, masN) {
   const dragas  = countSec("DRAGAS");
   const eventos = countRegatas();
   const ara     = countSec("ARA", "fila");
-  const ejerc   = countSec("EJER.ARMAS", "arma");
+  function countEjercUnicos() {
+    const sec = data.secciones.find(s => s.id === "EJER.ARMAS");
+    if (!sec) return 0;
+    const grupos = {};
+    (sec.filas||[]).filter(f=>f&&f.tipo==="arma").forEach(f=>{
+      const d=f.datos||[];
+      const key=(d[0]||"").trim()+"|||" + (d[2]||"").trim();
+      if(key.trim()!=="|||") grupos[key]=true;
+    });
+    return Object.keys(grupos).length;
+  }
+  const ejerc   = countEjercUnicos();
   const kstm    = countSec("KSTM");
   const visitas = countSec("VISITAS", "fila");
   const reserva = countSec("RESERVA");
@@ -3135,7 +3168,18 @@ function mostrarHome() {
     else if(+d>+manana)regatasFuturo++;
     else if(!(end&&+end<+hoy))regatasManana++;
   });
-  const ejerc = cnt("EJER.ARMAS","arma"), kstm = cnt("KSTM"), visitas = cnt("VISITAS","fila"), reserva = cnt("RESERVA");
+  function cntEjercUnicos() {
+    const s = datosGlobales.secciones.find(x => x.id === "EJER.ARMAS");
+    if (!s) return 0;
+    const g = {};
+    (s.filas||[]).filter(f=>f&&f.tipo==="arma").forEach(f=>{
+      const d=f.datos||[];
+      const key=(d[0]||"").trim()+"|||" + (d[2]||"").trim();
+      if(key.trim()!=="|||") g[key]=true;
+    });
+    return Object.keys(g).length;
+  }
+  const ejerc = cntEjercUnicos(), kstm = cnt("KSTM"), visitas = cnt("VISITAS","fila"), reserva = cnt("RESERVA");
   const novedades = cnt("NOVEDADES");
   const metPrev = (datosGlobales.secciones.find(s=>s.id==="METANEROS")?.filas||[]).filter(f=>f&&f.tipo==="fila"&&f.datos&&f.datos.length<=6).length;
   const pbip = cnt("PBIP");
@@ -4746,7 +4790,6 @@ if (sec.tipo === "tipo_armas" || sec.id === "EJER.ARMAS") {
   const otros = filas.filter(f => f && f.tipo !== "arma");
   let h = "";
 
-  // Primero renderizar subtítulos y textos generales
   if (otros.length) h += renderFilasGenericas(otros);
 
   if (!items.length) {
@@ -4754,36 +4797,55 @@ if (sec.tipo === "tipo_armas" || sec.id === "EJER.ARMAS") {
     return h;
   }
 
+  // ── Agrupar por dependencia + nombre del ejercicio ──
+  const grupos = {};
+  const ordenGrupos = [];
+  items.forEach(function(f) {
+    const datos = f.datos || [];
+    const dep = (datos[0] || "").trim();
+    const nombre = (datos[2] || "").trim();
+    const key = dep + "|||" + nombre;
+    if (!grupos[key]) {
+      grupos[key] = { dep: dep, nombre: nombre || "Sin nombre", fecha: datos[1] || "", obs: datos[3] || "", areas: [] };
+      ordenGrupos.push(key);
+    }
+    const pts = [];
+    for (let i = 4; i <= 7; i++) {
+      if (datos[i]) { var c = dmsToDecimal(datos[i]); if (c) pts.push(c); }
+    }
+    if (pts.length >= 3) grupos[key].areas.push(pts);
+  });
+
+  const cuadrantes = [];
+  ordenGrupos.forEach(function(key) {
+    const g = grupos[key];
+    if (g.areas.length > 0) {
+      cuadrantes.push({
+        name: g.nombre,
+        dep: g.dep,
+        label: g.dep ? g.dep + " – " + g.nombre : g.nombre,
+        areas: g.areas,
+        fecha: g.fecha,
+        obs: g.obs
+      });
+    }
+  });
+
   h += `<div style="display:flex;gap:16px;align-items:flex-start;">
     <div style="flex:1;min-width:0;">`;
 
   h += `<div class="bloque-sub">
     🎯 Ejercicios vigentes
-    <span class="badge amber">${items.length}</span>
+    <span class="badge amber">${cuadrantes.length}</span>
   </div>`;
 
-  const cuadrantes = [];
-  items.forEach(function(f, idx) {
-    const datos = f.datos || [];
-    const pts = [];
-    for (let i = 4; i <= 7; i++) {
-      if (datos[i]) { var c = dmsToDecimal(datos[i]); if (c) pts.push(c); }
-    }
-    if (pts.length >= 3) cuadrantes.push({ name: datos[0] || "Sin nombre", pts, fecha: datos[1] + (datos[2] ? " – " + datos[2] : ""), obs: datos[3], _itemIdx: idx });
-  });
-
-  items.forEach(function(f, idx) {
-    var datos = f.datos || [];
-    var cIdx = -1;
-    for (var ci = 0; ci < cuadrantes.length; ci++) {
-      if (cuadrantes[ci]._itemIdx === idx) { cIdx = ci; break; }
-    }
-    var clickAttr = cIdx >= 0 ? 'onclick="window._ejercMap && window._ejercMap.flyToCuadrante(' + cIdx + ')" style="cursor:pointer"' : '';
+  cuadrantes.forEach(function(c, idx) {
+    var clickAttr = 'onclick="window._ejercMap && window._ejercMap.flyToCuadrante(' + idx + ')" style="cursor:pointer"';
     h += '<div class="item-card amber" ' + clickAttr + '>';
-    if (cIdx >= 0) h += '<span style="float:right;font-size:10px;color:var(--blue);font-weight:600">📍 Ver en mapa</span>';
-    h += '<div style="font-weight:700;color:var(--navy);margin-bottom:4px;font-family:\'Outfit\',sans-serif">' + esc(datos[0] || "Sin nombre") + '</div>';
-    if (datos[1]) h += '<div class="caso-line"><span class="lbl">INICIO/FIN: </span>' + esc(datos[1]) + (datos[2] ? " – " + esc(datos[2]) : "") + '</div>';
-    if (datos[3]) h += '<div class="caso-line"><span class="lbl">OBS: </span>' + esc(datos[3]) + '</div>';
+    h += '<span style="float:right;font-size:10px;color:var(--blue);font-weight:600">📍 Ver en mapa (' + c.areas.length + ' área' + (c.areas.length > 1 ? 's' : '') + ')</span>';
+    h += '<div style="font-weight:700;color:var(--navy);margin-bottom:4px;font-family:\'Outfit\',sans-serif">' + esc(c.label) + '</div>';
+    if (c.fecha) h += '<div class="caso-line"><span class="lbl">INICIO: </span>' + esc(c.fecha) + '</div>';
+    if (c.obs) h += '<div class="caso-line"><span class="lbl">OBS: </span>' + esc(c.obs) + '</div>';
     h += '</div>';
   });
 
