@@ -327,6 +327,18 @@
             <label>Manga</label>
             <input type="text" id="casoManga" placeholder="ej: 25 MTS">
           </div>
+          <div class="form-group">
+            <label>Calado</label>
+            <input type="text" id="casoCalado" placeholder="ej: 9.5 MTS">
+          </div>
+          <div class="form-group">
+            <label>Puntal</label>
+            <input type="text" id="casoPuntal" placeholder="ej: 14 MTS">
+          </div>
+          <div class="form-group full">
+            <label>Tipo de carga</label>
+            <input type="text" id="casoTipoCarga" placeholder="ej: GRANEL SOLIDO, LIQUIDO, CONTENEDORES">
+          </div>
           <div class="form-group full">
             <label>Agencia mar&iacute;tima / POB</label>
             <input type="text" id="casoAgencia" placeholder="Agencia - Personas a bordo">
@@ -636,7 +648,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzzXbCWzqrhR_JC4aRMWYfI81rWwxk9TvNQZBPU8phpoHfvoBb84-A9AH59mekKd9qBLQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzIbGJ-LW8BcxGY4D8lQUR1OIfC8Z7zgBVaeB72XjLrrc6Rm_1PpWtUgl51QPYSbCwudw/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -6553,6 +6565,9 @@ async function guardarCaso(e){
     posicion:document.getElementById("casoPosicion").value.trim(),
     eslora:document.getElementById("casoEslora").value.trim(),
     manga:document.getElementById("casoManga").value.trim(),
+    calado:document.getElementById("casoCalado").value.trim(),
+    puntal:document.getElementById("casoPuntal").value.trim(),
+    tipo_carga:document.getElementById("casoTipoCarga").value.trim(),
     agencia_pob:document.getElementById("casoAgencia").value.trim(),
     procedencia_destino:document.getElementById("casoProcedencia").value.trim(),
     diagnostico:document.getElementById("casoDiagnostico").value.trim(),
@@ -6651,6 +6666,9 @@ function editarCaso(seccionId, filaSheet, hojaId){
   document.getElementById("casoPosicion").value=caso.posicion||"";
   document.getElementById("casoEslora").value=caso.eslora||"";
   document.getElementById("casoManga").value=caso.manga||"";
+  document.getElementById("casoCalado").value=caso.calado||"";
+  document.getElementById("casoPuntal").value=caso.puntal||"";
+  document.getElementById("casoTipoCarga").value=caso.tipoCarga||"";
   document.getElementById("casoAgencia").value=caso.agenciaPob||"";
   document.getElementById("casoProcedencia").value=caso.procedenciaDestino||"";
   document.getElementById("casoDiagnostico").value=caso.diagnostico||"";
