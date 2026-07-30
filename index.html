@@ -1337,7 +1337,9 @@ function renderizar(data) {
       _masPendItems.forEach(function(x){_items.push('<span style="color:#7c3aed;font-size:10px;font-weight:600;white-space:nowrap">🟣 '+esc(x.b)+' &mdash; '+x.d+'d</span>');});
       _pendHtml='<div style="padding:0 8px 4px;display:flex;flex-wrap:wrap;gap:3px;max-height:52px;overflow-y:auto">'+_items.join("")+'</div>';
     }
-    const gcN  = (gcSec?.filas  || []).filter(f => f?.tipo === "fila").length;
+    const gcFilasN = (gcSec?.filas || []).filter(f => f?.tipo === "fila");
+    const _hoyN = new Date(); _hoyN.setHours(0,0,0,0);
+    const gcN = gcFilasN.filter(f => { const d = parseDate(f.datos[1]); return !d || d <= _hoyN; }).length;
     const bKSTM = document.getElementById("sel-badge-KSTM");
     const bSBGC = document.getElementById("sel-badge-SBGC");
     const totalActivos = sarN + masN;
@@ -1381,6 +1383,12 @@ function renderizar(data) {
         if(key.trim()!=="|||") grupos[key]=true;
       });
       const cnt = Object.keys(grupos).length;
+      el.textContent = cnt;
+      el.style.display = cnt?"inline":"none";
+    } else if (sec.id === "GC") {
+      const gcAll = (sec.filas||[]).filter(f=>f&&f.tipo==="fila");
+      const _hoyB = new Date(); _hoyB.setHours(0,0,0,0);
+      const cnt = gcAll.filter(f => { const d = parseDate(f.datos[1]); return !d || d <= _hoyB; }).length;
       el.textContent = cnt;
       el.style.display = cnt?"inline":"none";
     } else {
