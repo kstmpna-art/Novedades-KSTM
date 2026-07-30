@@ -253,7 +253,10 @@
 <!-- ── MODAL CARGA CASO SAR/MAS ──────────────────────────────────── -->
 <div id="modalCaso">
   <div class="modal-box caso-modal">
-    <h2 id="modalCasoTitle">Cargar nuevo caso</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 id="modalCasoTitle" style="margin:0">Cargar nuevo caso</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalCaso()">&times;</button>
+    </div>
     <form id="formCaso" onsubmit="return guardarCaso(event)">
       <input type="hidden" id="casoSeccion">
       <input type="hidden" id="casoFila" value="">
@@ -347,9 +350,13 @@
             <label>Puerto de operaciones</label>
             <input type="text" id="casoPuertoOperaciones" placeholder="ej: Rosario">
           </div>
-          <div class="form-group full">
-            <label>Agencia mar&iacute;tima / POB</label>
-            <input type="text" id="casoAgencia" placeholder="Agencia - Personas a bordo">
+          <div class="form-group">
+            <label>Agencia mar&iacute;tima</label>
+            <input type="text" id="casoAgencia" placeholder="ej: ABC Agencia">
+          </div>
+          <div class="form-group">
+            <label>POB (Personas a bordo)</label>
+            <input type="text" id="casoPob" placeholder="ej: 22 tripulantes">
           </div>
           <div class="form-group full">
             <label>Procedencia / Destino</label>
@@ -656,7 +663,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbziBArYt6l9WN_65lejE0nWgaOFggV0ahsJq2VMpNE5D1COtiIi9qjSxQ2Jw4ezkkycyg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw8ts-Q3R6t4Z-XvgCX-G14_bKfDfoPILY8vpUP-ul8UmJ2-fibYndtbCNrquIj0x-r1g/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -3054,6 +3061,7 @@ function renderSeccion(sec) {
           <div class="caso-line" style="color: #FF0000"><span><b>NOVEDAD:</b> </span>${esc(f.novedad)}</div>
           <div class="caso-line"><span><b>CARACTERÍSTICAS:</b> </span>${esc(f.caracteristicas)}</div>
           <div class="caso-line"><span><b>SITUACIÓN:</b> </span>${esc(f.situacion)}</div>
+          ${(function(){var _ap=(f.agenciaPob||"").split("|").map(function(s){return s.trim();});var _lines='';if(_ap[0])_lines+=`<div class="caso-line"><span><b>AGENCIA:</b> </span>${esc(_ap[0])}</div>`;if(_ap[1])_lines+=`<div class="caso-line"><span><b>POB:</b> </span>${esc(_ap[1])}</div>`;return _lines;})()}
           ${relojHtml}
           <div style="margin-top:10px;border-top:1px solid var(--gray-200);padding-top:10px">${imgViewerHtml}${uploaderHtml}
             ${rolActual==="admin"?`<div style="margin-top:8px;display:flex;gap:6px"><button class="tb-btn outline" onclick="editarCaso('${sec.id}','${fila}','${hojaId}')" style="font-size:11px;padding:4px 10px">✏️ Editar</button></div>`:""}
@@ -5473,7 +5481,7 @@ async function exportarPDF(){
   var btn=document.getElementById("btnPDF");
   var encargado=(document.getElementById("firmanteEncargado")||{}).value||"";
   var oficial=(document.getElementById("firmanteOficial")||{}).value||"";
-  if(!encargado.trim()||!oficial.trim()){
+  if(rolActual!=="visual"&&(!encargado.trim()||!oficial.trim())){
     alert("⚠️ Debe completar el Encargado de Guardia y el Oficial de Guardia antes de exportar.");
     btn.textContent="📕 PDF";btn.disabled=false;
     return;
@@ -6484,7 +6492,7 @@ function exportarWord(){
   var btn=document.getElementById("btnWord");
   var encargado=(document.getElementById("firmanteEncargado")||{}).value||"";
   var oficial=(document.getElementById("firmanteOficial")||{}).value||"";
-  if(!encargado.trim()||!oficial.trim()){
+  if(rolActual!=="visual"&&(!encargado.trim()||!oficial.trim())){
     alert("⚠️ Debe completar el Encargado de Guardia y el Oficial de Guardia antes de exportar.");
     return;
   }
@@ -6550,7 +6558,7 @@ function cerrarModalCaso(){
   document.getElementById("modalCaso").classList.remove("activo");
   document.getElementById("casoFila").value="";
 }
-document.getElementById("modalCaso").addEventListener("click",function(e){if(e.target===this)cerrarModalCaso();});
+// Cierre al hacer clic afuera DESHABILITADO — solo se cierra con el botón X o "Cancelar"
 async function guardarCaso(e){
   e.preventDefault();
   var btn=document.getElementById("btnGuardarCaso");
@@ -6578,7 +6586,7 @@ async function guardarCaso(e){
     tipo_carga:document.getElementById("casoTipoCarga").value.trim(),
     puerto_asiento:document.getElementById("casoPuertoAsiento").value.trim(),
     puerto_operaciones:document.getElementById("casoPuertoOperaciones").value.trim(),
-    agencia_pob:document.getElementById("casoAgencia").value.trim(),
+    agencia_pob:(document.getElementById("casoAgencia").value.trim()||"")+" | "+(document.getElementById("casoPob").value.trim()||""),
     procedencia_destino:document.getElementById("casoProcedencia").value.trim(),
     diagnostico:document.getElementById("casoDiagnostico").value.trim(),
     medios_previstos:document.getElementById("casoMediosPrevistos").value.trim(),
@@ -6681,7 +6689,9 @@ function editarCaso(seccionId, filaSheet, hojaId){
   document.getElementById("casoTipoCarga").value=caso.tipoCarga||"";
   document.getElementById("casoPuertoAsiento").value=caso.puertoAsiento||"";
   document.getElementById("casoPuertoOperaciones").value=caso.puertoOperaciones||"";
-  document.getElementById("casoAgencia").value=caso.agenciaPob||"";
+  var _agenciaParts=(caso.agenciaPob||"").split("|").map(function(s){return s.trim();});
+  document.getElementById("casoAgencia").value=_agenciaParts[0]||"";
+  document.getElementById("casoPob").value=_agenciaParts[1]||"";
   document.getElementById("casoProcedencia").value=caso.procedenciaDestino||"";
   document.getElementById("casoDiagnostico").value=caso.diagnostico||"";
   document.getElementById("casoMediosPrevistos").value=caso.mediosPrevistos||"";
