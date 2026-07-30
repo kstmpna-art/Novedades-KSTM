@@ -3466,10 +3466,10 @@ function renderSeccion(sec) {
       // Tabla 1
       if (t1.length) {
         h += `<div class="tbl-wrap"><table class="pna-table">`;
-        if (title1) h += `<tr><th colspan="${h1.length}">${esc(title1)}</th></tr>`;
+        if (title1) h += `<tr><th colspan="${h1.length}" style="background:var(--blue);color:#fff">${esc(title1)}</th></tr>`;
         if (h1.length) {
           h += `<tr>`;
-          h1.forEach(th => { h += `<th>${esc(th)}</th>`; });
+          h1.forEach(th => { h += `<th style="background:var(--blue-lt);color:#fff">${esc(th)}</th>`; });
           h += `</tr>`;
         }
         t1.forEach(row => {
@@ -3478,8 +3478,8 @@ function renderSeccion(sec) {
             var estilo = i === 0 ? 'font-weight:700;text-align:left' : '';
             if (i === 5) {
               var val = (c || '').toUpperCase();
-              if (val.includes('EVACUACIÓN') || val.includes('EVACUACION')) estilo = 'background:#fecaca;color:#991b1b;font-weight:700';
-              else if (val.includes('ALERTA')) estilo = 'background:#fef9c3;color:#854d0e;font-weight:700';
+              if (val.includes('EVACUACIÓN') || val.includes('EVACUACION')) estilo = 'background:#dc2626;color:#fff;font-weight:700';
+              else if (val.includes('ALERTA')) estilo = 'background:#facc15;color:#000;font-weight:700';
             }
             h += `<td${estilo?' style="'+estilo+'"':''}>${esc(c)}</td>`;
           });
@@ -3490,10 +3490,10 @@ function renderSeccion(sec) {
       // Tabla 2
       if (t2.length) {
         h += `<div class="tbl-wrap"><table class="pna-table">`;
-        if (title2) h += `<tr><th colspan="${h2.length}">${esc(title2)}</th></tr>`;
+        if (title2) h += `<tr><th colspan="${h2.length}" style="background:var(--blue);color:#fff">${esc(title2)}</th></tr>`;
         if (h2.length) {
           h += `<tr>`;
-          h2.forEach(th => { h += `<th>${esc(th)}</th>`; });
+          h2.forEach(th => { h += `<th style="background:var(--blue-lt);color:#fff">${esc(th)}</th>`; });
           h += `</tr>`;
         }
         t2.forEach(row => {
