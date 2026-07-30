@@ -211,6 +211,7 @@
     </div>
     <div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px;flex-wrap:wrap">
       <button onclick="seleccionarResumen()" style="padding:5px 10px;background:var(--gold);color:var(--navy-dk);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📋 Resumen</button>
+      <button onclick="seleccionarDIOP()" style="padding:5px 10px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📡 DIOP</button>
       <button onclick="seleccionarTodo()" style="padding:5px 10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">☑ Todo</button>
       <button onclick="limpiarSeleccion()" style="padding:5px 10px;background:var(--gray-200);color:var(--text-md);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">☐ Limpiar</button>
     </div>
@@ -668,7 +669,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzF6Hs2LLPc43oJWjLOIFEHR5As1b1O3nRVkyl3ZCXJoJMY8cCXIBVFKf8emXAJhDE_/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwDJcT1sOk3682aGYFJbv1vpuedP_9ZyQYiBcWeHm-4KxfJEugNnWtKmBqSraFyh7oYWA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -5456,6 +5457,14 @@ function seleccionarResumen() {
     if (el) el.checked = true;
   });
   _exportSoloTextoDet = true;
+}
+function seleccionarDIOP() {
+  document.querySelectorAll("#exportSecciones input[type=checkbox]").forEach(function(cb){ cb.checked = false; });
+  ["trafico","puertos","alert","gc"].forEach(function(v){
+    var el = document.querySelector("#exportSecciones input[value='"+v+"']");
+    if (el) el.checked = true;
+  });
+  _exportSoloTextoDet = false;
 }
 function seleccionarTodo() {
   document.querySelectorAll("#exportSecciones input[type=checkbox]").forEach(function(cb){ cb.checked = true; });
