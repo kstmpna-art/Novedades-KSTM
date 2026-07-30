@@ -6292,7 +6292,21 @@ function _buildParteCuerpo(){
     cuerpo+='<div style="margin:2pt 0"><a href="https://www.smn.gob.ar" style="font-size:12pt;color:#1a6fa4">Servicio Meteorol\u00f3gico Nacional</a></div>';
     var alFilas=_filas("ALERTA","fila");
     if(alFilas.length){
-      cuerpo+=_renderTabla(alFilas.map(function(f){var d=f.datos||[];return [d[0]||"",d[1]||"",d[2]||"",d[3]||""];}),["Alerta N\u00b0","Zona","Fen\u00f3meno","MOI y destinos"]);
+      var alGrupos={};
+      alFilas.forEach(function(f){var k=(f.datos||[])[0]||"SIN";if(!alGrupos[k])alGrupos[k]=[];alGrupos[k].push(f.datos||[]);});
+      cuerpo+='<table style="width:100%;border-collapse:collapse;font-size:9pt;margin:4pt 0">';
+      cuerpo+='<tr><td style="background:#003366;color:white;border:1pt solid #999;padding:4pt 5pt;text-align:center;font-weight:bold">Alerta N\u00b0</td><td style="background:#003366;color:white;border:1pt solid #999;padding:4pt 5pt;text-align:center;font-weight:bold">Zona</td><td style="background:#003366;color:white;border:1pt solid #999;padding:4pt 5pt;text-align:center;font-weight:bold">Fen\u00f3meno</td><td style="background:#003366;color:white;border:1pt solid #999;padding:4pt 5pt;text-align:center;font-weight:bold">MOI y destinos</td></tr>';
+      Object.values(alGrupos).forEach(function(grupo){
+        var rs=grupo.length;
+        grupo.forEach(function(fila,idx){
+          cuerpo+='<tr>';
+          if(idx===0) cuerpo+='<td rowspan="'+rs+'" style="text-align:center;font-weight:bold;vertical-align:middle;border:1pt solid #ccc;padding:3pt 4pt">'+_esc(fila[0])+'</td>';
+          cuerpo+='<td style="border:1pt solid #ccc;padding:3pt 4pt">'+_esc(fila[1]||"")+'</td><td style="border:1pt solid #ccc;padding:3pt 4pt">'+_esc(fila[2]||"")+'</td>';
+          if(idx===0) cuerpo+='<td rowspan="'+rs+'" style="text-align:left;vertical-align:middle;border:1pt solid #ccc;padding:3pt 4pt">'+_esc(fila[3]||"")+'</td>';
+          cuerpo+='</tr>';
+        });
+      });
+      cuerpo+='</table>';
     }else{
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin alertas vigentes.</div>';
     }
