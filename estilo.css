@@ -525,6 +525,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 #modalCaso .form-group input,#modalCaso .form-group textarea{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box}
 #modalCaso .form-group textarea{resize:vertical}
 #modalCaso .btn-guardar-caso{background:#003366;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+#modalCaso .modal-close-x{background:none;border:none;font-size:28px;font-weight:700;color:#999;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all .15s;line-height:1}
+#modalCaso .modal-close-x:hover{background:#f0f0f0;color:#333}
 
 .modal-box{background:#fff;border-radius:var(--radius-lg);padding:28px;width:320px;text-align:center;box-shadow:var(--shadow-lg)}
 .modal-box h2{font-family:'Outfit',sans-serif;color:var(--navy);font-size:16px;font-weight:700;margin-bottom:20px;letter-spacing:.3px}
