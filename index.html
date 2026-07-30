@@ -338,6 +338,14 @@
             <label>Puntal</label>
             <input type="text" id="casoPuntal" placeholder="ej: 14 MTS">
           </div>
+          <div class="form-group">
+            <label>Agencia mar&iacute;tima</label>
+            <input type="text" id="casoAgencia" placeholder="ej: ABC Agencia">
+          </div>
+          <div class="form-group">
+            <label>POB (Personas a bordo)</label>
+            <input type="text" id="casoPob" placeholder="ej: 22 tripulantes">
+          </div>
           <div class="form-group full">
             <label>Tipo de carga</label>
             <input type="text" id="casoTipoCarga" placeholder="ej: GRANEL SOLIDO, LIQUIDO, CONTENEDORES">
@@ -351,16 +359,12 @@
             <input type="text" id="casoPuertoOperaciones" placeholder="ej: Rosario">
           </div>
           <div class="form-group">
-            <label>Agencia mar&iacute;tima</label>
-            <input type="text" id="casoAgencia" placeholder="ej: ABC Agencia">
+            <label>Procedencia</label>
+            <input type="text" id="casoProcedencia" placeholder="ej: Encarnación">
           </div>
           <div class="form-group">
-            <label>POB (Personas a bordo)</label>
-            <input type="text" id="casoPob" placeholder="ej: 22 tripulantes">
-          </div>
-          <div class="form-group full">
-            <label>Procedencia / Destino</label>
-            <input type="text" id="casoProcedencia" placeholder="Origen - Destino">
+            <label>Destino</label>
+            <input type="text" id="casoDestino" placeholder="ej: Zárate">
           </div>
         </div>
       </div>
@@ -663,7 +667,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbw8ts-Q3R6t4Z-XvgCX-G14_bKfDfoPILY8vpUP-ul8UmJ2-fibYndtbCNrquIj0x-r1g/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwGzYJbzaOjwVZEY0fhq584a05GP8HAkz4etCPoaiT3vi5SgWpd24LIYjdyJCnALe0pjQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -3061,7 +3065,6 @@ function renderSeccion(sec) {
           <div class="caso-line" style="color: #FF0000"><span><b>NOVEDAD:</b> </span>${esc(f.novedad)}</div>
           <div class="caso-line"><span><b>CARACTERÍSTICAS:</b> </span>${esc(f.caracteristicas)}</div>
           <div class="caso-line"><span><b>SITUACIÓN:</b> </span>${esc(f.situacion)}</div>
-          ${(function(){var _ap=(f.agenciaPob||"").split("|").map(function(s){return s.trim();});var _lines='';if(_ap[0])_lines+=`<div class="caso-line"><span><b>AGENCIA:</b> </span>${esc(_ap[0])}</div>`;if(_ap[1])_lines+=`<div class="caso-line"><span><b>POB:</b> </span>${esc(_ap[1])}</div>`;return _lines;})()}
           ${relojHtml}
           <div style="margin-top:10px;border-top:1px solid var(--gray-200);padding-top:10px">${imgViewerHtml}${uploaderHtml}
             ${rolActual==="admin"?`<div style="margin-top:8px;display:flex;gap:6px"><button class="tb-btn outline" onclick="editarCaso('${sec.id}','${fila}','${hojaId}')" style="font-size:11px;padding:4px 10px">✏️ Editar</button></div>`:""}
@@ -6484,7 +6487,7 @@ function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
     firmaHtml+='</tr></table></div>';
   }
   var footer='<div style="text-align:center;margin-top:12pt;padding-top:4pt;border-top:1px solid #ccc;font-size:7pt;color:#999">PNA \u2014 Direcci\u00f3n de Tr\u00e1fico Mar\u00edtimo, Fluvial y Lacustre \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo \u2014 '+fechaStr+'</div>';
-  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>'+estilo+'</style></head><body>'+header+resumenSec+pageBreak+novedadesTitle+cuerpo+firmaHtml+footer+'</body></html>';
+  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>'+estilo+'</style></head><body>'+header+resumenSec+pageBreak+novedadesTitle+cuerpo+firmaHtml+footer+'</body></html>';
 }
 
 function exportarWord(){
@@ -6587,7 +6590,7 @@ async function guardarCaso(e){
     puerto_asiento:document.getElementById("casoPuertoAsiento").value.trim(),
     puerto_operaciones:document.getElementById("casoPuertoOperaciones").value.trim(),
     agencia_pob:(document.getElementById("casoAgencia").value.trim()||"")+" | "+(document.getElementById("casoPob").value.trim()||""),
-    procedencia_destino:document.getElementById("casoProcedencia").value.trim(),
+    procedencia_destino:(document.getElementById("casoProcedencia").value.trim()||"")+" | "+(document.getElementById("casoDestino").value.trim()||""),
     diagnostico:document.getElementById("casoDiagnostico").value.trim(),
     medios_previstos:document.getElementById("casoMediosPrevistos").value.trim(),
     situacion:document.getElementById("casoSituacion").value.trim(),
@@ -6692,7 +6695,9 @@ function editarCaso(seccionId, filaSheet, hojaId){
   var _agenciaParts=(caso.agenciaPob||"").split("|").map(function(s){return s.trim();});
   document.getElementById("casoAgencia").value=_agenciaParts[0]||"";
   document.getElementById("casoPob").value=_agenciaParts[1]||"";
-  document.getElementById("casoProcedencia").value=caso.procedenciaDestino||"";
+  var _procParts=(caso.procedenciaDestino||"").split("|").map(function(s){return s.trim();});
+  document.getElementById("casoProcedencia").value=_procParts[0]||"";
+  document.getElementById("casoDestino").value=_procParts[1]||"";
   document.getElementById("casoDiagnostico").value=caso.diagnostico||"";
   document.getElementById("casoMediosPrevistos").value=caso.mediosPrevistos||"";
   document.getElementById("casoSituacion").value=caso.situacion || "";
