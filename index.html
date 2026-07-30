@@ -374,15 +374,15 @@
         <div class="form-grid">
           <div class="form-group full">
             <label>Diagn&oacute;stico</label>
-            <textarea id="casoDiagnostico" rows="3" placeholder="Diagn&oacute;stico del caso..."></textarea>
+            <textarea id="casoDiagnostico" rows="2" placeholder="Diagn&oacute;stico del caso..."></textarea>
           </div>
           <div class="form-group full">
             <label>Medios previstos</label>
-            <textarea id="casoMediosPrevistos" rows="3" placeholder="Medios y recursos previstos..."></textarea>
+            <textarea id="casoMediosPrevistos" rows="2" placeholder="Medios y recursos previstos..."></textarea>
           </div>
           <div class="form-group full">
             <label>Completo / Situaci&oacute;n</label>
-            <textarea id="casoSituacion" rows="4" placeholder="Situaci&oacute;n completa..."></textarea>
+            <textarea id="casoSituacion" rows="8" placeholder="Situaci&oacute;n completa..."></textarea>
           </div>
         </div>
       </div>
@@ -548,6 +548,7 @@
       </div>
 
       <div class="tb-right">
+        <span id="tb-username" style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap"></span>
         <span class="role-badge" id="role-badge-display">...</span>
         <span id="auto-refresh-indicator" style="font-size:11px;color:var(--navy);font-weight:700;font-family:'Outfit',sans-serif;letter-spacing:.3px;white-space:nowrap;background:var(--gray-100);border:1px solid var(--gray-200);padding:3px 8px;border-radius:6px"></span>
       </div>
@@ -667,7 +668,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwGzYJbzaOjwVZEY0fhq584a05GP8HAkz4etCPoaiT3vi5SgWpd24LIYjdyJCnALe0pjQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzF6Hs2LLPc43oJWjLOIFEHR5As1b1O3nRVkyl3ZCXJoJMY8cCXIBVFKf8emXAJhDE_/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -757,6 +758,8 @@ function iniciarApp(user, role) {
     badge.className   = "role-badge " + role;
     badge.textContent = role === "admin" ? "🛡️ Admin" : "👁️ Visual";
   }
+  const tbUser = document.getElementById("tb-username");
+  if (tbUser) tbUser.textContent = user.name;
 
   // En vez de abrir el app directamente, mostrar el selector
   mostrarSelector();
@@ -3475,8 +3478,8 @@ function renderSeccion(sec) {
             var estilo = i === 0 ? 'font-weight:700;text-align:left' : '';
             if (i === 5) {
               var val = (c || '').toUpperCase();
-              if (val.includes('EVACUACIÓN') || val.includes('EVACUACION')) estilo = 'background:#dc2626;color:#fff;font-weight:700';
-              else if (val.includes('ALERTA')) estilo = 'background:#facc15;color:#000;font-weight:700';
+              if (val.includes('EVACUACIÓN') || val.includes('EVACUACION')) estilo = 'background:#fecaca;color:#991b1b;font-weight:700';
+              else if (val.includes('ALERTA')) estilo = 'background:#fef9c3;color:#854d0e;font-weight:700';
             }
             h += `<td${estilo?' style="'+estilo+'"':''}>${esc(c)}</td>`;
           });
@@ -3687,9 +3690,9 @@ if (sec.tipo === "eventos" || sec.id === "REGATAS") {
     if(_g.toLowerCase().indexOf("nataci")>=0)_catNat=_g;
     else if(_g.toLowerCase().indexOf("náut")>=0||_g.toLowerCase().indexOf("naut")>=0||_g.toLowerCase().indexOf("nÁu")>=0)_catNau=_g;
   }
-  // Phase helper: compute sort order, CSS class and label
+  // Phase helper: compute sort order, CSS class and label — sorted by days remaining (fewest → most)
   function getItemPhase(f){
-    if(f.tipo==="subtitulo")return {sort:0};
+    if(f.tipo==="subtitulo")return {sort:-1};
     var _d=null,_end=null;
     if(f.tipo==="partes"){
       var p=f.partes||[];
@@ -3699,12 +3702,13 @@ if (sec.tipo === "eventos" || sec.id === "REGATAS") {
       _d=parseRegataDate(f.datos[1]);
       _end=parseRegataDate(f.datos[2]);
     }
-    if(!_d) return {sort:99,cls:"gray",label:"S/FECHA"};
+    if(!_d) return {sort:99999,cls:"gray",label:"S/FECHA"};
+    if(_end&&+_end<+_hoy2) return {sort:90000,cls:"gray",label:"FINALIZADO"};
+    var _dias=Math.floor((_d-_hoy2)/86400000);
+    if(_dias<0) return {sort:0,cls:"teal",label:"CONTINÚA"};
     if(+_d===+_hoy2) return {sort:1,cls:"red",label:"HOY"};
-    if(+_d===+_manana2) return {sort:4,cls:"amber",label:"MAÑANA"};
-    if(+_d>+_manana2) return {sort:5,cls:"blue",label:"+"+Math.floor((_d-_hoy2)/86400000)+"d"};
-    if(_end&&+_end<+_hoy2) return {sort:3,cls:"gray",label:"FINALIZADO"};
-    return {sort:2,cls:"teal",label:"CONTINÚA"};
+    if(+_d===+_manana2) return {sort:2,cls:"amber",label:"MAÑANA"};
+    return {sort:_dias+2,cls:"blue",label:"+"+_dias+"d"};
   }
   // Render a single item card (partes or fila)
   function renderItemCard(f){
@@ -3714,12 +3718,12 @@ if (sec.tipo === "eventos" || sec.id === "REGATAS") {
       var p=f.partes||[];
       _nombre=p[0]?p[0].texto:"";
       if(p[1])_detalles.push('<span style="font-weight:600;font-size:13px;">🕐 '+(p[1].prefijo||"")+p[1].texto+'</span>');
-      if(p[2])_detalles.push('<span style="font-size:13px;">🏁 '+(p[2].prefijo||"")+p[2].texto+'</span>');
+      if(p[2])_detalles.push('<span style="font-weight:600;font-size:13px;">🏁 '+(p[2].prefijo||"")+p[2].texto+'</span>');
       if(p[3]||p[4]){
         var _part=(p[3]?p[3].texto:""),_emb="",_evt="";
         if(p[4]&&p[4].prefijo&&p[4].prefijo.toLowerCase().indexOf("emb")>=0){_emb=p[4].texto||"";if(p[5])_evt=p[5].texto||"";}
         else if(p[4]){_evt=p[4].texto||"";}
-        _detalles.push('<span style="font-size:13px;">👥 Part: '+_part+(_part&&_emb?' · ':'')+(_emb?'Emb: '+_emb:'')+'</span>');
+        _detalles.push('<span style="font-weight:600;font-size:13px;">👥 Part: '+_part+(_part&&_emb?' · ':'')+(_emb?'Emb: '+_emb:'')+'</span>');
         if(_evt)_extra="Evento: "+_evt;
       }
     } else if(f.tipo==="fila"&&f.datos){
@@ -5905,7 +5909,7 @@ function _renderTabla(datos,headers){
   var h='<table style="width:100%;border-collapse:collapse;font-size:12pt;margin:2pt 0">';
   if(headers&&headers.length){
     h+='<tr>';
-    for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#003366;color:#fff;font-weight:700;padding:2pt 4pt;text-align:center;font-size:11pt">'+headers[i]+'</td>';
+    for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#1a5a8a;color:#fff;font-weight:700;padding:2pt 4pt;text-align:center;font-size:11pt">'+headers[i]+'</td>';
     h+='</tr>';
   }
   for(var i=0;i<datos.length;i++){
@@ -5918,11 +5922,11 @@ function _renderTabla(datos,headers){
 }
 
 function _seccionTitulo(n,titulo){
-  return '<div style="font-size:13pt;font-weight:700;color:#003366;margin:6pt 0 2pt;padding:2pt 4pt;background:#eef3f8;border-left:3pt solid #003366">'+n+'. '+titulo+'</div>';
+  return '<div style="font-size:13pt;font-weight:700;color:#fff;margin:6pt 0 2pt;padding:4pt 8pt;background:#003366;border-left:4pt solid #003366;border-radius:2pt">'+n+'. '+titulo+'</div>';
 }
 
 function _subTitulo(txt){
-  return '<div style="font-size:13pt;font-weight:700;color:#1a3a5c;margin:3pt 0 1pt;padding:1pt 0;border-bottom:1px solid #999">'+txt+'</div>';
+  return '<div style="font-size:12pt;font-weight:700;color:#3a6a9a;margin:3pt 0 1pt;padding:2pt 4pt;background:#e8f0f8;border-left:2pt solid #5a9ac8;border-radius:2pt">'+txt+'</div>';
 }
 
 function _esc(s){
@@ -6159,7 +6163,7 @@ function _buildParteCuerpo(){
       var h='<table style="width:100%;border-collapse:collapse;font-size:11pt;margin:3pt 0">';
       var headers=["Centro VTS","Denominaci\u00f3n","KM cr\u00edtico","R\u00edo","Calado","Altura hidrom."];
       h+='<tr>';
-      for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#003366;color:#fff;font-weight:700;padding:3pt 5pt;text-align:center;font-size:12pt">'+headers[i]+'</td>';
+      for(var i=0;i<headers.length;i++) h+='<td style="border:1px solid #999;background:#5a6a7a;color:#fff;font-weight:700;padding:3pt 5pt;text-align:center;font-size:12pt">'+headers[i]+'</td>';
       h+='</tr>';
       detTablaFilas.forEach(function(f){
         var d=f.datos||[];
@@ -6488,7 +6492,7 @@ function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
     firmaHtml+='</tr></table></div>';
   }
   var footer='<div style="text-align:center;margin-top:12pt;padding-top:4pt;border-top:1px solid #ccc;font-size:7pt;color:#999">PNA \u2014 Direcci\u00f3n de Tr\u00e1fico Mar\u00edtimo, Fluvial y Lacustre \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo \u2014 '+fechaStr+'</div>';
-  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><style>'+estilo+'</style></head><body><div style="max-width:100%;margin:0 auto">'+header+resumenSec+pageBreak+novedadesTitle+cuerpo+firmaHtml+footer+'</div></body></html>';
+  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><title>Parte de Novedades</title><style>'+estilo+'</style></head><body><div style="max-width:100%;margin:0 auto">'+header+resumenSec+pageBreak+novedadesTitle+cuerpo+firmaHtml+footer+'</div></body></html>';
 }
 
 function exportarWord(){
