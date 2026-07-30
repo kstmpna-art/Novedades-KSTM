@@ -6465,10 +6465,9 @@ function _buildResumenCards(){
 
 function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
   var estilo='@page{size:210mm 297mm;margin:15mm 15mm}';
-  estilo+='body{font-family:Arial,sans-serif;font-size:13pt;color:#1a1a1a;line-height:1.15;text-align:justify;margin:0;padding:12px;width:100%;max-width:100%}';
+  estilo+='body{font-family:Arial,sans-serif;font-size:13pt;color:#1a1a1a;line-height:1.15;text-align:justify;margin:0;padding:6px 8px;width:100%;max-width:100%}';
   estilo+='table{page-break-inside:avoid;width:100%}';
   estilo+='h1,h2,h3{font-family:Arial,sans-serif}';
-  estilo+='@media screen{body{padding:12px;width:100%;max-width:100%}}';
   var header='<div style="text-align:center;border-bottom:2.5px solid #003366;padding-bottom:6px;margin-bottom:10px">';
   header+='<div style="font-size:13pt;font-weight:800;color:#003366;letter-spacing:.8px;text-transform:uppercase">PREFECTURA NAVAL ARGENTINA</div>';
   header+='<div style="font-size:10pt;color:#666;font-weight:600;margin-top:1px">Autoridad Mar\u00edtima</div>';
@@ -6489,7 +6488,7 @@ function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
     firmaHtml+='</tr></table></div>';
   }
   var footer='<div style="text-align:center;margin-top:12pt;padding-top:4pt;border-top:1px solid #ccc;font-size:7pt;color:#999">PNA \u2014 Direcci\u00f3n de Tr\u00e1fico Mar\u00edtimo, Fluvial y Lacustre \u2014 Servicio de Tr\u00e1fico Mar\u00edtimo \u2014 '+fechaStr+'</div>';
-  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><style>'+estilo+'</style></head><body><div style="max-width:780px;margin:0 auto">'+header+resumenSec+pageBreak+novedadesTitle+cuerpo+firmaHtml+footer+'</div></body></html>';
+  return '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><style>'+estilo+'</style></head><body><div style="max-width:100%;margin:0 auto">'+header+resumenSec+pageBreak+novedadesTitle+cuerpo+firmaHtml+footer+'</div></body></html>';
 }
 
 function exportarWord(){
