@@ -673,7 +673,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbw_a8AI9ZHkqLUeDnONy5vtmFB7A1IFyEG1vSD5J5yBxEVlPpOeu_f752CtVN6hNC3buw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwTTqY4jZMvzVqqDTAYf_VmBIt37BUvkoUn-p95Gs9qGAusGAu0m8OjtE0pwK6lXW3LTA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -871,14 +871,26 @@ function diasEntreFecha(fechaStr) {
   return { dias: dias, horas: horas, excedido: dias >= 5, texto: texto };
 }
 
+function esBuqueExtranjero(b) {
+  var bandera = (b.bandera || "").toUpperCase().trim();
+  var nombre = (b.nombre || "").toUpperCase().trim();
+  var texto = bandera + " " + nombre;
+  if (!bandera || bandera === "ARGENTINA" || bandera === "ARG" || bandera === "AR") return false;
+  if (texto.includes("TRATAMIENTO DE BANDERA") || texto.includes("T.B") || texto.includes("(T.B)")) return false;
+  if (nombre.includes("BUQUEBUS")) return false;
+  return true;
+}
+
 function contarVencidos(buquesData) {
   var result = { total: 0, amarrados: 0, fondeados: 0 };
   if (!buquesData) return result;
   (buquesData.amarrados || []).forEach(function(b) {
+    if (!esBuqueExtranjero(b)) return;
     var info = diasEntreFecha(b.fhAmarre);
     if (info && info.excedido) { result.total++; result.amarrados++; }
   });
   (buquesData.fondeados || []).forEach(function(b) {
+    if (!esBuqueExtranjero(b)) return;
     var info = diasEntreFecha(b.fhFondeo);
     if (info && info.excedido) { result.total++; result.fondeados++; }
   });
@@ -3539,10 +3551,12 @@ function renderSeccion(sec) {
       var _zonaNombre = {MOV_BAJO_PARANA:"Bajo Paraná",MOV_DELTA:"Delta",MOV_ZONA3:"Río de la Plata"}[sec.id] || sec.id;
       var _vencItems = [];
       (buquesData.amarrados || []).forEach(function(b) {
+        if (!esBuqueExtranjero(b)) return;
         var info = diasEntreFecha(b.fhAmarre);
         if (info && info.excedido) _vencItems.push({nombre:b.nombre,dependencia:b.dependencia,tipo:"Amarrado",texto:info.texto,dias:info.dias});
       });
       (buquesData.fondeados || []).forEach(function(b) {
+        if (!esBuqueExtranjero(b)) return;
         var info = diasEntreFecha(b.fhFondeo);
         if (info && info.excedido) _vencItems.push({nombre:b.nombre,dependencia:b.dependencia,tipo:"Fondeado",texto:info.texto,dias:info.dias});
       });
@@ -4069,7 +4083,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
           <th style="background:#dbeafe;color:#1e3a5f;text-align:center;">2023</th>
           <th style="background:#dbeafe;color:#1e3a5f;text-align:center;">2024</th>
           <th style="background:#dbeafe;color:#1e3a5f;text-align:center;">2025</th>
-          <th colspan="3" style="background:#fef3c7;color:#92400e;text-align:center;">2026</th>
+          <th colspan="4" style="background:#fef3c7;color:#92400e;text-align:center;">2026</th>
         </tr>
         <tr>
           <th style="background:#1d3d5a;color:#fff;text-align:left;"></th>
@@ -4081,6 +4095,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
           <th style="background:#bfdbfe;"></th>
           <th style="background:#fde68a;color:#92400e;text-align:center;">Previstos</th>
           <th style="background:#fde68a;color:#92400e;text-align:center;">Arribados</th>
+          <th style="background:#fde68a;color:#92400e;text-align:center;">Cancelados</th>
           <th style="background:#fde68a;color:#92400e;text-align:center;">Pendientes</th>
         </tr>`;
       termRows.forEach((r, i) => {
@@ -4090,6 +4105,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
           <td style="text-align:center;background:#fffbeb;font-weight:600;color:#92400e;">${esc(r[7] || "")}</td>
           <td style="text-align:center;background:#fffbeb;font-weight:600;color:#166534;">${esc(r[8] || "")}</td>
           <td style="text-align:center;background:#fffbeb;font-weight:600;color:#991b1b;">${esc(r[9] || "")}</td>
+          <td style="text-align:center;background:#fffbeb;font-weight:600;color:#991b1b;">${esc(r[10] || "")}</td>
         </tr>`;
       });
       h += `</table></div>`;
@@ -4937,10 +4953,12 @@ function abrirDashboardGeneral() {
         if (!bdRaw) return;
         var bd = bdRaw.datos || {};
         (bd.amarrados || []).forEach(function(b) {
+          if (!esBuqueExtranjero(b)) return;
           var info = diasEntreFecha(b.fhAmarre);
           if (info && info.excedido) { totalVenc++; vencAmar++; }
         });
         (bd.fondeados || []).forEach(function(b) {
+          if (!esBuqueExtranjero(b)) return;
           var info = diasEntreFecha(b.fhFondeo);
           if (info && info.excedido) { totalVenc++; vencFond++; }
         });
