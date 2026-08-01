@@ -6311,7 +6311,7 @@ function _buildParteCuerpo(){
       (metSec.filas||[]).forEach(function(f){if(f&&f.tipo==="fila"){if((f.datos||[]).length>=8) metTermRows.push(f.datos);else metPrevRows.push(f.datos);}});
     }
     if(metTermRows.length){
-      cuerpo+=_renderTabla(metTermRows,["Terminales","2019/20","2021","2022","2023","2024","2025","Previstos 2026","Arribados 2026","Pendientes 2026"]);
+      cuerpo+=_renderTabla(metTermRows,["Terminales","2019/20","2021","2022","2023","2024","2025","Previstos 2026","Arribados 2026","Cancelados 2026","Pendientes 2026"]);
     }
     if(metPrevRows.length){
       cuerpo+=_subTitulo("Previsiones");
