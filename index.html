@@ -323,6 +323,10 @@
       <!-- PANEL 2: CARACTERÍSTICAS -->
       <div class="caso-panel" id="casoPanel-caract">
         <div class="form-grid">
+          <div class="form-group full" id="casoTipoBuqueDisplay" style="display:none;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:4px;">
+            <label style="margin-bottom:4px;font-weight:700;color:#1e40af;font-size:12px;">Tipo de buque</label>
+            <div style="font-size:15px;font-weight:800;color:#1e3a5f;font-family:'Outfit',sans-serif;" id="casoTipoBuqueTexto"></div>
+          </div>
           <div class="form-group">
             <label>Eslora</label>
             <input type="text" id="casoEslora" placeholder="ej: 180 MTS">
@@ -669,7 +673,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwrCEQ6BqOLid-Wox7D5ztcFLDeG-IuHpamYzoPJ_yEQFJVEthemLwNxApd6o3f91MZyQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw_a8AI9ZHkqLUeDnONy5vtmFB7A1IFyEG1vSD5J5yBxEVlPpOeu_f752CtVN6hNC3buw/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -6142,8 +6146,15 @@ function _buildParteCuerpo(){
     if(ejerSec && !_exportSoloTextoDet){
       cuerpo+=_subTitulo("Ejercicios de Armas");
       var armas=_filas("EJER.ARMAS","arma");
-      if(armas.length){
-        armas.forEach(function(f){cuerpo+=_renderFila(f);});
+      var _armasUnicas={};var _armasOrden=[];
+      armas.forEach(function(f){
+        var d=f.datos||[];
+        var key=(d[0]||"").trim()+"|||"+(d[2]||"").trim();
+        if(key.trim()==="|||")return;
+        if(!_armasUnicas[key]){_armasUnicas[key]=f;_armasOrden.push(key);}
+      });
+      if(_armasOrden.length){
+        _armasOrden.forEach(function(k){cuerpo+=_renderFila(_armasUnicas[k]);});
       }else{
         cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin ejercicios.</div>';
       }
@@ -6567,6 +6578,7 @@ function abrirModalCaso(seccion){
   document.getElementById("btnEliminarCaso").style.display="none";
   document.getElementById("modalCasoTitle").textContent="Cargar nuevo caso "+seccion;
   document.getElementById("formCaso").reset();
+  syncTipoBuqueCaract();
   document.getElementById("casoEstado").value="Pendientes";
   document.getElementById("btnEstadoPendiente").style.background="#f59e0b";
   document.getElementById("btnEstadoPendiente").style.color="#fff";
@@ -6581,6 +6593,14 @@ function switchCasoTab(id,btn){
   if(btn) btn.classList.add("active");
   document.getElementById("casoPanel-"+id).classList.add("active");
 }
+function syncTipoBuqueCaract(){
+  var val=document.getElementById("casoTipo").value.trim();
+  var wrap=document.getElementById("casoTipoBuqueDisplay");
+  var txt=document.getElementById("casoTipoBuqueTexto");
+  if(val){wrap.style.display="block";txt.textContent="Tipo de buque: "+val;}
+  else{wrap.style.display="none";txt.textContent="";}
+}
+document.getElementById("casoTipo").addEventListener("input",syncTipoBuqueCaract);
 function setCasoEstado(val){
   document.getElementById("casoEstado").value=val;
   var pBtn=document.getElementById("btnEstadoPendiente");
@@ -6714,9 +6734,10 @@ function editarCaso(seccionId, filaSheet, hojaId){
   document.getElementById("casoSubcentro").value=caso.subcentro||"";
   document.getElementById("casoNumero").value=caso.numero||"";
   document.getElementById("casoNombre").value=caso.nombre||"";
-  document.getElementById("casoBuque").value=caso.buque||"";
+  document.getElementById("casoBuque").value=(caso.buque||"").replace(/^(B\/[A-Z]+|L\/M|R\/E)\s+/i,"");
   document.getElementById("casoIdentificacion").value=caso.identificacion||"";
   document.getElementById("casoTipo").value=caso.tipoBuque||"";
+  syncTipoBuqueCaract();
   document.getElementById("casoBandera").value=caso.bandera||"";
   document.getElementById("casoFechaInicio").value=caso.fechaInicio||"";
   document.getElementById("casoFechaCierre").value=caso.fechaCierre||"";
