@@ -6773,13 +6773,31 @@ function filtrarDemorados(filtro){
   _demFiltroMov=filtro;
   aplicarFiltrosDemorados();
 }
+function _calcularTiempoSinPractico(fechaStr){
+  if(!fechaStr) return "—";
+  var match=fechaStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(!match) return "—";
+  var d=parseInt(match[1]),m=parseInt(match[2])-1,y=parseInt(match[3]);
+  if(y<100) y+=2000;
+  var h=parseInt(match[4])||0,min=parseInt(match[5])||0,s=parseInt(match[6])||0;
+  var fecha=new Date(y,m,d,h,min,s);
+  var ahora=new Date();
+  var diffMs=ahora-fecha;
+  if(diffMs<0) return "Pendiente";
+  var totalMin=Math.floor(diffMs/60000);
+  var dias=Math.floor(totalMin/1440);
+  var horas=Math.floor((totalMin%1440)/60);
+  var mins=totalMin%60;
+  if(dias>0) return dias+"d "+horas+"h";
+  if(horas>0) return horas+"h "+mins+"min";
+  return mins+"min";
+}
 function _renderDemoradosTabla(filas){
   var c=document.getElementById("demorados-content");
   if(!filas.length){c.innerHTML='<div style="font-size:13px;color:var(--text-lt);font-style:italic;text-align:center;padding:20px;">Sin buques demorados.</div>';return;}
   var html='<div style="overflow-x:auto;flex:1;min-height:0;">';
   html+='<table style="width:100%;border-collapse:collapse;font-size:11px;font-family:inherit;white-space:nowrap;">';
   html+='<thead><tr style="background:var(--navy);color:#fff;position:sticky;top:0;z-index:1;">';
-  html+='<th style="padding:6px 8px;text-align:left;">ID</th>';
   html+='<th style="padding:6px 8px;text-align:left;">Pref. Zona</th>';
   html+='<th style="padding:6px 8px;text-align:left;">Dependencia</th>';
   html+='<th style="padding:6px 8px;text-align:left;">Movimiento</th>';
@@ -6794,6 +6812,7 @@ function _renderDemoradosTabla(filas){
   html+='<th style="padding:6px 8px;text-align:left;">Agencia</th>';
   html+='<th style="padding:6px 8px;text-align:left;">Operación</th>';
   html+='<th style="padding:6px 8px;text-align:left;">FH Prev. Práctico</th>';
+  html+='<th style="padding:6px 8px;text-align:left;">Tiempo sin Práctico</th>';
   html+='<th style="padding:6px 8px;text-align:left;">Estado</th>';
   html+='<th style="padding:6px 8px;text-align:left;">N° Expediente</th>';
   html+='<th style="padding:6px 8px;text-align:left;">Observaciones</th>';
@@ -6803,8 +6822,9 @@ function _renderDemoradosTabla(filas){
     var bg=i%2===0?"#f8fafc":"#fff";
     var mov=(d[3]||"").toUpperCase();
     var movColor=mov.includes("ENTRADA")?"#16a34a":mov.includes("SALIDA")?"#dc2626":"#555";
+    var tiempoSinP=_calcularTiempoSinPractico(d[14]||"");
+    var tiempoColor=tiempoSinP.includes("d")?"#dc2626":tiempoSinP.includes("h")?"#f59e0b":"#16a34a";
     html+='<tr style="background:'+bg+';border-bottom:1px solid #e5e7eb;">';
-    html+='<td style="padding:5px 8px;">'+esc(d[0]||"")+'</td>';
     html+='<td style="padding:5px 8px;">'+esc(d[1]||"")+'</td>';
     html+='<td style="padding:5px 8px;">'+esc(d[2]||"")+'</td>';
     html+='<td style="padding:5px 8px;"><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;background:'+movColor+';">'+esc(d[3]||"")+'</span></td>';
@@ -6819,6 +6839,7 @@ function _renderDemoradosTabla(filas){
     html+='<td style="padding:5px 8px;">'+esc(d[12]||"")+'</td>';
     html+='<td style="padding:5px 8px;">'+esc(d[13]||"")+'</td>';
     html+='<td style="padding:5px 8px;">'+esc(d[14]||"")+'</td>';
+    html+='<td style="padding:5px 8px;"><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;color:'+tiempoColor+';background:'+tiempoColor+'22;">'+tiempoSinP+'</span></td>';
     html+='<td style="padding:5px 8px;">'+esc(d[15]||"")+'</td>';
     html+='<td style="padding:5px 8px;">'+esc(d[16]||"")+'</td>';
     html+='<td style="padding:5px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">'+esc(d[17]||"")+'</td>';
@@ -6868,14 +6889,14 @@ function exportarDemoradosPDF(){
   html+='<h2>Dirección de Tráfico Marítimo, Fluvial y Lacustre — Buques Demorados</h2>';
   html+='<h2>Fecha: '+_fechaStr+' | Total: '+filas.length+' buques | Entradas: '+_ent+' | Salidas: '+_sal+(sec&&sec.prox72?' | Arriban próx. 72 hs: '+sec.prox72:'')+'</h2>';
   html+='<table><thead><tr>';
-  html+='<th>ID</th><th>Pref. Zona</th><th>Dependencia</th><th>Movimiento</th><th>Puerto/Ubic.</th><th>Tipo</th><th>Nombre</th><th>IMO</th><th>Bandera</th><th>Eslora</th><th>Manga</th><th>Calado</th><th>Agencia</th><th>Operación</th><th>FH Práctico</th><th>Estado</th><th>N° Exp.</th><th>Observaciones</th>';
+  html+='<th>Pref. Zona</th><th>Dependencia</th><th>Movimiento</th><th>Puerto/Ubic.</th><th>Tipo</th><th>Nombre</th><th>IMO</th><th>Bandera</th><th>Eslora</th><th>Manga</th><th>Calado</th><th>Agencia</th><th>Operación</th><th>FH Práctico</th><th>Tiempo sin Práctico</th><th>Estado</th><th>N° Exp.</th><th>Observaciones</th>';
   html+='</tr></thead><tbody>';
   filas.forEach(function(f){
     var d=f.datos||[];
     var mov=(d[3]||"").toUpperCase();
     var movBadge=mov.includes("ENTRADA")?'<span class="badge-ent">'+esc(d[3]||"")+'</span>':mov.includes("SALIDA")?'<span class="badge-sal">'+esc(d[3]||"")+'</span>':esc(d[3]||"");
+    var tiempoSinP=_calcularTiempoSinPractico(d[14]||"");
     html+='<tr>';
-    html+='<td>'+esc(d[0]||"")+'</td>';
     html+='<td>'+esc(d[1]||"")+'</td>';
     html+='<td>'+esc(d[2]||"")+'</td>';
     html+='<td>'+movBadge+'</td>';
@@ -6890,6 +6911,7 @@ function exportarDemoradosPDF(){
     html+='<td>'+esc(d[12]||"")+'</td>';
     html+='<td>'+esc(d[13]||"")+'</td>';
     html+='<td>'+esc(d[14]||"")+'</td>';
+    html+='<td><b>'+tiempoSinP+'</b></td>';
     html+='<td>'+esc(d[15]||"")+'</td>';
     html+='<td>'+esc(d[16]||"")+'</td>';
     html+='<td>'+esc(d[17]||"")+'</td>';
