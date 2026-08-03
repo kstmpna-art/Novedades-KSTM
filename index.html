@@ -456,9 +456,13 @@
       </select>
       <select id="dem-filtro-eslora" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
         <option value="">Cualquier Eslora</option>
-        <option value="140+">Mayor a 140 m</option>
-        <option value="50-100">50 - 100 m</option>
-        
+        <option value="gt-140">Mayor a 140 m</option>
+        <option value="lt-140">Menor a 140 m</option>
+      </select>
+      <select id="dem-filtro-calado" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Cualquier Calado</option>
+        <option value="gt-6.40">Mayor a 6.40 m</option>
+        <option value="lt-6.40">Menor a 6.40 m</option>
       </select>
       <span style="margin-left:auto;"></span>
       <button onclick="exportarDemoradosPDF()" class="dem-btn" style="background:#d32f2f;border:1px solid #d32f2f;">📄 Exportar PDF</button>
@@ -6712,6 +6716,7 @@ function abrirModalDemorados(){
   document.getElementById("dem-filtro-dep").value="";
   document.getElementById("dem-filtro-bandera").value="";
   document.getElementById("dem-filtro-eslora").value="";
+  document.getElementById("dem-filtro-calado").value="";
   _renderDemoradosTabla(filas);
   document.getElementById("modalDemorados").classList.add("activo");
 }
@@ -6749,19 +6754,18 @@ function aplicarFiltrosDemorados(){
   var dep=document.getElementById("dem-filtro-dep").value;
   var bandera=document.getElementById("dem-filtro-bandera").value;
   var eslora=document.getElementById("dem-filtro-eslora").value;
+  var calado=document.getElementById("dem-filtro-calado").value;
   if(buscar) filas=filas.filter(function(f){return(f.datos[6]||"").toString().toUpperCase().includes(buscar);});
   if(zona) filas=filas.filter(function(f){return(f.datos[1]||"").toString().trim()===zona;});
   if(dep) filas=filas.filter(function(f){return(f.datos[2]||"").toString().trim()===dep;});
   if(bandera) filas=filas.filter(function(f){return(f.datos[8]||"").toString().trim()===bandera;});
   if(eslora){
-    var parts=eslora.split("-");
-    var min=0,max=9999;
-    if(eslora==="200+"){min=200;max=9999;}
-    else{min=parseFloat(parts[0])||0;max=parseFloat(parts[1])||9999;}
-    filas=filas.filter(function(f){
-      var val=parseFloat((f.datos[9]||"").toString().replace(",","."))||0;
-      return val>=min&&val<max;
-    });
+    if(eslora==="gt-140") filas=filas.filter(function(f){var v=parseFloat((f.datos[9]||"").toString().replace(",","."))||0;return v>140;});
+    if(eslora==="lt-140") filas=filas.filter(function(f){var v=parseFloat((f.datos[9]||"").toString().replace(",","."))||0;return v>0&&v<140;});
+  }
+  if(calado){
+    if(calado==="gt-6.40") filas=filas.filter(function(f){var v=parseFloat((f.datos[11]||"").toString().replace(",","."))||0;return v>6.40;});
+    if(calado==="lt-6.40") filas=filas.filter(function(f){var v=parseFloat((f.datos[11]||"").toString().replace(",","."))||0;return v>0&&v<6.40;});
   }
   _renderDemoradosTabla(filas);
 }
@@ -6832,19 +6836,18 @@ function exportarDemoradosPDF(){
   var dep=document.getElementById("dem-filtro-dep").value;
   var bandera=document.getElementById("dem-filtro-bandera").value;
   var eslora=document.getElementById("dem-filtro-eslora").value;
+  var calado=document.getElementById("dem-filtro-calado").value;
   if(buscar) filas=filas.filter(function(f){return(f.datos[6]||"").toString().toUpperCase().includes(buscar);});
   if(zona) filas=filas.filter(function(f){return(f.datos[1]||"").toString().trim()===zona;});
   if(dep) filas=filas.filter(function(f){return(f.datos[2]||"").toString().trim()===dep;});
   if(bandera) filas=filas.filter(function(f){return(f.datos[8]||"").toString().trim()===bandera;});
   if(eslora){
-    var parts=eslora.split("-");
-    var min=0,max=9999;
-    if(eslora==="200+"){min=200;max=9999;}
-    else{min=parseFloat(parts[0])||0;max=parseFloat(parts[1])||9999;}
-    filas=filas.filter(function(f){
-      var val=parseFloat((f.datos[9]||"").toString().replace(",","."))||0;
-      return val>=min&&val<max;
-    });
+    if(eslora==="gt-140") filas=filas.filter(function(f){var v=parseFloat((f.datos[9]||"").toString().replace(",","."))||0;return v>140;});
+    if(eslora==="lt-140") filas=filas.filter(function(f){var v=parseFloat((f.datos[9]||"").toString().replace(",","."))||0;return v>0&&v<140;});
+  }
+  if(calado){
+    if(calado==="gt-6.40") filas=filas.filter(function(f){var v=parseFloat((f.datos[11]||"").toString().replace(",","."))||0;return v>6.40;});
+    if(calado==="lt-6.40") filas=filas.filter(function(f){var v=parseFloat((f.datos[11]||"").toString().replace(",","."))||0;return v>0&&v<6.40;});
   }
   var _hoy=new Date();
   var _fechaStr=_hoy.getDate().toString().padStart(2,'0')+'/'+(_hoy.getMonth()+1).toString().padStart(2,'0')+'/'+_hoy.getFullYear();
