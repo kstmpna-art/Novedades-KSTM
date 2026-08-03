@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>DTRA — Novedades Diarias KSTM</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -432,6 +434,10 @@
         <div style="font-size:22px;font-weight:800;" id="dem-kpi-sal">0</div>
         <div style="font-size:10px;font-weight:600;opacity:.9;">Salidas</div>
       </div>
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-prox">—</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Arriban próx. 72 hs</div>
+      </div>
     </div>
     <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
       <button onclick="filtrarDemorados('')" class="dem-btn dem-btn-todos">Todos</button>
@@ -721,7 +727,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwm-cA8R59zB4EguXeglTx2qaOcon2H4gucXsBr7vhLCv0wXYS0Du1L7JE-475sVoIefg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx-9pIEG_MtC7GBClWgjH27eb0AKgBoOkCBihMeR7ogn9qixaXKDwgFBgk8ygsLb2XYJg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -6697,6 +6703,7 @@ function abrirModalDemorados(){
   var sal=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes("SALIDA");}).length;
   document.getElementById("dem-kpi-ent").textContent=ent;
   document.getElementById("dem-kpi-sal").textContent=sal;
+  document.getElementById("dem-kpi-prox").textContent=(sec&&sec.prox72)?sec.prox72:"—";
   _demFiltroMov = "";
   _poblarFiltrosDemorados(filas);
   document.getElementById("dem-filtro-buscar").value="";
@@ -6829,6 +6836,8 @@ function exportarDemoradosPDF(){
   }
   var _hoy=new Date();
   var _fechaStr=_hoy.getDate().toString().padStart(2,'0')+'/'+(_hoy.getMonth()+1).toString().padStart(2,'0')+'/'+_hoy.getFullYear();
+  var _ent=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes("ENTRADA");}).length;
+  var _sal=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes("SALIDA");}).length;
   var html='<html><head><meta charset="UTF-8"><style>';
   html+='body{font-family:Arial,sans-serif;font-size:8pt;color:#111;margin:0;padding:10mm;}';
   html+='h1{font-size:14pt;color:#003366;margin:0 0 4pt;}';
@@ -6842,7 +6851,7 @@ function exportarDemoradosPDF(){
   html+='</style></head><body>';
   html+='<h1>PREFECTURA NAVAL ARGENTINA</h1>';
   html+='<h2>Dirección de Tráfico Marítimo, Fluvial y Lacustre — Buques Demorados</h2>';
-  html+='<h2>Fecha: '+_fechaStr+' | Total: '+filas.length+' buques</h2>';
+  html+='<h2>Fecha: '+_fechaStr+' | Total: '+filas.length+' buques | Entradas: '+_ent+' | Salidas: '+_sal+(sec&&sec.prox72?' | Arriban próx. 72 hs: '+sec.prox72:'')+'</h2>';
   html+='<table><thead><tr>';
   html+='<th>ID</th><th>Pref. Zona</th><th>Dependencia</th><th>Movimiento</th><th>Puerto/Ubic.</th><th>Tipo</th><th>Nombre</th><th>IMO</th><th>Bandera</th><th>Eslora</th><th>Manga</th><th>Calado</th><th>Agencia</th><th>Operación</th><th>FH Práctico</th><th>Estado</th><th>N° Exp.</th><th>Observaciones</th>';
   html+='</tr></thead><tbody>';
