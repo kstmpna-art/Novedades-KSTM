@@ -438,6 +438,7 @@
       <button onclick="filtrarDemorados('ENTRADA')" class="dem-btn dem-btn-ent">Entradas</button>
       <button onclick="filtrarDemorados('SALIDA')" class="dem-btn dem-btn-sal">Salidas</button>
       <span style="width:1px;height:20px;background:#ccc;margin:0 4px;"></span>
+      <input type="text" id="dem-filtro-buscar" placeholder="🔍 Buscar buque..." oninput="aplicarFiltrosDemorados()" style="padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;width:160px;">
       <select id="dem-filtro-zona" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
         <option value="">Todas las Prefecturas</option>
       </select>
@@ -6696,6 +6697,7 @@ function abrirModalDemorados(){
   document.getElementById("dem-kpi-sal").textContent=sal;
   _demFiltroMov = "";
   _poblarFiltrosDemorados(filas);
+  document.getElementById("dem-filtro-buscar").value="";
   document.getElementById("dem-filtro-zona").value="";
   document.getElementById("dem-filtro-bandera").value="";
   document.getElementById("dem-filtro-eslora").value="";
@@ -6725,9 +6727,11 @@ function aplicarFiltrosDemorados(){
   var sec=datosGlobales&&datosGlobales.secciones.find(function(s){return s.id==="DEMORADOS";});
   var filas=sec?(sec.filas||[]).filter(function(f){return f&&f.tipo==="demorado";}):[];
   if(_demFiltroMov) filas=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes(_demFiltroMov);});
+  var buscar=(document.getElementById("dem-filtro-buscar").value||"").trim().toUpperCase();
   var zona=document.getElementById("dem-filtro-zona").value;
   var bandera=document.getElementById("dem-filtro-bandera").value;
   var eslora=document.getElementById("dem-filtro-eslora").value;
+  if(buscar) filas=filas.filter(function(f){return(f.datos[6]||"").toString().toUpperCase().includes(buscar);});
   if(zona) filas=filas.filter(function(f){return(f.datos[1]||"").toString().trim()===zona;});
   if(bandera) filas=filas.filter(function(f){return(f.datos[8]||"").toString().trim()===bandera;});
   if(eslora){
