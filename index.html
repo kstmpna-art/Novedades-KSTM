@@ -412,6 +412,51 @@
 
 
 
+<!-- ── MODAL DEMORADOS ─────────────────────────────────────────── -->
+<div id="modalDemorados">
+  <div class="modal-box" style="max-width:95vw;width:1200px;max-height:90vh;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0">🚢 Buques Demorados</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalDemorados()">&times;</button>
+    </div>
+    <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#0077b6,#00b4d8);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-total">0</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Total Buques</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#2d6a4f,#40916c);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;cursor:pointer;" onclick="filtrarDemorados('ENTRADA')">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-ent">0</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Entradas</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#e63946,#ff6b6b);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;cursor:pointer;" onclick="filtrarDemorados('SALIDA')">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-sal">0</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Salidas</div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <button onclick="filtrarDemorados('')" class="dem-btn dem-btn-todos">Todos</button>
+      <button onclick="filtrarDemorados('ENTRADA')" class="dem-btn dem-btn-ent">Entradas</button>
+      <button onclick="filtrarDemorados('SALIDA')" class="dem-btn dem-btn-sal">Salidas</button>
+      <span style="width:1px;height:20px;background:#ccc;margin:0 4px;"></span>
+      <select id="dem-filtro-zona" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Todas las Prefecturas</option>
+      </select>
+      <select id="dem-filtro-bandera" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Todas las Banderas</option>
+      </select>
+      <select id="dem-filtro-eslora" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Cualquier Eslora</option>
+        <option value="0-50">0 - 50 m</option>
+        <option value="50-100">50 - 100 m</option>
+        <option value="100-150">100 - 150 m</option>
+        <option value="150-200">150 - 200 m</option>
+        <option value="200+">200+ m</option>
+      </select>
+    </div>
+    <div id="demorados-content" style="overflow:auto;max-height:calc(90vh - 200px);"></div>
+  </div>
+</div>
+
 <!-- ── IMG ZOOM ───────────────────────────────────────────────────── -->
 <div id="imgZoomModal" onclick="cerrarZoom()">
   <span class="cerrar-zoom">✕</span>
@@ -673,7 +718,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyRZmahmk9_eq9P-XfpXqKQN2e3Epx068hHXpUy3-SU_nCiec8G4UYxe6MDf9cu2QaGqw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwm-cA8R59zB4EguXeglTx2qaOcon2H4gucXsBr7vhLCv0wXYS0Du1L7JE-475sVoIefg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -2104,6 +2149,9 @@ function mostrarHome() {
           <span>Abrir Sistema GC</span>
           <span style="font-size:9px;opacity:.6;">↗</span>
         </a>
+        <button onclick="abrirModalDemorados()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
+          🚢 Demorados
+        </button>
       </div>
       <div class="home-header-kpi">
         ${todos.map(t => `
@@ -6635,6 +6683,93 @@ function cerrarModalCaso(){
   document.getElementById("modalCaso").classList.remove("activo");
   document.getElementById("casoFila").value="";
 }
+
+/* ── MODAL DEMORADOS ──────────────────────────────────────────── */
+var _demFiltroMov = "";
+function abrirModalDemorados(){
+  var sec=datosGlobales&&datosGlobales.secciones.find(function(s){return s.id==="DEMORADOS";});
+  var filas=sec?(sec.filas||[]).filter(function(f){return f&&f.tipo==="demorado";}):[];
+  document.getElementById("dem-kpi-total").textContent=filas.length;
+  var ent=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes("ENTRADA");}).length;
+  var sal=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes("SALIDA");}).length;
+  document.getElementById("dem-kpi-ent").textContent=ent;
+  document.getElementById("dem-kpi-sal").textContent=sal;
+  _demFiltroMov = "";
+  _poblarFiltrosDemorados(filas);
+  document.getElementById("dem-filtro-zona").value="";
+  document.getElementById("dem-filtro-bandera").value="";
+  document.getElementById("dem-filtro-eslora").value="";
+  _renderDemoradosTabla(filas);
+  document.getElementById("modalDemorados").classList.add("activo");
+}
+function _poblarFiltrosDemorados(filas){
+  var zonas={}, banderas={};
+  filas.forEach(function(f){
+    var d=f.datos||[];
+    var z=(d[1]||"").toString().trim();
+    var b=(d[8]||"").toString().trim();
+    if(z) zonas[z]=true;
+    if(b) banderas[b]=true;
+  });
+  var selZ=document.getElementById("dem-filtro-zona");
+  var selB=document.getElementById("dem-filtro-bandera");
+  var valZ=selZ.value, valB=selB.value;
+  selZ.innerHTML='<option value="">Todas las Prefecturas</option>';
+  selB.innerHTML='<option value="">Todas las Banderas</option>';
+  Object.keys(zonas).sort().forEach(function(z){selZ.innerHTML+='<option value="'+esc(z)+'">'+esc(z)+'</option>';});
+  Object.keys(banderas).sort().forEach(function(b){selB.innerHTML+='<option value="'+esc(b)+'">'+esc(b)+'</option>';});
+  selZ.value=valZ;
+  selB.value=valB;
+}
+function aplicarFiltrosDemorados(){
+  var sec=datosGlobales&&datosGlobales.secciones.find(function(s){return s.id==="DEMORADOS";});
+  var filas=sec?(sec.filas||[]).filter(function(f){return f&&f.tipo==="demorado";}):[];
+  if(_demFiltroMov) filas=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes(_demFiltroMov);});
+  var zona=document.getElementById("dem-filtro-zona").value;
+  var bandera=document.getElementById("dem-filtro-bandera").value;
+  var eslora=document.getElementById("dem-filtro-eslora").value;
+  if(zona) filas=filas.filter(function(f){return(f.datos[1]||"").toString().trim()===zona;});
+  if(bandera) filas=filas.filter(function(f){return(f.datos[8]||"").toString().trim()===bandera;});
+  if(eslora){
+    var parts=eslora.split("-");
+    var min=0,max=9999;
+    if(eslora==="200+"){min=200;max=9999;}
+    else{min=parseFloat(parts[0])||0;max=parseFloat(parts[1])||9999;}
+    filas=filas.filter(function(f){
+      var val=parseFloat((f.datos[9]||"").toString().replace(",","."))||0;
+      return val>=min&&val<max;
+    });
+  }
+  _renderDemoradosTabla(filas);
+}
+function filtrarDemorados(filtro){
+  _demFiltroMov=filtro;
+  aplicarFiltrosDemorados();
+}
+function _renderDemoradosTabla(filas){
+  var c=document.getElementById("demorados-content");
+  if(!filas.length){c.innerHTML='<div style="font-size:13px;color:var(--text-lt);font-style:italic;text-align:center;padding:20px;">Sin buques demorados.</div>';return;}
+  var html='<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit;">';
+  html+='<thead><tr style="background:var(--navy);color:#fff;"><th style="padding:8px 10px;text-align:left;">Buque</th><th style="padding:8px 10px;text-align:left;">Tipo</th><th style="padding:8px 10px;text-align:left;">Bandera</th><th style="padding:8px 10px;text-align:left;">Movimiento</th><th style="padding:8px 10px;text-align:left;">Puerto/Ubicación</th><th style="padding:8px 10px;text-align:left;">Estado</th><th style="padding:8px 10px;text-align:left;">Observaciones</th></tr></thead><tbody>';
+  filas.forEach(function(f,i){
+    var d=f.datos||[];
+    var bg=i%2===0?"#f8fafc":"#fff";
+    var mov=(d[3]||"").toUpperCase();
+    var movColor=mov.includes("ENTRADA")?"#16a34a":mov.includes("SALIDA")?"#dc2626":"#555";
+    html+='<tr style="background:'+bg+';border-bottom:1px solid #e5e7eb;">';
+    html+='<td style="padding:7px 10px;font-weight:700;color:var(--navy);">'+esc(d[6]||"")+'</td>';
+    html+='<td style="padding:7px 10px;">'+esc(d[5]||"")+'</td>';
+    html+='<td style="padding:7px 10px;">'+esc(d[8]||"")+'</td>';
+    html+='<td style="padding:7px 10px;"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:'+movColor+';">'+esc(d[3]||"")+'</span></td>';
+    html+='<td style="padding:7px 10px;">'+esc(d[4]||"")+'</td>';
+    html+='<td style="padding:7px 10px;">'+esc(d[15]||"")+'</td>';
+    html+='<td style="padding:7px 10px;font-size:11px;color:var(--text-md);">'+esc(d[17]||"")+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  c.innerHTML=html;
+}
+function cerrarModalDemorados(){document.getElementById("modalDemorados").classList.remove("activo");}
 // Cierre al hacer clic afuera DESHABILITADO — solo se cierra con el botón X o "Cancelar"
 async function guardarCaso(e){
   e.preventDefault();
