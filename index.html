@@ -448,16 +448,17 @@
       <select id="dem-filtro-zona" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
         <option value="">Todas las Prefecturas</option>
       </select>
+      <select id="dem-filtro-dep" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Todas las Dependencias</option>
+      </select>
       <select id="dem-filtro-bandera" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
         <option value="">Todas las Banderas</option>
       </select>
       <select id="dem-filtro-eslora" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
         <option value="">Cualquier Eslora</option>
-        <option value="0-50">0 - 50 m</option>
+        <option value="140+">Mayor a 140 m</option>
         <option value="50-100">50 - 100 m</option>
-        <option value="100-150">100 - 150 m</option>
-        <option value="150-200">150 - 200 m</option>
-        <option value="200+">200+ m</option>
+        
       </select>
       <span style="margin-left:auto;"></span>
       <button onclick="exportarDemoradosPDF()" class="dem-btn" style="background:#d32f2f;border:1px solid #d32f2f;">📄 Exportar PDF</button>
@@ -6708,28 +6709,35 @@ function abrirModalDemorados(){
   _poblarFiltrosDemorados(filas);
   document.getElementById("dem-filtro-buscar").value="";
   document.getElementById("dem-filtro-zona").value="";
+  document.getElementById("dem-filtro-dep").value="";
   document.getElementById("dem-filtro-bandera").value="";
   document.getElementById("dem-filtro-eslora").value="";
   _renderDemoradosTabla(filas);
   document.getElementById("modalDemorados").classList.add("activo");
 }
 function _poblarFiltrosDemorados(filas){
-  var zonas={}, banderas={};
+  var zonas={}, deps={}, banderas={};
   filas.forEach(function(f){
     var d=f.datos||[];
     var z=(d[1]||"").toString().trim();
+    var dep=(d[2]||"").toString().trim();
     var b=(d[8]||"").toString().trim();
     if(z) zonas[z]=true;
+    if(dep) deps[dep]=true;
     if(b) banderas[b]=true;
   });
   var selZ=document.getElementById("dem-filtro-zona");
+  var selDep=document.getElementById("dem-filtro-dep");
   var selB=document.getElementById("dem-filtro-bandera");
-  var valZ=selZ.value, valB=selB.value;
+  var valZ=selZ.value, valDep=selDep.value, valB=selB.value;
   selZ.innerHTML='<option value="">Todas las Prefecturas</option>';
+  selDep.innerHTML='<option value="">Todas las Dependencias</option>';
   selB.innerHTML='<option value="">Todas las Banderas</option>';
   Object.keys(zonas).sort().forEach(function(z){selZ.innerHTML+='<option value="'+esc(z)+'">'+esc(z)+'</option>';});
+  Object.keys(deps).sort().forEach(function(d){selDep.innerHTML+='<option value="'+esc(d)+'">'+esc(d)+'</option>';});
   Object.keys(banderas).sort().forEach(function(b){selB.innerHTML+='<option value="'+esc(b)+'">'+esc(b)+'</option>';});
   selZ.value=valZ;
+  selDep.value=valDep;
   selB.value=valB;
 }
 function aplicarFiltrosDemorados(){
@@ -6738,10 +6746,12 @@ function aplicarFiltrosDemorados(){
   if(_demFiltroMov) filas=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes(_demFiltroMov);});
   var buscar=(document.getElementById("dem-filtro-buscar").value||"").trim().toUpperCase();
   var zona=document.getElementById("dem-filtro-zona").value;
+  var dep=document.getElementById("dem-filtro-dep").value;
   var bandera=document.getElementById("dem-filtro-bandera").value;
   var eslora=document.getElementById("dem-filtro-eslora").value;
   if(buscar) filas=filas.filter(function(f){return(f.datos[6]||"").toString().toUpperCase().includes(buscar);});
   if(zona) filas=filas.filter(function(f){return(f.datos[1]||"").toString().trim()===zona;});
+  if(dep) filas=filas.filter(function(f){return(f.datos[2]||"").toString().trim()===dep;});
   if(bandera) filas=filas.filter(function(f){return(f.datos[8]||"").toString().trim()===bandera;});
   if(eslora){
     var parts=eslora.split("-");
@@ -6819,10 +6829,12 @@ function exportarDemoradosPDF(){
   if(_demFiltroMov) filas=filas.filter(function(f){return(f.datos[3]||"").toUpperCase().includes(_demFiltroMov);});
   var buscar=(document.getElementById("dem-filtro-buscar").value||"").trim().toUpperCase();
   var zona=document.getElementById("dem-filtro-zona").value;
+  var dep=document.getElementById("dem-filtro-dep").value;
   var bandera=document.getElementById("dem-filtro-bandera").value;
   var eslora=document.getElementById("dem-filtro-eslora").value;
   if(buscar) filas=filas.filter(function(f){return(f.datos[6]||"").toString().toUpperCase().includes(buscar);});
   if(zona) filas=filas.filter(function(f){return(f.datos[1]||"").toString().trim()===zona;});
+  if(dep) filas=filas.filter(function(f){return(f.datos[2]||"").toString().trim()===dep;});
   if(bandera) filas=filas.filter(function(f){return(f.datos[8]||"").toString().trim()===bandera;});
   if(eslora){
     var parts=eslora.split("-");
