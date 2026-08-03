@@ -732,7 +732,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbx-9pIEG_MtC7GBClWgjH27eb0AKgBoOkCBihMeR7ogn9qixaXKDwgFBgk8ygsLb2XYJg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxkhiNcfRqfEFFxguzdymu906z1hXi1VWPnT2UK_RxId4kaSptVyx7UzBoJXaZh4DavFQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -6888,6 +6888,7 @@ function exportarDemoradosPDF(){
   html+='<h1>PREFECTURA NAVAL ARGENTINA</h1>';
   html+='<h2>Dirección de Tráfico Marítimo, Fluvial y Lacustre — Buques Demorados</h2>';
   html+='<h2>Fecha: '+_fechaStr+' | Total: '+filas.length+' buques | Entradas: '+_ent+' | Salidas: '+_sal+(sec&&sec.prox72?' | Arriban próx. 72 hs: '+sec.prox72:'')+'</h2>';
+  html+='<h2 style="font-size:8pt;color:#888;margin:0 0 10pt;">Última actualización: '+(sec&&sec.ultimaActualizacion?sec.ultimaActualizacion:'—')+'</h2>';
   html+='<table><thead><tr>';
   html+='<th>Pref. Zona</th><th>Dependencia</th><th>Movimiento</th><th>Puerto/Ubic.</th><th>Tipo</th><th>Nombre</th><th>IMO</th><th>Bandera</th><th>Eslora</th><th>Manga</th><th>Calado</th><th>Agencia</th><th>Operación</th><th>FH Práctico</th><th>Tiempo sin Práctico</th><th>Estado</th><th>N° Exp.</th><th>Observaciones</th>';
   html+='</tr></thead><tbody>';
