@@ -510,6 +510,13 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 #modalExport .btn-exp-pdf{background:#d32f2f;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 #modalExport .btn-exp-word{background:#1a6fa4;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
 #modalExport .btn-cancelar,#modalCaso .btn-cancelar{background:#f0f0f0;color:#555;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+#modalDemorados{display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modalDemorados.activo{display:flex}
+.dem-btn{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#fff;transition:all .15s}
+.dem-btn-todos{border:1px solid #0077b6;background:#0077b6}
+.dem-btn-ent{border:1px solid #40916c;background:#40916c}
+.dem-btn-sal{border:1px solid #e63946;background:#e63946}
+.dem-btn:hover{opacity:.85}
 #modalCaso{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #modalCaso.activo{display:flex}
 #modalCaso .caso-modal{max-width:620px}
