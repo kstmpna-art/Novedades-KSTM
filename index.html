@@ -732,7 +732,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzOnilvg_F95pWDyzeTCao9zbPRdZMWHCEmF5zWzrAxcWq7Fh-1Pm5jJ17-xnAPbjkryQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzPiv3sAy6V2Jc68dHdf84ZATQ2RIvMKtZ-qchRqVJ8s35AOMl-vY5hj1InlnRLxtZwwQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -2383,7 +2383,12 @@ function mostrarSeccion(id) {
   }
 
   visor.innerHTML = renderSeccion(sec);
-  if (sec.tipo === "casos_especiales") iniciarRelojes();
+  if (sec.tipo === "casos_especiales") {
+    iniciarRelojes();
+    setTimeout(function(){
+      document.querySelectorAll('.img-carousel').forEach(function(c){initCarrusel(c.id);});
+    },100);
+  }
   if (id === "PUERTOS") {
     setTimeout(() => {
       const pSec2 = datosGlobales.secciones.find(s => s.id === "PUERTOS");
@@ -3215,9 +3220,34 @@ function renderSeccion(sec) {
         const hojaId=f.hojaId||sec.id;
         const puedeCargar=rolActual==="admin";
         const relojHtml=esSAR&&!cerrado?`<div class="caso-reloj" id="reloj-${id}" data-ts="${f.ultimaActualizacion||''}">⏱ --:--:--</div>`:"";
-        const imgViewerHtml=hasImg?`<button class="img-toggle-btn" onclick="toggleImg('imgv-${id}')">📷 Ver imagen</button>
-           <div class="img-viewer" id="imgv-${id}"><img src="${esc(f.imgUrl)}" alt="Imagen situación" style="cursor:zoom-in" onclick="abrirZoom(this.src)" onerror="this.src='';this.parentElement.style.display='none'">
-           <div class="img-cap"><span>Imagen de situación</span><span style="cursor:pointer;color:var(--blue)" onclick="recargarImagen('imgv-${id}','${esc(f.imgUrl)}')">↺ Actualizar</span></div></div>`:`<div style="font-size:12px;color:var(--text-lt);margin-top:6px;font-style:italic">📷 Sin imagen cargada aún</div>`;
+        let imgViewerHtml='';
+        if(hasImg){
+          const urls=f.imgUrl.split('|').map(function(u){return u.trim();}).filter(Boolean);
+          if(urls.length>1){
+            const cid='carr-'+id;
+            let slidesHtml='';let dotsHtml='';
+            urls.forEach(function(u,i){
+              slidesHtml+=`<div class="img-carousel-slide"><img src="${esc(u)}" alt="Imagen ${i+1}" onerror="this.parentElement.style.display='none'"></div>`;
+              dotsHtml+=`<button class="img-carousel-dot${i===0?' active':''}" data-idx="${i}"></button>`;
+            });
+            imgViewerHtml=`<button class="img-toggle-btn" onclick="toggleImg('imgv-${id}')">📷 Ver imágenes (${urls.length})</button>
+              <div class="img-viewer" id="imgv-${id}">
+                <div class="img-carousel" id="${cid}">
+                  <span class="img-carousel-counter">1/${urls.length}</span>
+                  <div class="img-carousel-track">${slidesHtml}</div>
+                  <button class="img-carousel-arrow prev" onclick="event.stopPropagation()">‹</button>
+                  <button class="img-carousel-arrow next" onclick="event.stopPropagation()">›</button>
+                  <div class="img-carousel-dots">${dotsHtml}</div>
+                </div>
+              </div>`;
+          } else {
+            imgViewerHtml=`<button class="img-toggle-btn" onclick="toggleImg('imgv-${id}')">📷 Ver imagen</button>
+              <div class="img-viewer" id="imgv-${id}"><img src="${esc(urls[0])}" alt="Imagen situación" style="cursor:zoom-in" onclick="abrirZoom(this.src)" onerror="this.src='';this.parentElement.style.display='none'">
+              <div class="img-cap"><span>Imagen de situación</span><span style="cursor:pointer;color:var(--blue)" onclick="recargarImagen('imgv-${id}','${esc(urls[0])}')">↺ Actualizar</span></div></div>`;
+          }
+        } else {
+          imgViewerHtml=`<div style="font-size:12px;color:var(--text-lt);margin-top:6px;font-style:italic">📷 Sin imagen cargada aún</div>`;
+        }
         const uploaderHtml=(!cerrado&&puedeCargar)?`
           <button class="btn-operador ${pinVerificado?'autenticado':''}" id="btnop-${id}" onclick="abrirUploader('${id}','${fila}','${hojaId}')">
             ${pinVerificado?'✅ Operador activo — Cargar imagen':'🔒 Cargar imagen (operador)'}
@@ -5054,6 +5084,42 @@ function iniciarRelojes() {
 function toggleImg(id){const el=document.getElementById(id);if(el)el.classList.toggle("open");}
 function recargarImagen(vId,url){const img=document.querySelector(`#${vId} img`);if(!img)return;img.src=url+(url.includes("?")?"&":"?")+"nocache="+Date.now();}
 
+function initCarrusel(carouselId){
+  var el=document.getElementById(carouselId);
+  if(!el) return;
+  var track=el.querySelector('.img-carousel-track');
+  var slides=el.querySelectorAll('.img-carousel-slide');
+  var dots=el.querySelectorAll('.img-carousel-dot');
+  var counter=el.querySelector('.img-carousel-counter');
+  var idx=0;
+  var total=slides.length;
+  var autoTimer=null;
+
+  function goTo(i){
+    idx=((i%total)+total)%total;
+    track.style.transform='translateX(-'+(idx*100)+'%)';
+    dots.forEach(function(d,j){d.classList.toggle('active',j===idx);});
+    if(counter) counter.textContent=(idx+1)+'/'+total;
+  }
+  function next(){goTo(idx+1);}
+  function prev(){goTo(idx-1);}
+  function startAuto(){stopAuto();autoTimer=setInterval(next,4000);}
+  function stopAuto(){if(autoTimer){clearInterval(autoTimer);autoTimer=null;}}
+
+  el.querySelector('.img-carousel-arrow.prev').onclick=function(){prev();startAuto();};
+  el.querySelector('.img-carousel-arrow.next').onclick=function(){next();startAuto();};
+  dots.forEach(function(d,j){d.onclick=function(){goTo(j);startAuto();};});
+
+  var imgEl=el.querySelector('.img-carousel-slide img');
+  if(imgEl){
+    imgEl.onclick=function(){abrirZoom(this.src);};
+  }
+
+  startAuto();
+  el._carruselStop=function(){stopAuto();};
+  el._carruselStart=function(){startAuto();};
+}
+
 /* ================================================================
    DASHBOARD PORTUARIO GENERAL
 ================================================================ */
@@ -5339,12 +5405,18 @@ async function subirImagen(id, fila, hojaId) {
       setStatus(id, "ok", "✅ Imagen cargada correctamente.");
       delete _archivos[id];
 
+      let _updatedImgUrl = res.url;
       if (datosGlobales) {
         datosGlobales.secciones.forEach(sec => {
         if (sec.id !== hojaId) return;   // <-- esta línea es la clave
         (sec.filas || []).forEach(f => {
           if (f && f.tipo === "caso_especial" && f.filaSheet === parseInt(fila)) {
-            f.imgUrl = res.url;
+            if (f.imgUrl && f.imgUrl.trim()) {
+              f.imgUrl = f.imgUrl.trim() + " | " + res.url;
+            } else {
+              f.imgUrl = res.url;
+            }
+            _updatedImgUrl = f.imgUrl;
           }
         });
       });
@@ -5353,9 +5425,27 @@ async function subirImagen(id, fila, hojaId) {
       const viewerId = "imgv-" + id;
       const viewer   = document.getElementById(viewerId);
       if (viewer) {
-        const img = viewer.querySelector("img");
-        if (img) img.src = res.url;
         viewer.classList.add("open");
+        const urls = _updatedImgUrl.split('|').map(function(u){return u.trim();}).filter(Boolean);
+        if (urls.length > 1) {
+          const cid = 'carr-' + id;
+          let slidesHtml = '', dotsHtml = '';
+          urls.forEach(function(u, i) {
+            slidesHtml += `<div class="img-carousel-slide"><img src="${esc(u)}" alt="Imagen ${i+1}" onerror="this.parentElement.style.display='none'"></div>`;
+            dotsHtml += `<button class="img-carousel-dot${i===urls.length-1?' active':''}" data-idx="${i}"></button>`;
+          });
+          viewer.innerHTML = `<div class="img-carousel" id="${cid}">
+            <span class="img-carousel-counter">${urls.length}/${urls.length}</span>
+            <div class="img-carousel-track">${slidesHtml}</div>
+            <button class="img-carousel-arrow prev" onclick="event.stopPropagation()">‹</button>
+            <button class="img-carousel-arrow next" onclick="event.stopPropagation()">›</button>
+            <div class="img-carousel-dots">${dotsHtml}</div>
+          </div>`;
+          initCarrusel(cid);
+        } else {
+          const img = viewer.querySelector("img");
+          if (img) img.src = res.url;
+        }
       }
     } else {
       setStatus(id, "error", "❌ Error: " + ((res && res.error) ? res.error : "desconocido"));
