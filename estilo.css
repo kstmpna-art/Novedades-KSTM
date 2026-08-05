@@ -484,6 +484,21 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .btn-operador:hover{border-color:var(--blue);color:var(--blue)}
 .btn-operador.autenticado{color:var(--green);border-color:rgba(26,149,96,0.3);background:var(--green-lt)}
 
+/* ── CARRUSEL DE IMÁGENES ────────────────────────────────────── */
+.img-carousel{position:relative;margin-top:8px;border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--gray-100)}
+.img-carousel-track{display:flex;transition:transform .4s ease}
+.img-carousel-slide{min-width:100%;position:relative}
+.img-carousel-slide img{width:100%;max-height:280px;object-fit:contain;display:block;cursor:zoom-in}
+.img-carousel-arrow{position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.85);border:1px solid var(--gray-200);color:var(--navy);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.img-carousel-arrow:hover{background:#fff}
+.img-carousel-arrow.prev{left:8px}
+.img-carousel-arrow.next{right:8px}
+.img-carousel-dots{display:flex;justify-content:center;gap:6px;padding:8px 0;border-top:1px solid var(--gray-200)}
+.img-carousel-dot{width:8px;height:8px;border-radius:50%;background:var(--gray-400);border:none;cursor:pointer;transition:background .2s}
+.img-carousel-dot.active{background:var(--blue)}
+.img-carousel-counter{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;z-index:2}
+.img-cap{padding:5px 10px;font-size:11px;color:var(--text-lt);border-top:1px solid var(--gray-200);display:flex;justify-content:space-between}
+
 /* ── MODAL PIN ────────────────────────────────────────────────── */
 #modalPin{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #modalPin.activo{display:flex}
