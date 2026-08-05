@@ -86,7 +86,7 @@
     <div class="sel-grid">
 
       <!-- SEAV -->
-      <div class="sel-card" onclick="abrirServicio('SEAV')">
+      <div class="sel-card" onclick="abrirServicio('SEAV')" data-sec="AVIACION">
         <div class="sel-card-title">Servicio de Aviación</div>
         <div class="sel-card-code">(SEAV)</div>
         <div class="sel-card-img-wrap">
@@ -98,7 +98,7 @@
       </div>
 
       <!-- SERS -->
-      <div class="sel-card" onclick="abrirServicio('SERS')">
+      <div class="sel-card" onclick="abrirServicio('SERS')" data-sec="SALVAMENTO">
         
         <div class="sel-card-title">Servicio de Búsqueda,<br>salvamento y rescate</div>
         <div class="sel-card-code">(SERS)</div>
@@ -111,7 +111,7 @@
       </div>
 
       <!-- KSTM -->
-      <div class="sel-card" onclick="abrirServicio('KSTM')">
+      <div class="sel-card" onclick="abrirServicio('KSTM')" data-sec="KSTM">
         <span class="sel-badge red" id="sel-badge-KSTM" style="display:none">0 ACTIVOS</span>
         <div class="sel-card-title">Servicio de Tráfico<br>Marítimo</div>
         <div class="sel-card-code">(KSTM)</div>
@@ -124,7 +124,7 @@
       </div>
 
       <!-- SBGC -->
-      <div class="sel-card" onclick="abrirServicio('SBGC')">
+      <div class="sel-card" onclick="abrirServicio('SBGC')" data-sec="GC">
         <span class="sel-badge amber" id="sel-badge-SBGC" style="display:none">0 NAV.</span>
         <div class="sel-card-title">Servicio de Buques<br>Guardacostas</div>
         <div class="sel-card-code">(SBGC)</div>
@@ -732,7 +732,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxkhiNcfRqfEFFxguzdymu906z1hXi1VWPnT2UK_RxId4kaSptVyx7UzBoJXaZh4DavFQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby6-uQjC1Hw_nyG8bm1tBDz6WZp7NOoB7fI3J0CyDwOd_aneyABETZ1aVmq--mVfkt4gQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -752,6 +752,57 @@ let rolSeleccionado = "admin";
 let preavisosUrl = null;
 let preavisosFileName = null;
 let _ultimaFechaExport = "";
+let usuarioSecciones = ["*"];
+
+/* ── PERMISOS POR SECCIÓN/SUBSECCIÓN ───────────────────────────── */
+function parsearPermisos(seccionesArr) {
+  if (!seccionesArr || !Array.isArray(seccionesArr) || seccionesArr.length === 0) return ["*"];
+  return seccionesArr.map(function(s) { return String(s).trim(); }).filter(Boolean);
+}
+function puedeVerSeccion(seccionId) {
+  if (rolActual === "admin" && usuarioSecciones.length === 1 && usuarioSecciones[0] === "*") return true;
+  var upper = String(seccionId).toUpperCase().trim();
+  var tieneWildcard = false;
+  var exclusiones = [];
+  for (var i = 0; i < usuarioSecciones.length; i++) {
+    var p = usuarioSecciones[i].trim();
+    if (p === "*") { tieneWildcard = true; }
+    else if (p.charAt(0) === "-") { exclusiones.push(p.substring(1).toUpperCase().trim()); }
+  }
+  if (tieneWildcard) {
+    for (var j = 0; j < exclusiones.length; j++) {
+      if (exclusiones[j] === upper) return false;
+    }
+    return true;
+  }
+  for (var k = 0; k < usuarioSecciones.length; k++) {
+    var p2 = usuarioSecciones[k].split(":")[0].toUpperCase().trim();
+    if (p2 === upper) return true;
+  }
+  return false;
+}
+function puedeVerSubseccion(seccionId, subId) {
+  if (puedeVerSeccion(seccionId)) {
+    var tieneWildcard = false;
+    for (var i = 0; i < usuarioSecciones.length; i++) {
+      if (usuarioSecciones[i].trim() === "*") { tieneWildcard = true; break; }
+    }
+    if (tieneWildcard) return true;
+  }
+  var upperSec = String(seccionId).toUpperCase().trim();
+  var upperSub = String(subId).toUpperCase().trim();
+  for (var i = 0; i < usuarioSecciones.length; i++) {
+    var parts = usuarioSecciones[i].split(":");
+    var secPart = parts[0].toUpperCase().trim();
+    if (secPart !== upperSec) continue;
+    if (parts.length < 2) return true;
+    var subs = parts[1].split(",").map(function(s) { return s.toUpperCase().trim(); });
+    for (var j = 0; j < subs.length; j++) {
+      if (subs[j] === upperSub) return true;
+    }
+  }
+  return false;
+}
 
 /* ================================================================
    LOGIN
@@ -793,6 +844,7 @@ async function intentarLogin() {
       initials: (res.nombre || usr).split(" ").map(w => w[0]).filter(Boolean).join("").toUpperCase().slice(0, 2) || "OP"
     };
     const efectiveRole = (rolSeleccionado === "visual" || user.role === "visual") ? "visual" : "admin";
+    usuarioSecciones = parsearPermisos(res.secciones);
     iniciarApp(user, efectiveRole);
   } catch(e) {
     err.style.display = "block";
@@ -827,6 +879,26 @@ function iniciarApp(user, role) {
 
   // En vez de abrir el app directamente, mostrar el selector
   mostrarSelector();
+  filtrarNavegacionPermisos();
+}
+
+function filtrarNavegacionPermisos() {
+  // Filtrar botones del topbar dropdown que tienen irSeccion
+  document.querySelectorAll(".tb-dropdown .tb-dd-item[onclick*='irSeccion']").forEach(function(btn) {
+    var match = btn.getAttribute("onclick").match(/irSeccion\('([^']+)'/);
+    if (match) {
+      var secId = match[1];
+      btn.style.display = puedeVerSeccion(secId) ? "" : "none";
+    }
+  });
+  // Filtrar sub-items del topbar dropdown
+  document.querySelectorAll(".tb-dropdown-sub .tb-dd-sub2[onclick*='irSeccion']").forEach(function(btn) {
+    var match = btn.getAttribute("onclick").match(/irSeccion\('([^']+)'/);
+    if (match) {
+      var secId = match[1];
+      btn.style.display = puedeVerSeccion(secId) ? "" : "none";
+    }
+  });
 }
 
 function cerrarSesion() {
@@ -837,6 +909,7 @@ function cerrarSesion() {
   document.getElementById("pwd-input").value = "";
   datosGlobales = null; pinVerificado = false; currentUser = null;
   _datosCache = null; _datosCacheTs = 0;
+  usuarioSecciones = ["*"];
 }
 
 /* ================================================================
@@ -2022,7 +2095,17 @@ function toggleHamburger() {
   const hp = document.getElementById("hamburger-panel");
   const ov = document.getElementById("sb-overlay");
   if (hp.classList.contains("open")) { hp.classList.remove("open"); ov.classList.remove("visible"); }
-  else { hp.classList.add("open"); ov.classList.add("visible"); }
+  else {
+    hp.classList.add("open"); ov.classList.add("visible");
+    // Filtrar botones de navegación según permisos
+    hp.querySelectorAll(".sb-act-btn.ghost[onclick*='irSeccion']").forEach(function(btn) {
+      var match = btn.getAttribute("onclick").match(/irSeccion\('([^']+)'/);
+      if (match) {
+        var secId = match[1];
+        btn.style.display = puedeVerSeccion(secId) ? "" : "none";
+      }
+    });
+  }
 }
 function cerrarHamburger() {
   const hp = document.getElementById("hamburger-panel");
@@ -2220,6 +2303,12 @@ function mostrarHome() {
 function mostrarSeccion(id) {
   cerrarDropdowns();
   cerrarHamburger();
+
+  if (!puedeVerSeccion(id)) {
+    mostrarHome();
+    return;
+  }
+
   seccionActiva = id;
   seccionDashActiva = id;
 
@@ -2259,7 +2348,8 @@ function mostrarSeccion(id) {
   if (ts2) ts2.textContent = "";
 
   // Mostrar botón dashboard + navegación entre secciones
-  const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+  const _ALL_SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+  const SECCIONES_ORDEN = _ALL_SECCIONES_ORDEN.filter(function(sid) { return puedeVerSeccion(sid); });
   const dashWrap = document.getElementById("dash-btn-wrap");
   if (dashWrap) {
     dashWrap.style.display = "flex";
@@ -2340,11 +2430,11 @@ document.addEventListener("keydown", function(e) {
   const sv = document.getElementById("section-view");
   if (sv.style.display !== "block") return;
   if (e.key === "ArrowLeft") {
-    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"].filter(function(s){return puedeVerSeccion(s);});
     const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
     if (idx > 0) mostrarSeccion(SECCIONES_ORDEN[idx-1]);
   } else if (e.key === "ArrowRight") {
-    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"].filter(function(s){return puedeVerSeccion(s);});
     const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
     if (idx >= 0 && idx < SECCIONES_ORDEN.length-1) mostrarSeccion(SECCIONES_ORDEN[idx+1]);
   }
@@ -6052,7 +6142,12 @@ function _filas(id,tipo){
 }
 
 function _buildParteCuerpo(){
-  function _secH(key){return !_exportSeccionesFilter||_exportSeccionesFilter.has(key);}
+  var _exportKeyToSec = {av:"AVIACION",gc:"GC",conv:"CONVENIO",ara:"ARA",salv:"SALVAMENTO",kstm:"KSTM",res:"RESERVA",sar:"SAR",mas:"MAS",reg:"REGATAS",ej:"EJER.ARMAS",pue:"PUERTOS",met:"METANEROS",pbip:"PBIP",mda:"MDA_SIBI"};
+  function _secH(key){
+    var secId = _exportKeyToSec[key] || key;
+    if (!puedeVerSeccion(secId)) return false;
+    return !_exportSeccionesFilter||_exportSeccionesFilter.has(key);
+  }
   var cuerpo="", secCounter=0;
   // 1. AVIACION
   var avSec=_sec("AVIACION");
@@ -7104,6 +7199,14 @@ function mostrarSelector() {
 function abrirServicio(id) {
   servicioActivo = id;
 
+  // Verificar permisos del servicio
+  var servicioSecMap = { SEAV: "AVIACION", SERS: "SALVAMENTO", SBGC: "GC", KSTM: "KSTM" };
+  var secRequerida = servicioSecMap[id];
+  if (secRequerida && !puedeVerSeccion(secRequerida)) {
+    alert("No tiene autorización, comunicarse al 2319");
+    return;
+  }
+
   // Ocultar selector, mostrar app
   const selector = document.getElementById("selector-screen");
   if (selector) selector.style.display = "none";
@@ -7285,22 +7388,34 @@ function toggleSubgrupo(id) {
 function iniciarAutoRefresh() {
   if (autoRefreshInterval) clearInterval(autoRefreshInterval);
   if (autoRefreshCountdown) clearInterval(autoRefreshCountdown);
-  let segundos = 900;
-  const el = document.getElementById("auto-refresh-indicator");
-  const actualizar = () => {
-    const m = Math.floor(segundos / 60);
-    const s = segundos % 60;
-    if (el) el.textContent = `↻ ${m}:${s.toString().padStart(2,"0")}`;
-  };
+
+  var el = document.getElementById("auto-refresh-indicator");
+  function enHorarioManual() {
+    var h = new Date().getHours();
+    return h >= 7 && h < 9;
+  }
+  function actualizar() {
+    if (enHorarioManual()) {
+      if (el) el.textContent = "⏸ Manual (07-09)";
+      return;
+    }
+    var m = Math.floor(segundos / 60);
+    var s = segundos % 60;
+    if (el) el.textContent = "↻ " + m + ":" + s.toString().padStart(2, "0");
+  }
+  var segundos = 1800;
   actualizar();
-  autoRefreshCountdown = setInterval(() => {
+  autoRefreshCountdown = setInterval(function() {
+    if (enHorarioManual()) { actualizar(); return; }
     segundos--;
-    if (segundos <= 0) segundos = 3600;
+    if (segundos <= 0) segundos = 1800;
     actualizar();
   }, 1000);
-  autoRefreshInterval = setInterval(() => {
+  autoRefreshInterval = setInterval(function() {
+    if (enHorarioManual()) return;
+    segundos = 1800;
     actualizarSistema(true);
-  }, 900000);
+  }, 1800000);
 }
 
 function actualizarSistema(automatico) {
@@ -7433,6 +7548,11 @@ function avanzarAutoRotacion() {
     // Después de abrirServicio, mostrarHome se llama internamente
     tiempoMs = 20000;
   } else {
+    if (!puedeVerSeccion(faseActual)) {
+      autoRotacionFase = (autoRotacionFase + 1) % AUTO_ROTACION_SECCIONES.length;
+      autoRotacionTimer = setTimeout(avanzarAutoRotacion, 1000);
+      return;
+    }
     mostrarSeccion(faseActual);
     tiempoMs = 20000;
   }
