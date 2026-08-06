@@ -732,7 +732,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzPiv3sAy6V2Jc68dHdf84ZATQ2RIvMKtZ-qchRqVJ8s35AOMl-vY5hj1InlnRLxtZwwQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyEEtt8MQ9FQVuNlB2BDVN6L94o9hKu5_2nqp7pbbiaTjZ67ceJJ53it7gA-xEuXjVHfg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -929,7 +929,7 @@ var _datosCache = null;
 var _datosCacheTs = 0;
 var _CACHE_TTL_MS = 60000; // 60 segundos
 
-async function cargarDatos(forzar) {
+async function cargarDatos(forzar, filtroSecciones) {
   try {
     // Si hay caché fresca y no se pide forzar, usar caché
     const now = Date.now();
@@ -944,7 +944,8 @@ async function cargarDatos(forzar) {
       return;
     }
 
-    const data = await llamarAPI("obtenerDatosPNA");
+    const params = filtroSecciones ? { secciones: filtroSecciones.join(",") } : {};
+    const data = await llamarAPI("obtenerDatosPNA", params);
     if (data && data.error) {
       document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error: ${data.error}</div>`;
       return;
@@ -3295,6 +3296,282 @@ function renderSeccion(sec) {
       </div>`;
     }
     return (h||`<div class="empty">Sin casos.</div>`) + mapaGisHtml();
+  }
+
+  if (sec.tipo === "tipo_sers") {
+    let h = '<div style="display:flex;gap:16px;align-items:stretch;flex-wrap:wrap">';
+    
+    // ── Bloque 1+2: Situación SERS ──
+    let hSers = '';
+    const subtitulos = filas.filter(f => f && f.tipo === "subtitulo");
+    const partes = filas.filter(f => f && f.tipo === "partes");
+    
+    let bloque1 = [], bloque2 = [];
+    let currentBlock = 1;
+    
+    filas.forEach(f => {
+      if (!f) return;
+      if (f.tipo === "subtitulo") {
+        if (f.texto && f.texto.includes("BLOQUE 2")) currentBlock = 2;
+        hSers += `<div class="bloque-sub">${esc(f.texto)}</div>`;
+      } else if (f.tipo === "partes") {
+        if (currentBlock === 1) bloque1.push(f);
+        else bloque2.push(f);
+        hSers += `<div class="item-card">`;
+        f.partes.forEach(p => {
+          if (p.negrita) hSers += `<div style="font-weight:700">${esc(p.prefijo + p.texto)}</div>`;
+          else hSers += `<div>${esc(p.prefijo + p.texto)}</div>`;
+        });
+        hSers += `</div>`;
+      } else if (f.tipo === "separador") {
+        hSers += `<div class="sep"></div>`;
+      } else if (f.tipo === "html") {
+        hSers += f.texto;
+      }
+    });
+    
+    if (bloque1.length === 0 && bloque2.length === 0) {
+      hSers += `<div class="empty">Sin datos de SERS.</div>`;
+    }
+    
+    h += `<div style="flex:1;min-width:320px;background:var(--card-bg,#fff);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:16px;box-shadow:var(--shadow-sm)">`;
+    h += `<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🔥 Novedades SERS</div>`;
+    h += hSers;
+    h += `</div>`;
+    
+    // ── Bloque 3: Novedades ──
+    const novedadesFila = filas.find(f => f && f.tipo === "sers_novedades");
+    if (novedadesFila && novedadesFila.novedades) {
+      const n = novedadesFila.novedades;
+      h += `<div style="flex:1;min-width:320px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">`;
+      h += `<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📋 Situació Medios SERS</div>`;
+      h += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`;
+      h += `<div class="sers-kpi" onclick="sersFiltrarCondicion(this,'')" style="flex:1;min-width:70px;text-align:center;padding:8px;cursor:pointer;border-radius:8px;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#fff">${n.totalMedios}</div><div style="font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase">🚒 Total</div></div>`;
+      h += `<div class="sers-kpi" onclick="sersFiltrarCondicion(this,'BRAVO')" style="flex:1;min-width:70px;text-align:center;padding:6px;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#10b981">${n.bravo}</div><div style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase">🟢 BRAVO</div></div>`;
+      h += `<div class="sers-kpi" onclick="sersFiltrarCondicion(this,'CHARLIE')" style="flex:1;min-width:70px;text-align:center;padding:6px;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#f59e0b">${n.charlie}</div><div style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase">🟡 CHARLIE</div></div>`;
+      h += `<div class="sers-kpi" onclick="sersFiltrarCondicion(this,'ZULU')" style="flex:1;min-width:70px;text-align:center;padding:6px;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#F52D14">${n.zulu}</div><div style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase">🔴 ZULU</div></div>`;
+      h += `</div>`;
+      
+      if (n.filas && n.filas.length > 0) {
+        h += `<div style="background:#fff;border-radius:var(--radius);overflow:hidden;margin-top:8px">`;
+        h += `<div style="overflow-x:auto"><table class="pna-table" style="font-size:12px"><thead><tr><th style="padding:6px 8px">MEDIOS</th><th style="padding:6px 8px">NOVEDAD</th><th style="padding:6px 8px">CONDICION</th></tr></thead><tbody id="sers-nov-tbody">`;
+        n.filas.forEach(f => {
+          const cond = ((f.datos || [])[2] || '').toString().trim().toUpperCase();
+          h += `<tr data-condicion="${esc(cond)}">`;
+          (f.datos || []).forEach(d => {
+            h += `<td style="text-align:center;padding:4px 6px">${esc(d || '')}</td>`;
+          });
+          h += `</tr>`;
+        });
+        h += `</tbody></table></div></div>`;
+      }
+      const novChartId = "nov-chart-" + uid();
+      h += `<div style="background:rgba(255,255,255,0.1);border-radius:var(--radius);padding:10px;margin-top:8px"><div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;text-align:center">📊 Distribución Condiciones</div><div style="height:120px"><canvas id="${novChartId}"></canvas></div></div>`;
+      setTimeout(function() {
+        const el = document.getElementById(novChartId);
+        if (!el) return;
+        new Chart(el, {
+          type: "doughnut",
+          data: {
+            labels: ["BRAVO", "CHARLIE", "ZULU"],
+            datasets: [{ data: [n.bravo, n.charlie, n.zulu], backgroundColor: ["#10b981", "#f59e0b", "#F7462A"], borderWidth: 0, cutout: "55%" }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "bottom", labels: { color: "rgba(255,255,255,0.7)", font: { size: 10, family: "'DM Sans',sans-serif" }, padding: 8 } },
+              tooltip: { callbacks: { label: function(ctx) { return ctx.label + ": " + ctx.raw + " medios"; } } }
+            }
+          }
+        });
+      }, 150);
+      h += `</div>`;
+    }
+    
+    // ── Bloque 4: Convenio ──
+    const convenioFila = filas.find(f => f && f.tipo === "sers_convenio");
+    if (convenioFila && convenioFila.convenio) {
+      const c = convenioFila.convenio;
+      h += `<div style="flex:1;min-width:320px;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm)">`;
+      h += `<div style="padding:8px 14px;background:var(--navy)"><span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px">🤝 Situación Buques Convenio ANPYN — PNA</span></div>`;
+      h += `<div style="padding:14px">`;
+      
+      // Total de buques a reflotar y extraer (A3)
+      h += `<div style="background:var(--sky);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;text-align:center">`;
+      h += `<div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Total de Buques a Reflotar y Extraer</div>`;
+      h += `<div style="font-size:28px;font-weight:800;color:var(--navy)">${esc(c.totalReflotar || '0')}</div>`;
+      h += `</div>`;
+      
+      // Total de buques reflotados y extraidos (E4, F4, G4)
+      h += `<div style="margin-bottom:12px">`;
+      h += `<div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Total de Buques Reflotados y Extraídos</div>`;
+      h += `<div style="display:flex;gap:8px">`;
+      h += `<div style="flex:1;background:#ecfdf5;border-radius:var(--radius);padding:10px 12px;text-align:center;border:1px solid #bbf7d0">`;
+      h += `<div style="font-size:10px;font-weight:600;color:#166534;text-transform:uppercase;margin-bottom:4px">Convenio</div>`;
+      h += `<div style="font-size:22px;font-weight:800;color:#15803d">${esc(c.convenio || '0')}</div>`;
+      h += `</div>`;
+      h += `<div style="flex:1;background:#eff6ff;border-radius:var(--radius);padding:10px 12px;text-align:center;border:1px solid #bfdbfe">`;
+      h += `<div style="font-size:10px;font-weight:600;color:#1e3a5f;text-transform:uppercase;margin-bottom:4px">Adenda</div>`;
+      h += `<div style="font-size:22px;font-weight:800;color:#1d4ed8">${esc(c.adenda || '0')}</div>`;
+      h += `</div>`;
+      h += `<div style="flex:1;background:#f5f3ff;border-radius:var(--radius);padding:10px 12px;text-align:center;border:1px solid #ddd6fe">`;
+      h += `<div style="font-size:10px;font-weight:600;color:#5b21b6;text-transform:uppercase;margin-bottom:4px">TOTAL</div>`;
+      h += `<div style="font-size:22px;font-weight:800;color:#7c3aed">${esc(c.totalReflotExtra || '0')}</div>`;
+      h += `</div>`;
+      h += `</div></div>`;
+      
+      // Buques pendientes a ser extraidos (I4, J4, K4)
+      h += `<div style="background:#fef2f2;border-radius:var(--radius);padding:12px 16px;border:1px solid #fecaca">`;
+      h += `<div style="font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚠️ Buques Pendientes a ser Extraídos</div>`;
+      h += `<div style="display:flex;gap:8px;flex-wrap:wrap">`;
+      h += `<div style="flex:1;min-width:80px;text-align:center;padding:8px;background:#fff;border-radius:6px;border:1px solid #fecaca">`;
+      h += `<div style="font-size:9px;font-weight:600;color:#991b1b;text-transform:uppercase">Total</div>`;
+      h += `<div style="font-size:20px;font-weight:800;color:#dc2626">${esc(c.pendTotal || '0')}</div>`;
+      h += `</div>`;
+      h += `<div style="flex:2;min-width:120px;text-align:center;padding:8px;background:#fff;border-radius:6px;border:1px solid #fecaca">`;
+      h += `<div style="font-size:9px;font-weight:600;color:#991b1b;text-transform:uppercase">Buques</div>`;
+      h += `<div style="font-size:14px;font-weight:700;color:#1e293b">${esc(c.pendBuques || '-')}</div>`;
+      h += `</div>`;
+      h += `<div style="flex:1;min-width:80px;text-align:center;padding:8px;background:#fff;border-radius:6px;border:1px solid #fecaca">`;
+      h += `<div style="font-size:9px;font-weight:600;color:#991b1b;text-transform:uppercase">Sector</div>`;
+      h += `<div style="font-size:14px;font-weight:700;color:#1e293b">${esc(c.pendSector || '-')}</div>`;
+      h += `</div>`;
+      h += `</div></div>`;
+      
+      // Dashboard chart
+      const convChartId = "conv-chart-" + uid();
+      h += `<div style="background:var(--gray-100);border-radius:var(--radius);padding:10px;margin-top:12px"><div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;text-align:center">📊 Dashboard Convenio</div><div style="height:120px"><canvas id="${convChartId}"></canvas></div></div>`;
+      setTimeout(function() {
+        const el = document.getElementById(convChartId);
+        if (!el) return;
+        const convVal = parseInt(c.convenio) || 0;
+        const adenVal = parseInt(c.adenda) || 0;
+        const pendVal = parseInt(c.pendTotal) || 0;
+        new Chart(el, {
+          type: "bar",
+          data: {
+            labels: ["Convenio", "Adenda", "Pendientes"],
+            datasets: [{ data: [convVal, adenVal, pendVal], backgroundColor: ["#10b981", "#3b82f6", "#ef4444"], borderRadius: 6, barThickness: 40 }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: "#e2e8f0" }, ticks: { font: { size: 10 } } },
+              x: { grid: { display: false }, ticks: { font: { size: 10, family: "'DM Sans',sans-serif" } } }
+            }
+          }
+        });
+      }, 150);
+      
+      h += `</div></div>`;
+    }
+    
+    h += '</div>';
+    return h;
+  }
+
+  if (sec.tipo === "sers_novedades") {
+    const total = sec.totalMedios || 0;
+    const bravo = sec.bravo || 0;
+    const charlie = sec.charlie || 0;
+    const zulu = sec.zulu || 0;
+    const ff = filas.filter(f => f && f.tipo === "fila");
+    let h = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+      <div style="flex:1;min-width:120px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:14px 16px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:#fff">${total}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px">🚒 Total Medios</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#166534;border-radius:var(--radius-lg);padding:14px 16px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:#fff">${bravo}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.5px">🟢 BRAVO</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#a16207;border-radius:var(--radius-lg);padding:14px 16px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:#fff">${charlie}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.5px">🟡 CHARLIE</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:#991b1b;border-radius:var(--radius-lg);padding:14px 16px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.2)">
+        <div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:#fff">${zulu}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.5px">🔴 ZULU</div>
+      </div>
+    </div>`;
+    h += `<div class="tbl-wrap"><table class="pna-table"><tr><th>MEDIOS</th><th>NOVEDAD</th><th>CONDICION</th></tr>`;
+    if (!ff.length) {
+      h += `<tr><td colspan="3" style="text-align:center;font-style:italic;color:var(--text-lt)">Sin novedades.</td></tr>`;
+    }
+    ff.forEach(function(f) {
+      const cond = (f.datos[2] || "").toUpperCase().trim();
+      let bg = "";
+      if (cond === "BRAVO") bg = "background:#dcfce7;";
+      else if (cond === "CHARLIE") bg = "background:#fef9c3;";
+      else if (cond === "ZULU") bg = "background:#fecaca;";
+      h += `<tr style="${bg}"><td>${esc(f.datos[0]||"")}</td><td>${esc(f.datos[1]||"")}</td><td style="font-weight:700">${esc(f.datos[2]||"")}</td></tr>`;
+    });
+    h += `</table></div>`;
+    return h;
+  }
+
+  if (sec.tipo === "sers_convenio") {
+    const rawRows = sec.rawRows || [];
+    const totalReflotar = sec.totalReflotar || 0;
+    const pendientes = sec.pendientes || [];
+    let h = `<div style="margin-bottom:16px">`;
+    h += `<div style="background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2);margin-bottom:16px">`;
+    h += `<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🤝 Convenio ANPYN — PNA</div>`;
+    h += `<div style="font-size:14px;color:#fff;font-weight:700;margin-bottom:8px">Total buques a reflotar: <span style="color:#14b8a6;font-size:20px">${totalReflotar}</span></div>`;
+    h += `</div>`;
+    if (rawRows.length) {
+      h += `<div class="tbl-wrap"><table class="pna-table">`;
+      rawRows.forEach(function(r) {
+        const hasData = r.some(function(v) { return v && v.trim(); });
+        if (!hasData) return;
+        const txt = r.join(" ").toUpperCase();
+        const isTitle = txt.includes("SITUACION DE BUQUES") || txt.includes("TOTAL DE BUQUES") || txt.includes("PENDIENTE");
+        h += `<tr>`;
+        r.forEach(function(c) {
+          if (c && c.trim()) {
+            h += isTitle
+              ? `<td colspan="1" style="font-weight:700;background:var(--navy);color:#fff;text-align:left">${esc(c)}</td>`
+              : `<td style="text-align:left">${esc(c)}</td>`;
+          }
+        });
+        h += `</tr>`;
+      });
+      h += `</table></div>`;
+    }
+    if (pendientes.length) {
+      h += `<div style="margin-top:16px"><div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚠️ Buques Pendientes de Extracción</div>`;
+      h += `<div class="tbl-wrap"><table class="pna-table"><tr><th>BUQUE</th><th>SECTOR</th></tr>`;
+      pendientes.forEach(function(p) {
+        h += `<tr><td style="font-weight:600">${esc(p.buque)}</td><td>${esc(p.sector)}</td></tr>`;
+      });
+      h += `</table></div></div>`;
+    }
+    h += `</div>`;
+    const cId = "conv-chart-" + uid();
+    h += `<div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm);margin-top:16px"><div style="padding:8px 14px;background:var(--navy);display:flex;align-items:center;justify-content:space-between"><span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px">📊 Dashboard Convenio</span></div><div style="padding:14px"><canvas id="${cId}" height="200"></canvas></div></div>`;
+    setTimeout(function() {
+      const el = document.getElementById(cId);
+      if (!el) return;
+      const pendCount = pendientes.length;
+      const reflotados = Math.max(0, totalReflotar - pendCount);
+      new Chart(el, {
+        type: "doughnut",
+        data: {
+          labels: ["Reflotados/Extraidos", "Pendientes"],
+          datasets: [{ data: [reflotados, pendCount], backgroundColor: ["#14b8a6", "#ef4444"], borderWidth: 0, cutout: "60%" }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { font: { size: 12, family: "'DM Sans',sans-serif" }, padding: 12 } },
+            tooltip: { callbacks: { label: function(ctx) { return ctx.label + ": " + ctx.raw + " buques"; } } }
+          }
+        }
+      });
+    }, 150);
+    return h;
   }
 
   if (sec.id === "ALERTA") {
@@ -8112,6 +8389,20 @@ function enviarConsultaIA(mensaje, loading) {
     recognition.start();
   });
 })();
+
+function sersFiltrarCondicion(el, condicion) {
+  var tbody = document.getElementById('sers-nov-tbody');
+  if (!tbody) return;
+  var kpis = el.parentElement.querySelectorAll('.sers-kpi');
+  kpis.forEach(function(k) { k.style.background = 'rgba(255,255,255,0.1)'; k.style.boxShadow = 'none'; });
+  el.style.background = condicion ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)';
+  el.style.boxShadow = condicion ? '0 0 12px rgba(255,255,255,0.2)' : 'none';
+  var rows = tbody.querySelectorAll('tr');
+  rows.forEach(function(row) {
+    if (!condicion) { row.style.display = ''; return; }
+    row.style.display = row.getAttribute('data-condicion') === condicion ? '' : 'none';
+  });
+}
 </script>
 <!-- ===================== FIN CHAT IA ===================== -->
 </body>
