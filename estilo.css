@@ -391,7 +391,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .pna-table tr:last-child td{border-bottom:none}
 .pna-table tr:hover td{background:var(--sky)}
 .pna-table tr.total-row td{font-weight:700;background:var(--red-lt);color:var(--red)}
-.pna-table th, .pna-table td, .avi-table th, .avi-table td { white-space: nowrap; }
+.pna-table th, .pna-table td, .avi-table th, .avi-table td { white-space: normal; word-wrap: break-word; }
 .pna-table td:nth-child(2),
 .pna-table td:nth-child(6),
 .pna-table td:nth-child(7),
@@ -530,6 +530,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 #modalExport .btn-cancelar,#modalCaso .btn-cancelar{background:#f0f0f0;color:#555;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 #modalDemorados{display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #modalDemorados.activo{display:flex}
+#modalSeav{display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modalSeav.activo{display:flex}
 .dem-btn{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#fff;transition:all .15s}
 .dem-btn-todos{border:1px solid #0077b6;background:#0077b6}
 .dem-btn-ent{border:1px solid #40916c;background:#40916c}
@@ -569,8 +571,8 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 
 /* ── AVIACIóN TABLE ───────────────────────────────────────────── */
 .avi-table{width:100%;border-collapse:collapse;font-size:12.5px}
-.avi-table th{background:var(--navy);color:rgba(255,255,255,0.85);padding:7px 10px;text-align:center;font-size:11px;font-weight:700;font-family:'Outfit',sans-serif;text-transform:uppercase;letter-spacing:.5px;border:none}
-.avi-table td{border-bottom:1px solid var(--gray-100);padding:6px 8px;color:var(--text)}
+.avi-table th{padding:7px 10px;text-align:center;font-size:11px;font-weight:700;font-family:'Outfit',sans-serif;text-transform:uppercase;letter-spacing:.5px;border:none}
+.avi-table td{border-bottom:1px solid var(--gray-100);padding:5px 6px;color:var(--text);word-wrap:break-word;overflow-wrap:break-word}
 .avi-table tr:hover td{background:var(--sky)}
 .avi-sub{background:var(--sky);color:var(--blue);font-weight:700;text-align:center;padding:6px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;font-family:'Outfit',sans-serif}
 
@@ -1260,3 +1262,9 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .dias-ok{color:var(--green);font-weight:700;font-size:12px;}
 .dias-vencido{color:#dc2626;font-weight:800;font-size:12px;}
 .dias-label{color:var(--text-lt);font-size:11px;font-weight:600;}
+.seav-map-marker{background:transparent !important;border:none !important;}
+.tbl-wrap{scrollbar-width:thin;scrollbar-color:#94a3b8 #e2e8f0}
+.tbl-wrap::-webkit-scrollbar{height:8px}
+.tbl-wrap::-webkit-scrollbar-track{background:#e2e8f0;border-radius:4px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px}
+.tbl-wrap::-webkit-scrollbar-thumb:hover{background:#64748b}
