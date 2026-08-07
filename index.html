@@ -482,6 +482,17 @@
   </div>
 </div>
 
+<!-- ── MODAL GC GUARDACOSTAS ───────────────────────────────────── -->
+<div id="modalGC">
+  <div class="modal-box" style="max-width:95vw;width:900px;max-height:90vh;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0" id="gc-modal-title">🚢 Guardacostas</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalGC()">&times;</button>
+    </div>
+    <div id="gc-modal-content" style="max-height:calc(90vh - 80px);display:flex;flex-direction:column;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <!-- ── IMG ZOOM ───────────────────────────────────────────────────── -->
 <div id="imgZoomModal" onclick="cerrarZoom()">
   <span class="cerrar-zoom">✕</span>
@@ -743,7 +754,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyrotETAVoy8gIoerD0O3O3jGZK_Z9Z4rJ-GJbSRiSjYx1Ty8FdRJFeqOW78kAupFfQ1Q/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbym0n-LGC5Q3JXSu42AMkN-WZRryabrc23R29oSZ4WRiXk7Q8KAeW8b-MJP86ATgW2-EA/exec          ";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -3165,7 +3176,7 @@ function renderSeccion(sec) {
     let hAviacion = '';
     hAviacion += `<div style="margin-bottom:12px"><button class="tb-btn primary" onclick="abrirAviacion()">📂 Abrir archivo de Aviación del día</button></div>`;
     if (sec.medios && sec.medios.length > 0) {
-      hAviacion += `<div class="bloque-sub" style="color:var(--amber)">📡 MEDIOS SAR</div>`;
+      hAviacion += `<div class="bloque-sub" style="color:var(--amber)">MEDIOS SAR</div>`;
       sec.medios.forEach(function(m){ hAviacion += `<div class="item-card amber" style="font-size:13px;padding:6px 12px">${esc(m)}</div>`; });
       hAviacion += `<div class="sep"></div>`;
     }
@@ -3202,7 +3213,7 @@ function renderSeccion(sec) {
       const m = mediosFila.medios;
       window._seavMediosData = m;
       h += `<div style="flex:1;min-width:320px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">`;
-      h += `<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📡 Situación Medios Aéreos</div>`;
+      h += `<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Situación Medios Aéreos</div>`;
       h += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`;
       h += `<div class="sers-kpi" onclick="seavAbrirModal('')" style="flex:1;min-width:70px;text-align:center;padding:8px;cursor:pointer;border-radius:8px;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#fff">${m.totalMedios}</div><div style="font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase">✈️ Total</div></div>`;
       h += `<div class="sers-kpi" onclick="seavAbrirModal('BRAVO')" style="flex:1;min-width:70px;text-align:center;padding:6px;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#10b981">${m.bravo}</div><div style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase">🟢 BRAVO</div></div>`;
@@ -3373,11 +3384,17 @@ function renderSeccion(sec) {
   }
 
   if (sec.id==="GC") {
+    let h=`<div style="display:flex;flex-direction:row;flex-wrap:wrap;gap:16px">`;
+
+    // ── Bloque 1: Novedades GC (EXISTENTE) ──
     const hoy=new Date();hoy.setHours(0,0,0,0);
     const ff=filas.filter(f=>f&&f.tipo==="fila");
     const act=ff.filter(f=>{const d=parseDate(f.datos[1]);return !d||d<=hoy;});
     const prev=ff.filter(f=>{const d=parseDate(f.datos[1]);return d&&d>hoy;});
-    let h=`<div class="bloque-sub">🚢 En navegación <span class="badge green">${act.length}</span></div>`;
+
+    h+=`<div style="flex:1 1 calc(33.33% - 11px);min-width:300px;background:var(--card-bg,#fff);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:16px;box-shadow:var(--shadow-sm)">`;
+    h+=`<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🚢 Servicio de Buques Guardacostas</div>`;
+    h+=`<div class="bloque-sub">🚢 En navegación <span class="badge green">${act.length}</span></div>`;
     act.forEach(f=>{
       const d=calcularDias(f.datos[1],f.datos[2]);
       h+=`<div class="item-card green">
@@ -3394,6 +3411,110 @@ function renderSeccion(sec) {
     prev.forEach(f=>{h+=`<div class="item-card"><div class="buque-name" style="color:var(--navy)">${esc(f.datos[0])}</div><div style="font-size:13px">Zarpe: <b>${esc(f.datos[1])}</b> | ETA: <b>${esc(f.datos[2])}</b></div><div style="font-size:13px;color:var(--text-lt);margin-top:3px">${esc(f.datos[3]||"")}</div></div>`;});
     if(!prev.length) h+=`<div class="empty">Sin navegaciones previstas.</div>`;
     h+=mapaGisHtml();
+    h+=`</div>`;
+
+    // ── Bloque 2: Mapa interactivo GC ──
+    const sbgcSec = datosGlobales ? datosGlobales.secciones.find(s => s.id === "SBGC") : null;
+    const sbgcFilas = sbgcSec ? (sbgcSec.filas || []).filter(f => f && f.tipo === "fila" && f.latitud && f.longitud) : [];
+    const gcMapId = "gc-map-" + uid();
+
+    h+=`<div style="flex:1 1 calc(33.33% - 11px);min-width:300px;background:var(--card-bg,#fff);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:16px;box-shadow:var(--shadow-sm)">`;
+    h+=`<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">`;
+    h+=`<span>🗺️ Ubicación de Guardacostas</span>`;
+    h+=`<button onclick="gcResetMap()" style="background:var(--navy);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px">🔄 Ver todo</button>`;
+    h+=`</div>`;
+    h+=`<div id="${gcMapId}" style="height:400px;border-radius:var(--radius);z-index:0"></div>`;
+    setTimeout(function() {
+      const el = document.getElementById(gcMapId);
+      if (!el || typeof L === 'undefined') return;
+      const map = L.map(el, { zoomControl: true, attributionControl: false }).setView([-38, -58], 5);
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 18 }).addTo(map);
+      L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(map);
+      L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(map);
+      window._gcMap = map;
+      (function(){
+        const malvinasIcon = L.divIcon({ html: '<div style="font-size:9px;font-weight:800;color:#0f2744;background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;white-space:nowrap">ISLAS MALVINAS</div>', iconSize: [0,0], iconAnchor: [0,0], className: '' });
+        L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(map);
+      })();
+      const bounds = [];
+      sbgcFilas.forEach(f => {
+        const lat = f.latitud, lng = f.longitud;
+        const unidad = f.datos[0] || '';
+        const fh = f.datos[1] || '';
+        const condicion = f.condicion || '';
+        const novedad = f.datos[6] || '';
+        let markerColor = '#6b7280';
+        if (condicion === 'OK' || condicion === 'ACTIVO' || condicion === 'NORMAL') markerColor = '#10b981';
+        else if (condicion === 'PRECAUCION' || condicion === 'ALERTA') markerColor = '#f59e0b';
+        else if (condicion === 'CRITICO' || condicion === 'FALLA' || condicion === 'FUERA DE SERVICIO') markerColor = '#F52D14';
+        else if (condicion) markerColor = '#3b82f6';
+        const icon = L.divIcon({
+          className: 'gc-map-marker',
+          html: `<div style="background:${markerColor};color:#fff;border-radius:20px;padding:4px 10px;display:flex;align-items:center;gap:4px;font-weight:800;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid #fff;white-space:nowrap"><span style="font-size:13px">🚢</span>${esc(unidad)}</div>`,
+          iconSize: [60, 28],
+          iconAnchor: [30, 14]
+        });
+        const popupContent = `<div style="font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.5;min-width:150px">
+          <div style="font-weight:800;color:#0f2744;margin-bottom:4px">🚢 ${esc(unidad)}</div>
+          <div style="color:#666">📅 ${esc(fh)}</div>
+          <div style="color:${markerColor};font-weight:600">Estado: ${esc(condicion || 'S/D')}</div>
+          ${novedad ? `<div style="color:#666;margin-top:4px">📝 ${esc(novedad)}</div>` : ''}
+        </div>`;
+        L.marker([lat, lng], { icon: icon }).addTo(map).bindPopup(popupContent);
+        bounds.push([lat, lng]);
+      });
+      if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30] });
+      else if (bounds.length === 1) map.setView(bounds[0], 8);
+      setTimeout(function() { map.invalidateSize(); }, 200);
+    }, 200);
+    h+=`</div>`;
+
+    // ── Bloque 3: KPI Cards SBGC ──
+    const sbgcAll = sbgcSec ? (sbgcSec.filas || []).filter(f => f && f.tipo === "fila") : [];
+    const condCount = {};
+    sbgcAll.forEach(f => {
+      const c = f.condicion || 'S/D';
+      condCount[c] = (condCount[c] || 0) + 1;
+    });
+    const totalSBGC = sbgcAll.length;
+    window._sbgcData = sbgcAll;
+
+    h+=`<div style="flex:1 1 calc(33.33% - 11px);min-width:300px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">`;
+    h+=`<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📡 Estado de Guardacostas (SBGC)</div>`;
+    h+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`;
+    h+=`<div class="sers-kpi" onclick="gcAbrirModal('')" style="flex:1;min-width:70px;text-align:center;padding:8px;cursor:pointer;border-radius:8px;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#fff">${totalSBGC}</div><div style="font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase">🚢 Total</div></div>`;
+    const condColors = { 'OK':'#10b981','ACTIVO':'#10b981','NORMAL':'#10b981','PRECAUCION':'#f59e0b','ALERTA':'#f59e0b','CRITICO':'#F52D14','FALLA':'#F52D14','FUERA DE SERVICIO':'#F52D14' };
+    Object.keys(condCount).sort().forEach(c => {
+      const color = condColors[c] || '#3b82f6';
+      h+=`<div class="sers-kpi" onclick="gcAbrirModal('${esc(c)}')" style="flex:1;min-width:70px;text-align:center;padding:6px;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all .15s"><div style="font-size:24px;font-weight:800;color:${color}">${condCount[c]}</div><div style="font-size:9px;color:rgba(255,255,255,0.7);text-transform:uppercase">${esc(c)}</div></div>`;
+    });
+    h+=`</div>`;
+    if (totalSBGC > 0) {
+      h+=`<div style="background:rgba(255,255,255,0.08);border-radius:var(--radius);padding:14px;margin-top:8px">`;
+      h+=`<div style="font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📊 Resumen Condiciones</div>`;
+      h+=`<div style="display:flex;flex-direction:column;gap:10px">`;
+      Object.keys(condCount).sort().forEach(c => {
+        const color = condColors[c] || '#3b82f6';
+        const pct = ((condCount[c] / totalSBGC) * 100).toFixed(0);
+        h+=`<div style="display:flex;align-items:center;gap:10px">`;
+        h+=`<div style="width:80px;font-size:11px;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:${color};display:inline-block"></span>${esc(c)}</div>`;
+        h+=`<div style="flex:1;height:20px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden">`;
+        h+=`<div style="height:100%;width:${pct}%;background:${color};border-radius:4px"></div>`;
+        h+=`</div>`;
+        h+=`<div style="width:55px;text-align:right;font-size:11px;color:#fff;font-weight:700">${pct}%</div>`;
+        h+=`</div>`;
+      });
+      h+=`</div>`;
+      h+=`<div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);text-align:center">`;
+      h+=`<div style="font-size:10px;color:rgba(255,255,255,0.5)">Total: ${totalSBGC} unidades</div>`;
+      h+=`</div>`;
+      h+=`</div>`;
+    } else {
+      h+=`<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-style:italic">Sin datos SBGC</div>`;
+    }
+    h+=`</div>`;
+
+    h+=`</div>`;
     return h;
   }
 
@@ -7660,6 +7781,65 @@ function seavAbrirModal(condicion) {
 
 function cerrarModalSeav(){document.getElementById("modalSeav").classList.remove("activo");}
 function seavResetMap(){if(window._seavMap){window._seavMap.setView([-40.0, -65.0], 4);}}
+
+function gcAbrirModal(condicion) {
+  var modal = document.getElementById('modalGC');
+  if (!modal) return;
+  var data = window._sbgcData;
+  if (!data || data.length === 0) {
+    document.getElementById('gc-modal-content').innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8">Sin datos SBGC.</div>';
+    document.getElementById('gc-modal-title').textContent = condicion ? '🚢 Guardacostas — ' + condicion : '🚢 Guardacostas';
+    modal.classList.add('activo');
+    return;
+  }
+  var titulo = condicion ? '🚢 Guardacostas — ' + condicion : '🚢 Todos los Guardacostas';
+  document.getElementById('gc-modal-title').textContent = titulo;
+  var content = document.getElementById('gc-modal-content');
+  var html = '';
+  var count = 0;
+  for (var k = 0; k < data.length; k++) {
+    var f = data[k];
+    if (!f || !f.datos) continue;
+    var c = (f.condicion || '').trim().toUpperCase();
+    if (condicion && c !== condicion.toUpperCase()) continue;
+    count++;
+  }
+  html += '<div style="margin-bottom:12px"><div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:10px;padding:10px 20px;color:#fff;text-align:center;display:inline-block"><div style="font-size:20px;font-weight:800">' + count + '</div><div style="font-size:10px;font-weight:600;opacity:.9">Total Unidades</div></div></div>';
+  html += '<div style="overflow-x:auto"><table class="pna-table" style="font-size:12px;width:100%"><thead><tr>';
+  html += '<th style="padding:8px;text-align:left;background:var(--navy);color:#fff">🚢 UNIDAD</th>';
+  html += '<th style="padding:8px;text-align:center;background:var(--navy);color:#fff">FH</th>';
+  html += '<th style="padding:8px;text-align:center;background:var(--navy);color:#fff">LATITUD</th>';
+  html += '<th style="padding:8px;text-align:center;background:var(--navy);color:#fff">LONGITUD</th>';
+  html += '<th style="padding:8px;text-align:center;background:var(--blue);color:#fff">RV/VD</th>';
+  html += '<th style="padding:8px;text-align:center;background:var(--blue);color:#fff">CONDICIÓN</th>';
+  html += '<th style="padding:8px;text-align:left;background:var(--blue);color:#fff">NOVEDAD</th>';
+  html += '</tr></thead><tbody>';
+  for (var k = 0; k < data.length; k++) {
+    var f = data[k];
+    if (!f || !f.datos) continue;
+    var c = (f.condicion || '').trim().toUpperCase();
+    if (condicion && c !== condicion.toUpperCase()) continue;
+    var condColor = c === 'OK' || c === 'ACTIVO' || c === 'NORMAL' ? '#10b981'
+      : c === 'PRECAUCION' || c === 'ALERTA' ? '#f59e0b'
+      : c === 'CRITICO' || c === 'FALLA' || c === 'FUERA DE SERVICIO' ? '#F52D14'
+      : '#3b82f6';
+    html += '<tr>';
+    html += '<td style="padding:6px 8px;font-weight:700">' + esc(f.datos[0] || '') + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + esc(f.datos[1] || '') + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + esc(f.datos[2] || '') + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + esc(f.datos[3] || '') + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + esc(f.datos[4] || '') + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center"><span style="background:' + condColor + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">' + esc(c || 'S/D') + '</span></td>';
+    html += '<td style="padding:6px 8px">' + esc(f.datos[6] || '') + '</td>';
+    html += '</tr>';
+  }
+  if (count === 0) html += '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8">Sin unidades en esta condición</td></tr>';
+  html += '</tbody></table></div>';
+  content.innerHTML = html;
+  modal.classList.add('activo');
+}
+function cerrarModalGC(){document.getElementById("modalGC").classList.remove("activo");}
+function gcResetMap(){if(window._gcMap){window._gcMap.setView([-38, -58], 5);}}
 
 // Cierre al hacer clic afuera DESHABILITADO — solo se cierra con el botón X o "Cancelar"
 async function guardarCaso(e){
