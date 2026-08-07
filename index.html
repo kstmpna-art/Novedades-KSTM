@@ -3197,10 +3197,10 @@ function renderSeccion(sec) {
 
     // ── Bloque 2: KPI cards Medios ──
     const mediosFila = filas.find(f => f && f.tipo === "seav_medios");
+    h += `<div style="display:flex;gap:16px;flex-wrap:wrap">`;
     if (mediosFila && mediosFila.medios) {
       const m = mediosFila.medios;
       window._seavMediosData = m;
-      h += `<div style="display:flex;gap:16px;flex-wrap:wrap">`;
       h += `<div style="flex:1;min-width:320px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">`;
       h += `<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📡 Situación Medios Aéreos</div>`;
       h += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`;
