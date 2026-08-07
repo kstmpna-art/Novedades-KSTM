@@ -1263,6 +1263,13 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .dias-vencido{color:#dc2626;font-weight:800;font-size:12px;}
 .dias-label{color:var(--text-lt);font-size:11px;font-weight:600;}
 .seav-map-marker{background:transparent !important;border:none !important;}
+.gc-map-marker{background:transparent !important;border:none !important;}
+.leaflet-popup-content{max-height:300px;overflow-y:auto;margin:8px 12px;}
+.leaflet-popup-content::-webkit-scrollbar{width:6px;}
+.leaflet-popup-content::-webkit-scrollbar-track{background:#e2e8f0;border-radius:4px;}
+.leaflet-popup-content::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px;}
+#modalGC{display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modalGC.activo{display:flex}
 .tbl-wrap{scrollbar-width:thin;scrollbar-color:#94a3b8 #e2e8f0}
 .tbl-wrap::-webkit-scrollbar{height:8px}
 .tbl-wrap::-webkit-scrollbar-track{background:#e2e8f0;border-radius:4px}
