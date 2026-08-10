@@ -4924,8 +4924,8 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
           <tr>
             <th style="background:#1d3d5a;color:#fff;text-align:left;">Dependencia</th>
             <th style="background:#1d3d5a;color:#fff;text-align:left;">Buque</th>
-            <th style="background:#1d3d5a;color:#fff;text-align:center;">Arribo</th>
-            <th style="background:#1d3d5a;color:#fff;text-align:center;">Zarpada</th>
+            <th style="background:#1d3d5a;color:#fff;text-align:center;">ETA Arribo</th>
+            <th style="background:#1d3d5a;color:#fff;text-align:center;">ETD Zarpada</th>
             <th style="background:#1d3d5a;color:#fff;text-align:center;">Descargó</th>
             <th style="background:#1d3d5a;color:#fff;text-align:center;">Carga</th>
           </tr>`;
@@ -7194,7 +7194,7 @@ function _buildParteCuerpo(){
     }
     if(metPrevRows.length){
       cuerpo+=_subTitulo("Previsiones");
-      cuerpo+=_renderTabla(metPrevRows,["Dependencia","Buque","Arribo","Zarpada","Descarg\u00f3","Carga"]);
+      cuerpo+=_renderTabla(metPrevRows,["Dependencia","Buque","ETA Arribo","ETD Zarpada","Descarg\u00f3","Carga"]);
     }
     if(!metTermRows.length&&!metPrevRows.length){
       cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin datos de metaneros.</div>';
