@@ -2264,9 +2264,9 @@ function mostrarHome() {
           <span>Abrir Sistema GC</span>
           <span style="font-size:9px;opacity:.6;">↗</span>
         </a>
-        <button onclick="abrirModalDemorados()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
+        ${cnt("DEMORADOS","demorado") > 0 ? `<button onclick="abrirModalDemorados()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
           🚢 Demorados
-        </button>
+        </button>` : ''}
       </div>
       <div class="home-header-kpi">
         ${todos.map(t => `
@@ -7404,9 +7404,11 @@ function _buildResumenCards(){
 }
 
 function _buildParteHTML(cuerpo,fechaStr,fechaPalabras){
-  var estilo='@page{size:210mm 297mm;margin:15mm 15mm}';
-  estilo+='body{font-family:Arial,sans-serif;font-size:13pt;color:#1a1a1a;line-height:1.15;text-align:justify;margin:0;padding:6px 8px;width:100%;max-width:100%}';
-  estilo+='table{page-break-inside:avoid;width:100%}';
+  var estilo='@page{size:210mm 297mm;margin:15mm 15mm 15mm 15mm}';
+  estilo+='*,*::before,*::after{box-sizing:border-box}';
+  estilo+='body{font-family:Arial,sans-serif;font-size:13pt;color:#1a1a1a;line-height:1.15;text-align:justify;margin:0;padding:10px 10px;width:100%;max-width:100%;overflow-x:hidden}';
+  estilo+='table{page-break-inside:avoid;width:100%;table-layout:fixed}';
+  estilo+='td,th{word-wrap:break-word;overflow-wrap:break-word}';
   estilo+='h1,h2,h3{font-family:Arial,sans-serif}';
   var header='<div style="text-align:center;border-bottom:2.5px solid #003366;padding-bottom:6px;margin-bottom:10px">';
   header+='<div style="font-size:13pt;font-weight:800;color:#003366;letter-spacing:.8px;text-transform:uppercase">PREFECTURA NAVAL ARGENTINA</div>';
