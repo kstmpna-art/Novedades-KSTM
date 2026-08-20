@@ -7334,19 +7334,19 @@ function _buildResumenCards(){
   masPend.forEach(function(f){sMAS.push("<b>"+_esc(f.buque)+"</b>: "+_esc(f.novedad||""));});
   // GC activos
   var gcFilas=_filas("GC","fila");var gcAct=gcFilas.filter(function(f){var d=parseDate(f.datos[1]);return !d||d<=hoy;});
-  if(gcAct.length>0){_addCard("BUQ. GC",gcAct.length,"#edf7f2");gcAct.forEach(function(f){sGC.push("<b>"+_esc(f.datos[0])+"</b>: "+_esc(f.datos[3]||"SIN NOVEDADES"));});}
+  _addCard("BUQ. GC",gcAct.length,"#edf7f2");gcAct.forEach(function(f){sGC.push("<b>"+_esc(f.datos[0])+"</b>: "+_esc(f.datos[3]||"SIN NOVEDADES"));});
   // AVIACION
-  var avSec=_sec("AVIACION");if(avSec){var _avReal=0,_avPrev=0,_avMode="realizados";(avSec.filas||[]).forEach(function(f){if(!f)return;if(f.tipo==="subtitulo"){var t=(f.texto||"").toUpperCase();if(t.includes("PREVIST")||t.includes("PREVISION")||t.includes("PROGRAMAD")){_avMode="previstos";return;}_avMode="realizados";return;}if(f.tipo==="partes"){var c=f.partes||[];if(c[0]&&(c[0].texto||"").toUpperCase()==="AERONAVE")return;if(_avMode==="previstos")_avPrev++;else _avReal++;}});if(_avReal>0||_avPrev>0)_addCard("Vuelos Real.\/Prev.",_avReal+"/"+_avPrev,"#e8f4fd");}
+  var avSec=_sec("AVIACION");var _avReal=0,_avPrev=0,_avMode="realizados";if(avSec){(avSec.filas||[]).forEach(function(f){if(!f)return;if(f.tipo==="subtitulo"){var t=(f.texto||"").toUpperCase();if(t.includes("PREVIST")||t.includes("PREVISION")||t.includes("PROGRAMAD")){_avMode="previstos";return;}_avMode="realizados";return;}if(f.tipo==="partes"){var c=f.partes||[];if(c[0]&&(c[0].texto||"").toUpperCase()==="AERONAVE")return;if(_avMode==="previstos")_avPrev++;else _avReal++;}});}_addCard("Vuelos Real.\/Prev.",_avReal+"/"+_avPrev,"#e8f4fd");
   // Puertos cerrados
   var puertos=_filas("PUERTOS","puerto");_addCard("PUERTOS CERRADOS",puertos.length,"#edf1f7");puertos.forEach(function(f){var hr=_esc(f.datos[2]||""),mot=_esc(f.datos[3]||"");sPuertos.push("<b>"+_esc(f.datos[0])+"</b>"+(hr?" - "+hr:"")+(mot?" | "+mot:""));});
   // Dragas
-  var dragSec=_sec("DRAGAS");var dragCount=dragSec?(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).length:0;if(dragCount>0){_addCard("DRAGAS",dragCount,"#e8f4fd");(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).forEach(function(f){var raw=(f.datos||[]).filter(function(v){return v&&String(v).trim();});sDragas.push("<b>"+_esc(raw[0]||"")+"</b>: "+raw.slice(1).map(function(v){return _esc(v);}).join(" | "));});}
+  var dragSec=_sec("DRAGAS");var dragCount=dragSec?(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).length:0;_addCard("DRAGAS",dragCount,"#e8f4fd");if(dragCount>0){(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).forEach(function(f){var raw=(f.datos||[]).filter(function(v){return v&&String(v).trim();});sDragas.push("<b>"+_esc(raw[0]||"")+"</b>: "+raw.slice(1).map(function(v){return _esc(v);}).join(" | "));});}
   // Alertas
-  var alertas=_filas("ALERTA","fila");if(alertas.length>0){_addCard("ALERTAS MET.",alertas.length,"#fdf6ea");alertas.forEach(function(f){var d=f.datos||[];sAlertas.push("<b>N°"+_esc(d[0])+"</b> - "+_esc(d[1])+": "+_esc(d[2]));});}
+  var alertas=_filas("ALERTA","fila");_addCard("ALERTAS MET.",alertas.length,"#fdf6ea");alertas.forEach(function(f){var d=f.datos||[];sAlertas.push("<b>N°"+_esc(d[0])+"</b> - "+_esc(d[1])+": "+_esc(d[2]));});
   // Metaneros
   var metSec=_sec("METANEROS");var metTermRows=[],metPrevRows=[],metMode="terminales";
   if(metSec){(metSec.filas||[]).forEach(function(f){if(!f)return;if(f.tipo==="subtitulo"){var t=(f.texto||"").toUpperCase();if(t.includes("TERMINA")||t.includes("PREVISION")){metMode=t.includes("TERMINA")?"terminales":"previsiones";return;}}if(f.tipo==="fila"){if(metMode==="terminales")metTermRows.push(f.datos);else metPrevRows.push(f.datos);}});if(!metTermRows.length&&!metPrevRows.length){(metSec.filas||[]).forEach(function(f){if(f&&f.tipo==="fila"){if((f.datos||[]).length>=8)metTermRows.push(f.datos);else metPrevRows.push(f.datos);}});}}
-  if(metPrevRows.length>0){_addCard("METANEROS PREV.",metPrevRows.length,"#edf7f2");metPrevRows.forEach(function(r){r=r||[];var buque=_esc(r[1]||""),arr=_esc(r[2]||""),zarp=_esc(r[3]||""),desc=_esc(r[4]||""),carga=_esc(r[5]||"");var info=[arr?"Arr: "+arr:"",zarp?"Zarp: "+zarp:"",desc?"Desc: "+desc:"",carga?"Carga: "+carga:""].filter(function(v){return v;}).join(" | ");sMetaneros.push("<b>"+buque+"</b>: "+info);});}
+  _addCard("METANEROS PREV.",metPrevRows.length,"#edf7f2");metPrevRows.forEach(function(r){r=r||[];var buque=_esc(r[1]||""),arr=_esc(r[2]||""),zarp=_esc(r[3]||""),desc=_esc(r[4]||""),carga=_esc(r[5]||"");var info=[arr?"Arr: "+arr:"",zarp?"Zarp: "+zarp:"",desc?"Desc: "+desc:"",carga?"Carga: "+carga:""].filter(function(v){return v;}).join(" | ");sMetaneros.push("<b>"+buque+"</b>: "+info);});
   // Determinantes - calado minimo con ubicacion
   function _parseNum(v){return parseFloat(String(v).replace(",","."));}
   var detFilas=_filas("DETERMINANTES","fila");var detConCalado=detFilas.filter(function(f){return !isNaN(_parseNum(f.datos[8]));});
@@ -7355,6 +7355,8 @@ function _buildResumenCards(){
     var km=_esc(minCal.datos[3]||""),nom=_esc(minCal.datos[2]||""),cal=_parseNum(minCal.datos[8]).toFixed(2);
     _addCard("DETERMINANTE (Mts)",cal,"#fdf6ea",(km?"Km "+km+" ":"")+nom);
     sCalado.push(cal+"m - "+nom+(km?" (KM "+km+")":""));
+  } else {
+    _addCard("DETERMINANTE (Mts)","0","#fdf6ea","");
   }
   // Build card table (Word-compatible)
   var cardsHtml='';
