@@ -2225,7 +2225,7 @@ function mostrarHome() {
   const ejerc = cntEjercUnicos(), kstm = cnt("KSTM"), visitas = cnt("VISITAS","fila"), reserva = cnt("RESERVA");
   const novedades = cnt("NOVEDADES");
   const metPrev = (datosGlobales.secciones.find(s=>s.id==="METANEROS")?.filas||[]).filter(f=>f&&f.tipo==="fila"&&f.datos&&f.datos.length<=6).length;
-  const pbip = cnt("PBIP");
+  const pbip = cnt("PBIP", "pbip");
   const pir95Sec = datosGlobales.secciones.find(s=>s.id==="PIR_95");
   const pir95 = pir95Sec ? (pir95Sec.filas||[]).filter(f=>f&&f.tipo==="pir95").reduce((sum,f)=>sum+(f.tabla1||[]).length,0) : 0;
   const veleros = (datosGlobales.secciones.find(s=>s.id==="VELEROS_OC")?.filas||[]).filter(f=>f&&!["subtitulo","separador","html","partes"].includes(f.tipo)&&f.datos&&f.datos.length>=3).length;
