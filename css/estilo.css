@@ -1465,6 +1465,34 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .puertos-pill:hover {
   background: #fecaca;
 }
+.puertos-pill.amber {
+  font-size: 10px;
+  font-weight: 600;
+  color: #b45309;
+  background: #fffbeb;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s;
+}
+.puertos-pill.amber:hover {
+  background: #fef3c7;
+}
+.puertos-pill.green {
+  font-size: 10px;
+  font-weight: 600;
+  color: #166534;
+  background: #f0fdf4;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s;
+}
+.puertos-pill.green:hover {
+  background: #dcfce7;
+}
 .puertos-reset-btn {
   font-size: 9px;
   font-weight: 700;
@@ -1539,6 +1567,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   border: 1px solid #bbb;
 }
 .puertos-legend-dot.green { background: #22c55e; }
+.puertos-legend-dot.amber { background: #f59e0b; }
 .puertos-legend-dot.red { background: #dc2626; }
 
 /* ── EJERCICIOS DE ARMAS SECTION ──────────────────── */
