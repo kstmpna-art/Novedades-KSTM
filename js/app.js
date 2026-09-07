@@ -3,7 +3,7 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycby9EKxy0PjdjzUx_nTV9PRDJ3SzNkAI0hnwZ-vSL28TcXr9fVyOtLd9ELAgA2iv1Wo2Rw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzdve7DXamst8d2EfDFs2_ySg_klIjY-4uRbU76yc_iLcZ3HSdDrreqN3oQqh_EIhYMMw/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -404,6 +404,7 @@ const puertosNombres = {
 function initPuertosMap(containerId, closedCodes, portFilas) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  if (window._puertosMap) { try { window._puertosMap.remove(); } catch(e) {} }
   el.innerHTML = "";
   const map = L.map(el, {zoomControl:false, attributionControl:false }).setView([-40,-63], 4);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 }).addTo(map);
@@ -415,18 +416,27 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
     });
     L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(map);
   })();
-  const closedSet = new Set();
+  // Mapa de código -> estado ("cerrado", "restringido", o "" = operativo)
+  const portStatusMap = {};
   closedCodes.forEach(function(item) {
     const raw = (item || "").trim();
     if (!raw) return;
-    closedSet.add(raw);
-    const lower = raw.toLowerCase();
-    Object.keys(puertosNombres).forEach(function(k) {
-      if (lower === k.toLowerCase() || lower === puertosNombres[k].toLowerCase()) {
-        closedSet.add(k);
-      }
-    });
+    portStatusMap[raw.toLowerCase()] = "cerrado";
   });
+  if (portFilas) {
+    portFilas.forEach(function(f) {
+      var d = f.datos || [];
+      var pName = (d[0] || "").trim();
+      var estado = (d[4] || "").trim().toLowerCase();
+      if (!pName) return;
+      Object.keys(puertosNombres).forEach(function(k) {
+        if (pName === k || pName.toLowerCase() === puertosNombres[k].toLowerCase() || pName.toLowerCase() === k.toLowerCase()) {
+          if (estado === "restringido") portStatusMap[k] = "restringido";
+          else if (estado === "cerrado") portStatusMap[k] = "cerrado";
+        }
+      });
+    });
+  }
   if (!window._puertosMarkers) window._puertosMarkers = {};
   window._puertosMap = map;
   var portLookup = {};
@@ -434,7 +444,6 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
     portFilas.forEach(function(f) {
       var d = f.datos || [];
       var pName = (d[0] || "").trim().toLowerCase();
-      // try to match by code key or by full name
       Object.keys(puertosNombres).forEach(function(k) {
         var match = pName === k.toLowerCase() || pName === puertosNombres[k].toLowerCase();
         if (match) portLookup[k] = { fecha: d[1] || "", hora: d[2] || "", motivo: d[3] || "" };
@@ -447,21 +456,23 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
     if (!coords) return;
     const name = puertosNombres[code] || code;
     bounds.push(coords);
-    const isClosed = closedSet.has(code);
-    const color = isClosed ? "#dc2626" : "#22c55e";
+    const status = portStatusMap[code] || "";
+    const color = status === "cerrado" ? "#dc2626" : status === "restringido" ? "#f59e0b" : "#22c55e";
     const html = `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>`;
     const icon = L.divIcon({html, iconSize:[12,12], iconAnchor:[6,6], className:""});
     var extra = "";
-    if (isClosed && portLookup[code]) {
+    if (status && portLookup[code]) {
       if (portLookup[code].fecha) extra += '<br><span style="font-size:11px;color:#4a6480">📅 ' + esc(portLookup[code].fecha) + '</span>';
       if (portLookup[code].hora) extra += '<br><span style="font-size:11px;color:#4a6480">🕐 ' + esc(portLookup[code].hora) + '</span>';
       if (portLookup[code].motivo) extra += '<br><span style="font-size:11px;color:#4a6480">📌 ' + esc(portLookup[code].motivo) + '</span>';
     }
     var label;
-    if (isClosed && code === "RECA") {
+    if (status === "cerrado" && code === "RECA") {
       label = `🚫 RECA<br><span style="color:#dc2626;font-weight:700">Practicaje</span>${extra}`;
-    } else if (isClosed) {
+    } else if (status === "cerrado") {
       label = `🚫 ${name}<br><span style="color:#dc2626;font-weight:700">Puerto cerrado</span>${extra}`;
+    } else if (status === "restringido") {
+      label = `⚠️ ${name}<br><span style="color:#f59e0b;font-weight:700">Puerto restringido</span>${extra}`;
     } else {
       label = `✅ ${name}<br><span style="color:#22c55e;font-weight:700">Puerto operativo</span>`;
     }
@@ -475,7 +486,7 @@ function initPuertosMap(containerId, closedCodes, portFilas) {
   legend.onAdd = function() {
     const div = L.DomUtil.create("div","");
     div.style.cssText = "background:#fff;padding:6px 10px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,0.15);font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;line-height:1.6;";
-    div.innerHTML = '<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1px solid #ccc;"></span> Operativo</div><div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;border:1px solid #ccc;"></span> Cerrado</div>';
+    div.innerHTML = '<div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;border:1px solid #ccc;"></span> Operativo</div><div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:1px solid #ccc;"></span> Restringido</div><div style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc2626;border:1px solid #ccc;"></span> Cerrado</div>';
     return div;
   };
   legend.addTo(map);
@@ -499,6 +510,7 @@ function resetPuertosMap() {
 function initDeterminantesMap(containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  if (window._detMap && window._detMap.map) { try { window._detMap.map.remove(); } catch(e) {} }
   el.innerHTML = "";
   const map = L.map(el, { zoomControl:false, attributionControl:false }).setView([-32,-60], 6);
   const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom:18 });
@@ -990,7 +1002,7 @@ function renderHomeCards(data, sarN, masN) {
     { val: mas.total,  lbl: "MAS",   sec: "MAS",  accent: mas.activos > 0 },
     { val: totalGC,    lbl: "GC",    sec: "GC"                            },
     { val: ara,        lbl: "ARA",   sec: "ARA"                           },
-    { val: puertos,    lbl: "Puertos Cerr.", sec: "PUERTOS",  accent: puertos > 0 },
+    { val: puertos,    lbl: "Puertos Cerr./Rest.", sec: "PUERTOS",  accent: puertos > 0 },
     { val: dragas,     lbl: "Dragas",          sec: "DRAGAS"              },
     { val: eventos,    lbl: "Regatas",         sec: "REGATAS"             },
     { val: ejerc,      lbl: "Ejercicios",      sec: "EJER.ARMAS"          },
@@ -1013,7 +1025,7 @@ function renderHomeCards(data, sarN, masN) {
             <span style="font-size:11px;font-weight:800;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">${puertos>0?'🚫':'✅'} Puertos</span>
             <span style="font-size:18px;font-family:'Outfit',sans-serif;font-weight:800;color:${puertos>0?'#dc2626':'#1a9560'};line-height:1;">${puertos}</span>
           </div>
-          <div style="font-size:9px;color:${puertos>0?'#dc2626':'var(--text-md)'};font-weight:600;">Cerrados</div>
+          <div style="font-size:9px;color:${puertos>0?'#dc2626':'var(--text-md)'};font-weight:600;">Cerr./Rest.</div>
         </div>
         ${puertosCerradosNombres.length?`<div style="padding:0 12px 4px;display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;">${puertosCerradosNombres.map(n=>'<span onclick="flyToPuerto(this.dataset.code)" data-code="'+esc(n)+'" style="font-size:9px;font-weight:600;color:#dc2626;background:#fef2f2;padding:1px 5px;border-radius:3px;white-space:nowrap;cursor:pointer;" title="Ir a '+esc(n)+' en el mapa">🚫 '+esc(n)+'</span>').join('')}</div>`:''}
         ${puertosCerradosNombres.length?`<div style="padding:0 12px 2px;flex-shrink:0;"><button onclick="resetPuertosMap()" style="font-size:9px;font-weight:700;color:#1d6fa4;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;cursor:pointer;">← Ver todos</button></div>`:''}
@@ -1489,7 +1501,7 @@ function mostrarHome() {
     { v:mas, l:"MAS Pendientes", sec:"MAS", c:mas?"#f59e0b":"#fff" },
     { v:gact,l:"GC navegando",sec:"GC",  c:"#fff" },
     { v:ara, l:"Buques ARA",  sec:"ARA", c:"#fff" },
-    { v:puertos,l:"Puertos Cerrados",sec:"PUERTOS", c:puertos?"#f87171":"#fff" },
+    { v:puertos,l:"Puertos Cerr./Rest.",sec:"PUERTOS", c:puertos?"#f87171":"#fff" },
     { v:dragas,l:"Dragas",   sec:"DRAGAS", c:"#fff" },
     { v:eventos,l:"Regatas", sec:"REGATAS", c:"#fff", extra: "Hoy "+regatasHoy+" · Mañ "+regatasManana+(regatasFuturo?" · +"+regatasFuturo:"") },
     { v:ejerc,l:"Ej. Armas",sec:"EJER.ARMAS", c:"#fff" },
@@ -1602,7 +1614,7 @@ function mostrarSeccion(id) {
     SALVAMENTO:"Salvamento / SERS", KSTM:"Pilotaje/Conserva",
     RESERVA:"Reserva de Canal", SAR:"Casos SAR", MAS:"Casos MAS",
     REGATAS:"Eventos Náuticos", "EJER.ARMAS":"Ejercicios de Armas",
-    PUERTOS:"Puertos Cerrados", ALERTA:"Alertas Meteorológicas",
+    PUERTOS:"Puertos Cerrados / Restringidos", ALERTA:"Alertas Meteorológicas",
     DRAGAS:"Dragas Operando", DETERMINANTES:"Determinantes",
     MOV_BAJO_PARANA:"Mov. — Bajo Paraná", MOV_DELTA:"Mov. — Delta",
     MOV_ZONA3:"Mov. — Río de la Plata", MOV_ZONA4:"Mov. — Mar Norte",
@@ -3940,15 +3952,22 @@ if (sec.tipo === "tipo_armas" || sec.id === "EJER.ARMAS") {
   return h;
 }
 
-// ── PUERTOS CERRADOS (tipo_puertos) ─────────────────
+// ── PUERTOS CERRADOS / RESTRINGIDOS (tipo_puertos) ──────────
 if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
   const items = filas.filter(f => f && f.tipo === "puerto");
   const otros = filas.filter(f => f && f.tipo !== "puerto");
+  const cerrados = items.filter(f => (f.datos[4] || "").toLowerCase() === "cerrado");
+  const restringidos = items.filter(f => (f.datos[4] || "").toLowerCase() === "restringido");
   let h = "";
 
-  // Nombres de puertos cerrados
+  // Pills de puertos
   if (items.length) {
-    h += `<div class="puertos-pills">${items.map(n => `<span onclick="flyToPuerto(this.dataset.code)" data-code="${esc(n.datos[0]||"")}" class="puertos-pill" title="Ir a ${esc(n.datos[0]||"")} en el mapa">🚫 ${esc(n.datos[0]||"")}</span>`).join('')}<button onclick="resetPuertosMap()" class="puertos-reset-btn">← Ver todos</button></div>`;
+    h += `<div class="puertos-pills">${items.map(n => {
+      const estado = (n.datos[4] || "").toLowerCase();
+      const icon = estado === "cerrado" ? "🚫" : estado === "restringido" ? "⚠️" : "✅";
+      const pillClass = estado === "cerrado" ? "puertos-pill" : estado === "restringido" ? "puertos-pill amber" : "puertos-pill green";
+      return `<span onclick="flyToPuerto(this.dataset.code)" data-code="${esc(n.datos[0]||"")}" class="${pillClass}" title="Ir a ${esc(n.datos[0]||"")} en el mapa">${icon} ${esc(n.datos[0]||"")}</span>`;
+    }).join('')}<button onclick="resetPuertosMap()" class="puertos-reset-btn">← Ver todos</button></div>`;
   }
 
   if (!items.length) {
@@ -3956,7 +3975,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
       <div style="font-size:24px;margin-bottom:8px">✅</div>
       <div style="font-weight:700;color:var(--green);
         font-family:'Outfit',sans-serif;font-size:15px">
-        Sin puertos cerrados
+        Sin puertos cerrados ni restringidos
       </div>
       <div style="font-size:12px;color:var(--text-lt);margin-top:4px">
         Todos los puertos operativos
@@ -3969,29 +3988,57 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
   h += `<div class="puertos-layout">
     <div class="puertos-col-lista">`;
 
-  h += `<div class="bloque-sub">
-    🚫 Puertos cerrados
-    <span class="badge red">${items.length}</span>
-  </div>`;
-
-  items.forEach(f => {
-    const datos = f.datos || [];
-    h += `<div class="item-card red">
-      <div onclick="flyToPuerto('${esc(datos[0] || "")}')" style="font-weight:700;color:var(--red);margin-bottom:4px;
-        font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer;" title="Ir a ${esc(datos[0] || "")} en el mapa">
-        🚫 ${esc(datos[0] || "Puerto")}
-      </div>
-      ${datos[1] ? `<div class="caso-line">
-        <span class="lbl">CIERRE: </span>${esc(datos[1])}
-      </div>` : ""}
-      ${datos[2] ? `<div class="caso-line">
-        <span class="lbl">HORA: </span>${esc(datos[2])}
-      </div>` : ""}
-      ${datos[3] ? `<div class="caso-line">
-        <span class="lbl">MOTIVO: </span>${esc(datos[3])}
-      </div>` : ""}
+  // Cerrados
+  if (cerrados.length) {
+    h += `<div class="bloque-sub">
+      🚫 Puertos cerrados
+      <span class="badge red">${cerrados.length}</span>
     </div>`;
-  });
+    cerrados.forEach(f => {
+      const datos = f.datos || [];
+      h += `<div class="item-card red">
+        <div onclick="flyToPuerto('${esc(datos[0] || "")}')" style="font-weight:700;color:var(--red);margin-bottom:4px;
+          font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer;" title="Ir a ${esc(datos[0] || "")} en el mapa">
+          🚫 ${esc(datos[0] || "Puerto")}
+        </div>
+        ${datos[1] ? `<div class="caso-line">
+          <span class="lbl">CIERRE: </span>${esc(datos[1])}
+        </div>` : ""}
+        ${datos[2] ? `<div class="caso-line">
+          <span class="lbl">HORA: </span>${esc(datos[2])}
+        </div>` : ""}
+        ${datos[3] ? `<div class="caso-line">
+          <span class="lbl">MOTIVO: </span>${esc(datos[3])}
+        </div>` : ""}
+      </div>`;
+    });
+  }
+
+  // Restringidos
+  if (restringidos.length) {
+    h += `<div class="bloque-sub" style="color:#b45309;margin-top:${cerrados.length ? '16px' : '0'}">
+      ⚠️ Puertos restringidos
+      <span class="badge amber">${restringidos.length}</span>
+    </div>`;
+    restringidos.forEach(f => {
+      const datos = f.datos || [];
+      h += `<div class="item-card amber">
+        <div onclick="flyToPuerto('${esc(datos[0] || "")}')" style="font-weight:700;color:#b45309;margin-bottom:4px;
+          font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer;" title="Ir a ${esc(datos[0] || "")} en el mapa">
+          ⚠️ ${esc(datos[0] || "Puerto")}
+        </div>
+        ${datos[1] ? `<div class="caso-line">
+          <span class="lbl">RESTRICCIÓN: </span>${esc(datos[1])}
+        </div>` : ""}
+        ${datos[2] ? `<div class="caso-line">
+          <span class="lbl">HORA: </span>${esc(datos[2])}
+        </div>` : ""}
+        ${datos[3] ? `<div class="caso-line">
+          <span class="lbl">MOTIVO: </span>${esc(datos[3])}
+        </div>` : ""}
+      </div>`;
+    });
+  }
 
   // Cerrar columna izquierda y abrir derecha con mapa
   h += `</div>
@@ -4006,7 +4053,8 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
         </div>
         <div class="puertos-mapa-legend">
           <div class="puertos-legend-item"><span class="puertos-legend-dot green"></span> Operativos (${Object.keys(puertosCoords).length - items.length})</div>
-          <div class="puertos-legend-item"><span class="puertos-legend-dot red"></span> Cerrados (${items.length})</div>
+          <div class="puertos-legend-item"><span class="puertos-legend-dot amber"></span> Restringidos (${restringidos.length})</div>
+          <div class="puertos-legend-item"><span class="puertos-legend-dot red"></span> Cerrados (${cerrados.length})</div>
         </div>
         <div id="sec-puertos-map" style="height:380px;cursor:grab;"></div>
       </div>
@@ -5840,7 +5888,7 @@ var _seccionesMap = {
   SAR:"Casos SAR", MAS:"Casos MAS",
   REGATAS:"Eventos Náuticos", "EJER.ARMAS":"Ejercicios de Armas",
   METANEROS:"Metaneros", PBIP:"PBIP", PIR_95:"PIR 95", VELEROS_OC:"Veleros Oc.", CRUCEROS:"Cruceros",
-  PUERTOS:"Puertos Cerrados", VISITAS:"Visitas previstas",
+  PUERTOS:"Puertos Cerrados / Restringidos", VISITAS:"Visitas previstas",
   NOVEDADES:"Novedades Varias", PERSONAL_COSTERA:"Personal Costera/DTRA",
   MOV_BAJO_PARANA:"PZBP - Bajo Paraná", MOV_ZONA3:"PZRP - Río de la Plata",
   MOV_DELTA:"PZDE - Delta", MOV_ZONA4:"PZMN - Mar Norte", BUQUES:"Buques Infracción"
@@ -6322,7 +6370,7 @@ function _buildParteCuerpo(){
       });
       cuerpo+='</ul>';
     }else{
-      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados.</div>';
+      cuerpo+='<div style="font-size:12pt;font-style:italic;color:#666;padding:2pt 0">Sin puertos cerrados ni restringidos.</div>';
     }
   }}
   // 6. DETERMINANTES
@@ -6590,7 +6638,7 @@ function _buildResumenCards(){
   // AVIACION
   var avSec=_sec("AVIACION");var _avReal=0,_avPrev=0,_avMode="realizados";if(avSec){(avSec.filas||[]).forEach(function(f){if(!f)return;if(f.tipo==="subtitulo"){var t=(f.texto||"").toUpperCase();if(t.includes("PREVIST")||t.includes("PREVISION")||t.includes("PROGRAMAD")){_avMode="previstos";return;}_avMode="realizados";return;}if(f.tipo==="partes"){var c=f.partes||[];if(c[0]&&(c[0].texto||"").toUpperCase()==="AERONAVE")return;if(_avMode==="previstos")_avPrev++;else _avReal++;}});}_addCard("Vuelos Real.\/Prev.",_avReal+"/"+_avPrev,"#e8f4fd");
   // Puertos cerrados
-  var puertos=_filas("PUERTOS","puerto");_addCard("PUERTOS CERRADOS",puertos.length,"#edf1f7");puertos.forEach(function(f){var hr=_esc(f.datos[2]||""),mot=_esc(f.datos[3]||"");sPuertos.push("<b>"+_esc(f.datos[0])+"</b>"+(hr?" - "+hr:"")+(mot?" | "+mot:""));});
+  var puertos=_filas("PUERTOS","puerto");_addCard("PUERTOS CERR./REST.",puertos.length,"#edf1f7");puertos.forEach(function(f){var hr=_esc(f.datos[2]||""),mot=_esc(f.datos[3]||"");sPuertos.push("<b>"+_esc(f.datos[0])+"</b>"+(hr?" - "+hr:"")+(mot?" | "+mot:""));});
   // Dragas
   var dragSec=_sec("DRAGAS");var dragCount=dragSec?(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).length:0;_addCard("DRAGAS",dragCount,"#e8f4fd");if(dragCount>0){(dragSec.filas||[]).filter(function(f){return f&&f.tipo==="fila";}).forEach(function(f){var raw=(f.datos||[]).filter(function(v){return v&&String(v).trim();});sDragas.push("<b>"+_esc(raw[0]||"")+"</b>: "+raw.slice(1).map(function(v){return _esc(v);}).join(" | "));});}
   // Alertas
