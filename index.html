@@ -12,7 +12,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/app.js"></script>
 </head>
 <body>
 
@@ -599,7 +598,7 @@
                   </div>
                 </div>
                 <div class="tb-dd-sep"></div>
-                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('PUERTOS',this)"><span>🚫</span><span>Puertos Cerrados</span><span class="sb-badge red" id="badge-PUERTOS"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('PUERTOS',this)"><span>🚫</span><span>Puertos Cerrados / Restringidos</span><span class="sb-badge red" id="badge-PUERTOS"></span></button>
                 <div class="tb-dd-sep"></div>
                 <!-- Administración sub -->
                 <div class="tb-dd-sub-wrap" data-dd="dd-admin">
@@ -682,7 +681,7 @@
           <button class="sb-act-btn ghost" onclick="irSeccion('DRAGAS');cerrarHamburger()">🏗️ Dragas</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('MDA_SIBI');cerrarHamburger()">🔍 MDA - SIBI</button>
           <div class="hb-nav-title">🛡️ Seguridad</div>
-          <button class="sb-act-btn ghost" onclick="irSeccion('PUERTOS');cerrarHamburger()">🚫 Puertos Cerrados</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('PUERTOS');cerrarHamburger()">🚫 Puertos Cerrados / Restringidos</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('MOV_BAJO_PARANA');cerrarHamburger()">📦 Mov. Bajo Paraná</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('MOV_DELTA');cerrarHamburger()">📦 Mov. Delta</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('MOV_ZONA3');cerrarHamburger()">📦 Mov. Río de la Plata</button>
