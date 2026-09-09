@@ -3,7 +3,7 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzdve7DXamst8d2EfDFs2_ySg_klIjY-4uRbU76yc_iLcZ3HSdDrreqN3oQqh_EIhYMMw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzawyrJBex2pUt7XKcQ7yXv0H1dRpQJdtO5g-BzOBbrGihGwol_GiGekAE63lHQmJAd4w/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -199,11 +199,17 @@ async function llamarAPI(accion, params={}) {
 var _datosCache = null;
 var _datosCacheTs = 0;
 var _CACHE_TTL_MS = 60000; // 60 segundos
+var _datosFase2Cargados = false;
+
+// Secciones críticas para el HOME (carga rápida)
+var _SECCIONES_FASE1 = ["SAR","MAS","GC","ARA","PUERTOS","DRAGAS","BUQUES","KSTM","VISITAS","RESERVA","REGATAS","EJER.ARMAS","NOVEDADES","BUQUES_BANDERA"];
+// Todo lo demás (carga diferida)
+var _SECCIONES_FASE2 = ["CONVENIO","SBGC","ALERTA","DETERMINANTES","PIR_95","METANEROS","PBIP","VELEROS_OC","CRUCEROS","MDA_SIBI","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","PERSONAL_COSTERA","SALVAMENTO","AVIACION","DEMORADOS"];
 
 async function cargarDatos(forzar, filtroSecciones) {
   try {
-    // Si hay caché fresca y no se pide forzar, usar caché
     const now = Date.now();
+    // Si hay caché fresca y no se pide forzar, usar caché
     if (!forzar && _datosCache && (now - _datosCacheTs) < _CACHE_TTL_MS) {
       renderizar(_datosCache);
       iniciarAutoRefresh();
@@ -215,26 +221,55 @@ async function cargarDatos(forzar, filtroSecciones) {
       return;
     }
 
-    const params = filtroSecciones ? { secciones: filtroSecciones.join(",") } : {};
-    const data = await llamarAPI("obtenerDatosPNA", params);
-    if (data && data.error) {
-      document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error: ${data.error}</div>`;
+    // FASE 1: Cargar solo secciones críticas del HOME
+    _datosFase2Cargados = false;
+    const data1 = await llamarAPI("obtenerDatosPNA", { secciones: _SECCIONES_FASE1.join(",") });
+    if (data1 && data1.error) {
+      document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error: ${data1.error}</div>`;
       return;
     }
-    // Guardar en caché
-    _datosCache = data;
+    _datosCache = data1;
     _datosCacheTs = Date.now();
-    renderizar(data);
+    renderizar(data1);
     iniciarAutoRefresh();
-    // Ir a la sección según el servicio que abrió
     if (servicioActivo && servicioActivo !== "KSTM") {
       mostrarSeccion(defaultSeccionPorServicio(servicioActivo));
     } else {
       mostrarHome();
     }
+
+    // FASE 2: Cargar el resto en background después de 1.5 segundos
+    setTimeout(function() { cargarFase2(); }, 1500);
+
   } catch(err) {
     document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error al cargar datos.<br><small>${err.message}</small></div>`;
   }
+}
+
+async function cargarFase2() {
+  try {
+    if (_datosFase2Cargados) return;
+    const data2 = await llamarAPI("obtenerDatosPNA", { secciones: _SECCIONES_FASE2.join(",") });
+    if (data2 && data2.secciones && _datosCache) {
+      // Merge: agregar las secciones nuevas al cache existente
+      data2.secciones.forEach(function(nuevaSec) {
+        var idx = _datosCache.secciones.findIndex(function(s){ return s.id === nuevaSec.id; });
+        if (idx >= 0) {
+          _datosCache.secciones[idx] = nuevaSec;
+        } else {
+          _datosCache.secciones.push(nuevaSec);
+        }
+      });
+      if (data2.fecha) _datosCache.fecha = data2.fecha;
+      _datosFase2Cargados = true;
+      // Si el usuario sigue en HOME, re-renderizar para actualizar badges
+      var visorEl = document.getElementById("visor");
+      if (visorEl && visorEl.dataset && visorEl.dataset.secActiva === "HOME") {
+        renderizar(_datosCache);
+        mostrarHome();
+      }
+    }
+  } catch(e) { console.log("Fase 2 diferida:", e.message); }
 }
 
 /* ================================================================
@@ -1591,6 +1626,13 @@ function mostrarSeccion(id) {
   if (!puedeVerSeccion(id)) {
     mostrarHome();
     return;
+  }
+
+  // Si la sección no está cargada, cargarla on-demand
+  var secCheck = datosGlobales && datosGlobales.secciones && datosGlobales.secciones.find(function(s){ return s.id === id; });
+  if (!secCheck && !_datosFase2Cargados) {
+    // Cargar Fase 2 si no está cargada
+    cargarFase2();
   }
 
   seccionActiva = id;
@@ -3393,7 +3435,35 @@ function renderSeccion(sec) {
     function _num(v){return parseFloat(String(v||"0").replace(/[$.]/g,"").replace(",","."))||0;}
     var _mN=_num(_multas&&_multas[4]),_sN=_num(_sumarios&&_sumarios[4]);
     var _efecto=(_mN+_sN)>0?Math.round(_mN/(_mN+_sN)*100):0;
+
+    // ── Datos de BUQUES_BANDERA ──
+    var _bbSec = null;
+    if (typeof datosGlobales !== 'undefined' && datosGlobales.secciones) {
+      _bbSec = datosGlobales.secciones.find(function(s){ return s.id === "BUQUES_BANDERA"; });
+    }
+    var _bbFilas = (_bbSec && _bbSec.filas) ? _bbSec.filas.filter(function(f){ return f && f.tipo === "fila"; }) : [];
+    var _bbTotal = _bbFilas.length;
+
+    // Agrupar por bandera
+    var _bbPorBandera = {};
+    _bbFilas.forEach(function(f){
+      var b = (f.datos[1] || "SD").toString().trim().toUpperCase() || "SD";
+      _bbPorBandera[b] = (_bbPorBandera[b] || 0) + 1;
+    });
+    var _bbBandEntries = Object.entries(_bbPorBandera).sort(function(a,b){ return b[1]-a[1]; });
+    var _bbAllBands = _bbBandEntries.map(function(e){ return e[0]; });
+
+    // Agrupar por año
+    var _bbPorAnio = {};
+    _bbFilas.forEach(function(f){
+      var a = (f.datos[3] || "").toString().trim();
+      if (a) _bbPorAnio[a] = (_bbPorAnio[a] || 0) + 1;
+    });
+    var _bbAnioEntries = Object.entries(_bbPorAnio).sort(function(a,b){ return a[0]-b[0]; });
+    var _bbAllAnios = _bbAnioEntries.map(function(e){ return e[0]; });
+
     var _c1="cbb-"+uid(),_c2="cbr-"+uid(),_c3="cbg-"+uid();
+    var _c4="cbbx-"+uid(),_c5="cbrx-"+uid(),_c6="cbgx-"+uid();
     var h='<div class="tbl-wrap"><table class="pna-table"><tr><th>BUQUES</th><th>2010-2023</th><th>2024</th><th>2025</th><th>2026</th><th>TOTAL</th></tr>';
     _rows.forEach(function(f){h+='<tr><td class="dep">'+esc(f.datos[0]||"")+'</td>'+f.datos.slice(1).map(function(v){return'<td>'+esc(v)+'</td>';}).join("")+'</tr>';});
     h+='</table></div>';
@@ -3402,6 +3472,7 @@ function renderSeccion(sec) {
       '<div class="buques-kpi"><div class="kpi-val" style="color:var(--green)">'+_mTot+'</div><div class="kpi-lbl">💰 Multas cobradas</div></div>'+
       '<div class="buques-kpi"><div class="kpi-val" style="color:var(--red)">'+_sTot+'</div><div class="kpi-lbl">⚠️ Sumarios sin cobrar</div></div>'+
       '<div class="buques-kpi"><div class="kpi-val" style="color:var(--gold);font-size:22px">'+_rTot+'</div><div class="kpi-lbl">💵 Monto recaudado</div></div>'+
+      '<div class="buques-kpi"><div class="kpi-val" style="color:#7c3aed">'+_bbTotal+'</div><div class="kpi-lbl">🏳️ Actas x Bandera</div></div>'+
     '</div>'+
     '<div class="buques-charts-grid">'+
       '<div class="buques-chart-card"><div class="chart-title">📊 Evolución por año</div><div class="chart-wrap"><canvas id="'+_c1+'"></canvas></div></div>'+
@@ -3415,6 +3486,34 @@ function renderSeccion(sec) {
         '</div>'+
       '</div>'+
     '</div>';
+
+    // ── Segunda fila: gráficos por bandera con filtros ──
+    if (_bbTotal > 0) {
+      var _bbColors = ["#1d6fa4","#dc2626","#f59e0b","#16a34a","#7c3aed","#ea580c","#0891b2","#be185d","#4f46e5","#64748b","#059669","#d946ef","#0284c7","#c026d3","#ea4335"];
+      var _anioColors = {"2010-2023":"#64748b","#2024":"#1d6fa4","#2025":"#16a34a","#2026":"#f59e0b"};
+      function _getAnioColor(a){ return _anioColors[a] || "#7c3aed"; }
+
+      // Selectores de filtro
+      h += '<div id="bb-filtros" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px;padding:8px 12px;background:var(--gray-100);border-radius:var(--radius);border:1px solid var(--gray-200)">';
+      h += '<span style="font-size:11px;font-weight:700;color:var(--text-lt);text-transform:uppercase;letter-spacing:.5px;">🔍 Filtrar:</span>';
+      h += '<select id="bb-filtro-bandera" onchange="bbFiltrar()" style="padding:4px 8px;border:1px solid var(--gray-300);border-radius:6px;font-size:11px;font-family:inherit;background:#fff;cursor:pointer;">';
+      h += '<option value="">Todas las banderas ('+_bbAllBands.length+')</option>';
+      _bbAllBands.forEach(function(b){ h += '<option value="'+esc(b)+'">'+esc(b)+' ('+_bbPorBandera[b]+')</option>'; });
+      h += '</select>';
+      h += '<select id="bb-filtro-anio" onchange="bbFiltrar()" style="padding:4px 8px;border:1px solid var(--gray-300);border-radius:6px;font-size:11px;font-family:inherit;background:#fff;cursor:pointer;">';
+      h += '<option value="">Todos los años</option>';
+      _bbAllAnios.forEach(function(a){ h += '<option value="'+esc(a)+'">'+esc(a)+' ('+_bbPorAnio[a]+')</option>'; });
+      h += '</select>';
+      h += '<span id="bb-filtro-contador" style="font-size:11px;font-weight:600;color:var(--navy);margin-left:auto;">'+_bbTotal+' actas</span>';
+      h += '</div>';
+
+      h += '<div class="buques-charts-grid" style="margin-top:4px">'+
+        '<div class="buques-chart-card"><div class="chart-title">🌍 Distribución por bandera</div><div class="chart-wrap"><canvas id="'+_c4+'"></canvas></div></div>'+
+        '<div class="buques-chart-card"><div class="chart-title">📊 Actas por año</div><div class="chart-wrap"><canvas id="'+_c5+'"></canvas></div></div>'+
+        '<div class="buques-chart-card"><div class="chart-title">🏳️ Top banderas</div><div class="chart-wrap"><canvas id="'+_c6+'"></canvas></div></div>'+
+      '</div>';
+    }
+
     setTimeout(function(){
       if(!window._buquesCharts) window._buquesCharts=[];
       if(window._buquesCharts.length){try{window._buquesCharts.forEach(function(c){c.destroy();});}catch(e){}window._buquesCharts=[];}
@@ -3426,6 +3525,96 @@ function renderSeccion(sec) {
       if(e2){window._buquesCharts.push(new Chart(e2,{type:"bar",data:{labels:_labels,datasets:[{label:"Recaudación",data:_gv(_recaud),backgroundColor:"rgba(200,151,42,0.8)",borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{y:{duration:1200,from:0,easing:"easeOutQuart"}},plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return"$"+Number(ctx.raw).toLocaleString("es-AR");}}}},scales:{y:{beginAtZero:true,grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{size:12},callback:function(v){return"$"+Number(v).toLocaleString("es-AR");}}},x:{grid:{display:false},ticks:{font:{size:12}}}}}}));}
       var e3=document.getElementById(_c3);
       if(e3){window._buquesCharts.push(new Chart(e3,{type:"doughnut",data:{datasets:[{data:[_efecto,100-_efecto],backgroundColor:["#1a9560","#edf2f7"],borderWidth:0,cutout:"65%"}]},options:{responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,duration:1000,easing:"easeOutQuart"},plugins:{legend:{display:false},tooltip:{enabled:false}}}}));}
+
+      // ── Gráficos por bandera (con filtros) ──
+      if (_bbTotal > 0) {
+        var _bbAllData = _bbFilas.map(function(f){
+          return { nombre: (f.datos[0]||"").toString().trim(), bandera: (f.datos[1]||"SD").toString().trim().toUpperCase() || "SD", tipo: (f.datos[2]||"").toString().trim(), anio: (f.datos[3]||"").toString().trim() };
+        });
+
+        function bbFiltrar() {
+          var fBand = (document.getElementById("bb-filtro-bandera") || {}).value || "";
+          var fAnio = (document.getElementById("bb-filtro-anio") || {}).value || "";
+          var filtrados = _bbAllData.filter(function(d){
+            if (fBand && d.bandera !== fBand) return false;
+            if (fAnio && d.anio !== fAnio) return false;
+            return true;
+          });
+
+          // Actualizar contador
+          var cntEl = document.getElementById("bb-filtro-contador");
+          if (cntEl) cntEl.textContent = filtrados.length + " actas";
+
+          // Recalcular agrupaciones
+          var pBand = {}, pAnio = {};
+          filtrados.forEach(function(d){
+            pBand[d.bandera] = (pBand[d.bandera] || 0) + 1;
+            if (d.anio) pAnio[d.anio] = (pAnio[d.anio] || 0) + 1;
+          });
+          var bandEntries = Object.entries(pBand).sort(function(a,b){ return b[1]-a[1]; });
+          var anioEntries = Object.entries(pAnio).sort(function(a,b){ return a[0]-b[0]; });
+          var top10 = bandEntries.slice(0, 10);
+          var otros = bandEntries.slice(10).reduce(function(s,e){ return s+e[1]; }, 0);
+
+          // Actualizar donut
+          var ch4 = window._buquesCharts[3];
+          if (ch4) {
+            var dLabels = top10.map(function(e){ return e[0]; });
+            var dData = top10.map(function(e){ return e[1]; });
+            if (otros > 0) { dLabels.push("Otros"); dData.push(otros); }
+            ch4.data.labels = dLabels;
+            ch4.data.datasets[0].data = dData;
+            ch4.data.datasets[0].backgroundColor = _bbColors.slice(0, dLabels.length);
+            ch4.update();
+          }
+
+          // Actualizar barras por año
+          var ch5 = window._buquesCharts[4];
+          if (ch5) {
+            ch5.data.labels = anioEntries.map(function(e){ return e[0]; });
+            ch5.data.datasets[0].data = anioEntries.map(function(e){ return e[1]; });
+            ch5.data.datasets[0].backgroundColor = anioEntries.map(function(e){ return _getAnioColor(e[0]); });
+            ch5.update();
+          }
+
+          // Actualizar barras horizontales
+          var ch6 = window._buquesCharts[5];
+          if (ch6) {
+            ch6.data.labels = top10.map(function(e){ return e[0]; });
+            ch6.data.datasets[0].data = top10.map(function(e){ return e[1]; });
+            ch6.data.datasets[0].backgroundColor = _bbColors.slice(0, top10.length);
+            ch6.update();
+          }
+        }
+        window.bbFiltrar = bbFiltrar;
+
+        // Donut por bandera
+        var e4 = document.getElementById(_c4);
+        if (e4) {
+          var _donutLabels = _bbAllBands.slice(0, 10);
+          var _donutData = _donutLabels.map(function(b){ return _bbPorBandera[b]; });
+          var _donutOtros = _bbAllBands.slice(10).reduce(function(s,b){ return s + _bbPorBandera[b]; }, 0);
+          if (_donutOtros > 0) { _donutLabels.push("Otros"); _donutData.push(_donutOtros); }
+          var _donutColors = _bbColors.slice(0, _donutLabels.length);
+          window._buquesCharts.push(new Chart(e4, {type:"doughnut", data:{labels:_donutLabels, datasets:[{data:_donutData, backgroundColor:_donutColors, borderWidth:2, borderColor:"#fff", cutout:"55%"}]}, options:{responsive:true, maintainAspectRatio:false, animation:{animateRotate:true, duration:1000}, plugins:{legend:{position:"right", labels:{font:{size:11, family:"'DM Sans',sans-serif"}, boxWidth:12, padding:4}}, tooltip:{callbacks:{label:function(ctx){ var total = ctx.dataset.data.reduce(function(a,b){return a+b;},0); var pct = Math.round(ctx.raw/total*100); return ctx.label+": "+ctx.raw+" ("+pct+"%)"; }}}}, onClick:function(evt,elements){ if(elements.length>0){ var ch=window._buquesCharts[3]; var curLabels=ch?ch.data.labels:[]; var idx=elements[0].index; var sel=(curLabels[idx]||""); if(sel==="Otros")sel=""; var dd=document.getElementById("bb-filtro-bandera"); if(!dd)return; dd.value=(dd.value===sel)?"":sel; bbFiltrar(); }}}}));
+        }
+        // Barras por año (colores diferenciados)
+        var e5 = document.getElementById(_c5);
+        if (e5) {
+          var _anioLabels = _bbAnioEntries.map(function(e){ return e[0]; });
+          var _anioData = _bbAnioEntries.map(function(e){ return e[1]; });
+          var _anioColores = _bbAnioEntries.map(function(e){ return _getAnioColor(e[0]); });
+          window._buquesCharts.push(new Chart(e5, {type:"bar", data:{labels:_anioLabels, datasets:[{label:"Actas", data:_anioData, backgroundColor:_anioColores, borderRadius:4}]}, options:{responsive:true, maintainAspectRatio:false, animation:{y:{duration:1200, from:0, easing:"easeOutQuart"}}, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{size:12}, stepSize:1}}, x:{grid:{display:false}, ticks:{font:{size:12}}}}, onClick:function(evt,elements){ if(elements.length>0){ var ch=window._buquesCharts[4]; var curLabels=ch?ch.data.labels:[]; var idx=elements[0].index; var sel=curLabels[idx]||""; var dd=document.getElementById("bb-filtro-anio"); if(!dd)return; dd.value=(dd.value===sel)?"":sel; bbFiltrar(); }}}}));
+        }
+        // Barras horizontales top banderas
+        var e6 = document.getElementById(_c6);
+        if (e6) {
+          var _hLabels = _bbAllBands.slice(0,10);
+          var _hData = _hLabels.map(function(b){ return _bbPorBandera[b]; });
+          var _hColors = _bbColors.slice(0, _hLabels.length);
+          window._buquesCharts.push(new Chart(e6, {type:"bar", data:{labels:_hLabels, datasets:[{label:"Actas", data:_hData, backgroundColor:_hColors, borderRadius:4}]}, options:{indexAxis:"y", responsive:true, maintainAspectRatio:false, animation:{x:{duration:1200, from:0, easing:"easeOutQuart"}}, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, grid:{color:"rgba(0,0,0,0.05)"}, ticks:{font:{size:11}, stepSize:1}}, y:{grid:{display:false}, ticks:{font:{size:11, weight:"bold"}}}}, onClick:function(evt,elements){ if(elements.length>0){ var ch=window._buquesCharts[5]; var curLabels=ch?ch.data.labels:[]; var idx=elements[0].index; var sel=curLabels[idx]||""; var dd=document.getElementById("bb-filtro-bandera"); if(!dd)return; dd.value=(dd.value===sel)?"":sel; bbFiltrar(); }}}}));
+        }
+      }
     },150);
     return h;
   }
@@ -7223,6 +7412,7 @@ async function guardarCaso(e){
       datosGlobales = null;
       _datosCache = null;
       _datosCacheTs = 0;
+      _datosFase2Cargados = false;
       await cargarDatos(true);
       if(secGuardada) mostrarSeccion(secGuardada);
     }else{
@@ -7261,6 +7451,7 @@ async function eliminarCaso(){
       datosGlobales=null;
       _datosCache = null;
       _datosCacheTs = 0;
+      _datosFase2Cargados = false;
       await cargarDatos(true);
       if(secGuardada) mostrarSeccion(secGuardada);
     }else{
@@ -7436,7 +7627,7 @@ function cerrarSesion() {
   document.getElementById("usr-input").value = "";
   document.getElementById("pwd-input").value = "";
   datosGlobales = null; pinVerificado = false; currentUser = null;
-  _datosCache = null; _datosCacheTs = 0;
+  _datosCache = null; _datosCacheTs = 0; _datosFase2Cargados = false;
 }
 
 function cambiarCapaWindyHome(capa) {
@@ -7588,6 +7779,7 @@ function actualizarSistema(automatico) {
   datosGlobales = null;
   _datosCache = null;
   _datosCacheTs = 0;
+  _datosFase2Cargados = false;
   _hist = null;
   if (relojInterval) { clearInterval(relojInterval); relojInterval = null; }
 
