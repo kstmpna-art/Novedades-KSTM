@@ -3,7 +3,7 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzawyrJBex2pUt7XKcQ7yXv0H1dRpQJdtO5g-BzOBbrGihGwol_GiGekAE63lHQmJAd4w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzHCZoInX3O07cdMGw5LRsSdMloNtxIo1AWEcdTibcRLDRFrYkkVZ9j3DQh7IFhqunihQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
