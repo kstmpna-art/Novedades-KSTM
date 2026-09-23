@@ -3,7 +3,7 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzHCZoInX3O07cdMGw5LRsSdMloNtxIo1AWEcdTibcRLDRFrYkkVZ9j3DQh7IFhqunihQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby3rio7BphNGEt9IKikP36fPI6Paby1If8QPduMm1jghOqieRVrEhyMEgel9JopESHCzA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -202,9 +202,9 @@ var _CACHE_TTL_MS = 60000; // 60 segundos
 var _datosFase2Cargados = false;
 
 // Secciones críticas para el HOME (carga rápida)
-var _SECCIONES_FASE1 = ["SAR","MAS","GC","ARA","PUERTOS","DRAGAS","BUQUES","KSTM","VISITAS","RESERVA","REGATAS","EJER.ARMAS","NOVEDADES","BUQUES_BANDERA"];
+var _SECCIONES_FASE1 = ["AVIACION","SAR","MAS","GC","ARA","PUERTOS","DRAGAS","BUQUES","KSTM","VISITAS","RESERVA","REGATAS","EJER.ARMAS","NOVEDADES","BUQUES_BANDERA"];
 // Todo lo demás (carga diferida)
-var _SECCIONES_FASE2 = ["CONVENIO","SBGC","ALERTA","DETERMINANTES","PIR_95","METANEROS","PBIP","VELEROS_OC","CRUCEROS","MDA_SIBI","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","PERSONAL_COSTERA","SALVAMENTO","AVIACION","DEMORADOS"];
+var _SECCIONES_FASE2 = ["CONVENIO","SBGC","ALERTA","DETERMINANTES","PIR_95","METANEROS","PBIP","VELEROS_OC","CRUCEROS","CRUCEROS_ARRIBADOS","MDA_SIBI","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","PERSONAL_COSTERA","SALVAMENTO","DEMORADOS"];
 
 async function cargarDatos(forzar, filtroSecciones) {
   try {
@@ -262,11 +262,12 @@ async function cargarFase2() {
       });
       if (data2.fecha) _datosCache.fecha = data2.fecha;
       _datosFase2Cargados = true;
-      // Si el usuario sigue en HOME, re-renderizar para actualizar badges
       var visorEl = document.getElementById("visor");
       if (visorEl && visorEl.dataset && visorEl.dataset.secActiva === "HOME") {
         renderizar(_datosCache);
         mostrarHome();
+      } else if (window._vistaGeneralActiva && typeof renderizarVistaCompleta === "function") {
+        renderizarVistaCompleta();
       }
     }
   } catch(e) { console.log("Fase 2 diferida:", e.message); }
@@ -1560,6 +1561,10 @@ function mostrarHome() {
           <span>Abrir Sistema GC</span>
           <span style="font-size:9px;opacity:.6;">↗</span>
         </a>
+        <button onclick="irSeccion('CRUCEROS')" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
+          <span>🛳️</span>
+          <span>Cruceros</span>
+        </button>
         ${cnt("DEMORADOS","demorado") > 0 ? `<button onclick="abrirModalDemorados()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
           🚢 Demorados
         </button>` : ''}
@@ -1620,6 +1625,7 @@ function mostrarHome() {
 }
 
 function mostrarSeccion(id) {
+  window._vistaGeneralActiva = false;
   cerrarDropdowns();
   cerrarHamburger();
 
@@ -2334,7 +2340,7 @@ function _parsePosition(pos) {
   norm = norm.replace(/\(\s*([NSEW])\s*\)/gi, "$1");
 
   // 1. DMS with seconds: 28°51'71"S 59°06'84"W (with any separator including \n)
-  var m2 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])\s*[\/,\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*(\d+(?:\.\d+)?)\s*["″]?\s*([NSEW])?/i);
+  var m2 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′´]\s*(\d+(?:\.\d+)?)\s*["″ʺ]?\s*([NSEW])\s*[\/,\-\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′´]\s*(\d+(?:\.\d+)?)\s*["″ʺ]?\s*([NSEW])?/i);
   if (m2) {
     lat = parseFloat(m2[1]) + parseFloat(m2[2])/60 + parseFloat(m2[3])/3600;
     if (m2[4] && /[SW]/i.test(m2[4])) lat = -lat;
@@ -2344,7 +2350,7 @@ function _parsePosition(pos) {
 
   // 2. DMS without seconds: 28°06'S 058°55'W
   if (isNaN(lat) || isNaN(lon)) {
-    var m1 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*([NSEW])\s*[\/,\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′]\s*([NSEW])?/i);
+    var m1 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′´]\s*([NSEW])\s*[\/,\-\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*(\d+(?:\.\d+)?)\s*['′´]\s*([NSEW])?/i);
     if (m1) {
       lat = parseFloat(m1[1]) + parseFloat(m1[2])/60;
       if (m1[3] && /[SW]/i.test(m1[3])) lat = -lat;
@@ -2355,7 +2361,7 @@ function _parsePosition(pos) {
 
   // 3. Degrees only: 28.123°S 58.917°W
   if (isNaN(lat) || isNaN(lon)) {
-    var m0 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*([NSEW])\s*[\/,\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*([NSEW])?/i);
+    var m0 = norm.match(/(-?\d+(?:\.\d+)?)\s*[°d]\s*([NSEW])\s*[\/,\-\s\n]*\s*(-?\d+(?:\.\d+)?)\s*[°d]\s*([NSEW])?/i);
     if (m0) {
       lat = parseFloat(m0[1]);
       if (m0[2] && /[SW]/i.test(m0[2])) lat = -lat;
@@ -2374,6 +2380,45 @@ function _parsePosition(pos) {
     }
   }
 
+  // 5. Known Argentine river/port locations fallback
+  if (isNaN(lat) || isNaN(lon)) {
+    var knownLocations = [
+      { pattern: /rosario/i, lat: -32.9468, lon: -60.6393 },
+      { pattern: /goya/i, lat: -29.1713, lon: -59.3114 },
+      { pattern: /santa\s*fe/i, lat: -31.6488, lon: -60.6993 },
+      { pattern: /paran[aá]/i, lat: -31.7317, lon: -60.5175 },
+      { pattern: /san\s*nicol[aá]s/i, lat: -33.3333, lon: -60.2167 },
+      { pattern: /san\s*pedro/i, lat: -33.6792, lon: -59.6636 },
+      { pattern: /campana/i, lat: -34.1017, lon: -58.9597 },
+      { pattern: /zarate/i, lat: -34.0988, lon: -59.0297 },
+      { pattern: /lima/i, lat: -34.1333, lon: -59.1833 },
+      { pattern: /su[aá]rez/i, lat: -34.4633, lon: -58.5006 },
+      { pattern: /constitucion/i, lat: -34.2033, lon: -58.2489 },
+      { pattern: /colastin[eé]/i, lat: -34.3067, lon: -58.2406 },
+      { pattern: /diamante/i, lat: -32.0653, lon: -60.6369 },
+      { pattern: /escobedo/i, lat: -33.1333, lon: -60.2167 },
+      { pattern: /funes/i, lat: -32.9167, lon: -60.8167 },
+      { pattern: /villa\s*gobernador/i, lat: -33.0167, lon: -60.7333 },
+      { pattern: /ramallo/i, lat: -33.4833, lon: -60.0167 },
+      { pattern: /san\s*mart[ií]n/i, lat: -33.0167, lon: -60.3167 },
+      { pattern: /luj[aá]n/i, lat: -34.5567, lon: -59.0867 },
+      { pattern: /tigre/i, lat: -34.4264, lon: -58.5800 },
+      { pattern: /san\s*fernando/i, lat: -34.4417, lon: -58.5667 },
+      { pattern: /islas\s*arias/i, lat: -34.3500, lon: -58.5000 },
+      { pattern: /puerto\s*gral\s*belgrano/i, lat: -34.4717, lon: -58.5317 },
+      { pattern: /belgrano/i, lat: -34.5600, lon: -58.4800 },
+      { pattern: /sarand[ií]/i, lat: -34.0667, lon: -59.0167 },
+      { pattern: /alvear/i, lat: -34.2667, lon: -59.0833 }
+    ];
+    for (var _k = 0; _k < knownLocations.length; _k++) {
+      if (knownLocations[_k].pattern.test(norm)) {
+        lat = knownLocations[_k].lat;
+        lon = knownLocations[_k].lon;
+        break;
+      }
+    }
+  }
+
   if (isNaN(lat) || isNaN(lon)) return null;
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
   return { lat: lat, lon: lon };
@@ -2382,6 +2427,9 @@ function _parsePosition(pos) {
 function initVistaCompletaMasMap() {
   var el = document.getElementById("sec-mas-map");
   if (!el) return;
+  el.style.height = "670px";
+  el.style.width = "100%";
+  el.style.minHeight = "670px";
   var map = L.map(el, { zoomControl: true, attributionControl: false }).fitBounds([[-55,-73],[-22,-54]]);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 18 }).addTo(map);
   L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(map);
@@ -2395,33 +2443,48 @@ function initVistaCompletaMasMap() {
   })();
   var sec = datosGlobales && datosGlobales.secciones.find(function(s) { return s.id === "MAS"; });
   if (!sec) return;
+  var caseNames = aisExtraerNombres("MAS");
   var bounds = [];
-  (sec.filas || []).forEach(function(f) {
-    if (!f || f.tipo !== "caso_especial") return;
-    var posStr = (f.posicion || "").trim();
-    var coords = _parsePosition(posStr);
-    if (!coords) return;
-    var cerrado = ((f.estado || "")).toUpperCase().includes("CERRADO");
-    var color = cerrado ? "#10b981" : "#a855f7";
-    var nombre = f.buque || "";
-    var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + color + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(nombre) + '</span></div>', iconSize: [14 + (nombre.length * 6), 18], iconAnchor: [7, 9] });
-    var marker = L.marker([coords.lat, coords.lon], { icon: icon }).addTo(map);
-    marker.bindPopup('<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5"><b style="color:#0f2744">' + esc(nombre) + '</b><br><span style="color:' + color + ';font-weight:600">MAS' + (cerrado ? ' — CERRADO' : ' — PENDIENTE') + '</span><br><span style="color:#666">📍 ' + esc(posStr) + '</span></div>');
-    bounds.push([coords.lat, coords.lon]);
-  });
-  if (bounds.length > 1) map.fitBounds(bounds, { padding: [30, 30] });
-  else if (bounds.length === 1) map.setView(bounds[0], 8);
-  if (bounds.length === 0) {
-    var totalCasos = (sec.filas || []).filter(function(f) { return f && f.tipo === "caso_especial"; }).length;
-    if (totalCasos > 0) {
-      L.control.attribution({ position: "bottomright" }).addTo(map);
-      var msgDiv = document.createElement("div");
-      msgDiv.style.cssText = "background:rgba(255,255,255,0.92);padding:12px 16px;border-radius:8px;font-size:13px;color:#666;text-align:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.15)";
-      msgDiv.textContent = "Sin posiciones georreferenciadas en " + totalCasos + " caso(s).";
-      el.appendChild(msgDiv);
-    }
+  var plotted = {};
+  if (typeof _aisBuffer !== "undefined" && _aisBuffer) {
+    Object.keys(_aisBuffer).forEach(function(mmsi) {
+      var entry = _aisBuffer[mmsi];
+      if (!entry || !entry.name) return;
+      if (aisCoincide(entry.name, caseNames) || caseNames.some(function(s) { return String(s) === mmsi; })) {
+        if (plotted[entry.name]) return;
+        plotted[entry.name] = true;
+        var cerrado = false;
+        (sec.filas || []).forEach(function(f) {
+          if (!f || f.tipo !== "caso_especial") return;
+          var bn = (f.buque || "").toUpperCase();
+          if (bn.includes(entry.name.toUpperCase().substring(0, 5))) cerrado = ((f.estado || "")).toUpperCase().includes("CERRADO");
+        });
+        var color = cerrado ? "#10b981" : "#a855f7";
+        var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + color + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(entry.name) + '</span></div>', iconSize: [14 + (entry.name.length * 6), 18], iconAnchor: [7, 9] });
+        var marker = L.marker([entry.lat, entry.lon], { icon: icon }).addTo(map);
+        marker.bindPopup('<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5"><b style="color:#0f2744">' + esc(entry.name) + '</b><br><span style="color:' + color + ';font-weight:600">MAS' + (cerrado ? ' — CERRADO' : ' — PENDIENTE') + '</span><br><span style="color:#666">📍 AIS tracking</span></div>');
+        bounds.push([entry.lat, entry.lon]);
+      }
+    });
   }
-  setTimeout(function() { map.invalidateSize(); }, 200);
+  if (bounds.length === 0) {
+    (sec.filas || []).forEach(function(f) {
+      if (!f || f.tipo !== "caso_especial") return;
+      var posStr = (f.posicion || "").trim();
+      var coords = _parsePosition(posStr);
+      if (!coords) return;
+      var cerrado = ((f.estado || "")).toUpperCase().includes("CERRADO");
+      var color = cerrado ? "#10b981" : "#a855f7";
+      var nombre = f.buque || "";
+      var icon = L.divIcon({ className: "", html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + color + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(nombre) + '</span></div>', iconSize: [14 + (nombre.length * 6), 18], iconAnchor: [7, 9] });
+      var marker = L.marker([coords.lat, coords.lon], { icon: icon }).addTo(map);
+      marker.bindPopup('<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5"><b style="color:#0f2744">' + esc(nombre) + '</b><br><span style="color:' + color + ';font-weight:600">MAS' + (cerrado ? ' — CERRADO' : ' — PENDIENTE') + '</span><br><span style="color:#666">📍 ' + esc(posStr) + '</span></div>');
+      bounds.push([coords.lat, coords.lon]);
+    });
+  }
+  map.fitBounds([[-55,-73],[-22,-54]]);
+  setTimeout(function() { map.invalidateSize(); }, 300);
+  setTimeout(function() { map.invalidateSize(); }, 1000);
 }
 
 /* ================================================================
@@ -4521,12 +4584,62 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
     const items = filas.filter(f => f && f.tipo === "crucero");
     const otros = filas.filter(f => f && f.tipo !== "crucero");
     let h = otros.length ? renderFilasGenericas(otros) : "";
-    if (!items.length) return h || `<div class="empty">Sin cruceros registrados.</div>`;
-    h += `<div class="tbl-wrap"><div class="tbl-title">CRUCEROS</div><table class="pna-table">
-      <tr><th>Buque</th><th>Col B</th><th>Col C</th><th>Col D</th><th>Col E</th><th>Col F</th><th>Col G</th><th>Col H</th><th>Col I</th><th>Col J</th><th>Col K</th></tr>`;
-    items.forEach(f => { h += `<tr>${f.datos.map(v => `<td>${esc(v)}</td>`).join("")}</tr>`; });
-    h += `</table></div>`;
+
+    const crucerosTabId = "cruceros-tab-" + Date.now();
+    const arribadosSec = datosGlobales && datosGlobales.secciones ? datosGlobales.secciones.find(s => s.id === "CRUCEROS_ARRIBADOS") : null;
+    const arribadosCount = arribadosSec && arribadosSec.filas ? arribadosSec.filas.filter(f=>f.tipo==='crucero_arribado').length : 0;
+
+    h += `<div class="cruceros-tabs">
+      <button class="cruceros-tab active" onclick="switchCrucerosTab('${crucerosTabId}','cruceros',this)">Cruceros</button>
+      <button class="cruceros-tab" onclick="switchCrucerosTab('${crucerosTabId}','arribados',this)">Arribados${arribadosCount ? ' (' + arribadosCount + ')' : ''}</button>
+    </div>`;
+
+    h += `<div id="${crucerosTabId}-cruceros" class="cruceros-panel">`;
+    if (!items.length) {
+      h += `<div class="empty">Sin cruceros registrados.</div>`;
+    } else {
+      let totPrev = 0, totArrib = 0, totCanc = 0, totPend = 0;
+      items.forEach(f => {
+        totPrev += Number(f.datos[1]) || 0;
+        totArrib += Number(f.datos[2]) || 0;
+        totCanc += Number(f.datos[3]) || 0;
+        totPend += Number(f.datos[4]) || 0;
+      });
+
+      h += `<div class="tbl-wrap"><div class="tbl-title">CRUCEROS - TEMPORADA 2026/2027</div><table class="pna-table cruceros-table">
+        <tr><th>Puerto</th><th>Recaladas previstas</th><th>Arribados</th><th>Cancelados</th><th>Pendientes</th></tr>`;
+      items.forEach((f, idx) => {
+        const d = f.datos;
+        const arrib = Number(d[2]) || 0;
+        const canc = Number(d[3]) || 0;
+        const pend = Number(d[4]) || 0;
+        h += `<tr class="${idx % 2 === 0 ? 'even' : 'odd'}">
+          <td class="cruc-puerto">${esc(d[0])}</td>
+          <td class="cruc-num">${esc(d[1])}</td>
+          <td class="cruc-num cruc-arrib">${arrib}</td>
+          <td class="cruc-num cruc-canc">${canc}</td>
+          <td class="cruc-num cruc-pend">${pend}</td>
+        </tr>`;
+      });
+      h += `<tr class="cruc-total">
+        <td><strong>TOTAL</strong></td>
+        <td class="cruc-num"><strong>${totPrev}</strong></td>
+        <td class="cruc-num cruc-arrib"><strong>${totArrib}</strong></td>
+        <td class="cruc-num cruc-canc"><strong>${totCanc}</strong></td>
+        <td class="cruc-num cruc-pend"><strong>${totPend}</strong></td>
+      </tr>`;
+      h += `</table></div>`;
+    }
+    h += `</div>`;
+
+    h += `<div id="${crucerosTabId}-arribados" class="cruceros-panel" style="display:none"></div>`;
+
     return h;
+  }
+
+  // ── CRUCEROS ARRIBADOS ───────────────────────────
+  if (sec.id === "CRUCEROS_ARRIBADOS") {
+    return "";
   }
 
   // ── MDA SIBI ────────────────────────────────────
@@ -5775,6 +5888,16 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape")cerrarZoom()
 
 function mostrarVistaCompleta(){
   if (!datosGlobales) return;
+  if (!_datosFase2Cargados) {
+    cargarFase2().then(function() {
+      if (window._vistaGeneralActiva) renderizarVistaCompleta();
+    });
+  }
+  window._vistaGeneralActiva = true;
+  renderizarVistaCompleta();
+}
+function renderizarVistaCompleta(){
+  if (!datosGlobales) return;
   window._vistaCompletaMode = true;
   document.getElementById("home-view").classList.remove("home-visible");
   document.getElementById("home-view").style.display = "none";
@@ -5785,8 +5908,9 @@ function mostrarVistaCompleta(){
   if (tt4) tt4.textContent = "Vista completa";
   if (ts4) ts4.textContent = datosGlobales.fecha || "";
   document.getElementById("dash-btn-wrap").innerHTML = '<button class="tb-btn outline" onclick="toggleBriefing()">🖥️ Pantalla completa</button>';
-  const ignorar = ["SEAV","SERS","SBGC"];
+  const ignorar = ["SEAV","SERS","SBGC","BUQUES_BANDERA","MDA_SIBI"];
   let html = "";
+  console.log("Vista general - secciones:", datosGlobales.secciones.map(s => s.id + "(" + (s.filas||[]).length + " filas)"));
   datosGlobales.secciones.forEach(sec => {
     if (ignorar.includes(sec.id)) return;
     if (!sec.filas || !sec.filas.length) return;
@@ -5823,8 +5947,8 @@ function mostrarVistaCompleta(){
       if (document.getElementById("sec-mas-map")) {
         initVistaCompletaMasMap();
       }
-    } catch(e) { console.error("Vista completa - AIS MAS:", e); }
-  }, 300);
+    } catch(e) { console.error("Vista completa - MAS:", e); }
+  }, 500);
 }
 
 /* ================================================================
@@ -8210,4 +8334,147 @@ function sersFiltrarCondicion(el, condicion) {
     if (!condicion) { row.style.display = ''; return; }
     row.style.display = row.getAttribute('data-condicion') === condicion ? '' : 'none';
   });
+}
+
+// ── CRUCEROS TABS ──
+function switchCrucerosTab(tabId, tab, btn) {
+  const parent = btn.closest('.cruceros-tabs');
+  parent.querySelectorAll('.cruceros-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  document.getElementById(tabId + '-cruceros').style.display = tab === 'cruceros' ? '' : 'none';
+  const arribadosPanel = document.getElementById(tabId + '-arribados');
+  
+  if (tab === 'arribados') {
+    arribadosPanel.style.display = '';
+    if (!arribadosPanel.innerHTML.trim()) {
+      const arribadosSec = datosGlobales && datosGlobales.secciones ? datosGlobales.secciones.find(s => s.id === 'CRUCEROS_ARRIBADOS') : null;
+      if (arribadosSec && arribadosSec.filas && arribadosSec.filas.length) {
+        arribadosPanel.innerHTML = renderCrucerosArribados(arribadosSec);
+      } else {
+        arribadosPanel.innerHTML = '<div class="empty">Cargando datos de arribados...</div>';
+        cargarFase2Seccion('CRUCEROS_ARRIBADOS').then(function() {
+          const d = datosGlobales.secciones.find(s => s.id === 'CRUCEROS_ARRIBADOS');
+          if (d && d.filas && d.filas.length) {
+            arribadosPanel.innerHTML = renderCrucerosArribados(d);
+          } else {
+            arribadosPanel.innerHTML = '<div class="empty">Sin datos de arribados.</div>';
+          }
+        });
+      }
+    }
+  } else {
+    arribadosPanel.style.display = 'none';
+  }
+}
+
+async function cargarFase2Seccion(seccionId) {
+  try {
+    const data = await llamarAPI('obtenerDatosPNA', { secciones: seccionId });
+    if (data && data.secciones) {
+      data.secciones.forEach(function(sec) {
+        if (!datosGlobales.secciones) datosGlobales.secciones = [];
+        const idx = datosGlobales.secciones.findIndex(s => s.id === sec.id);
+        if (idx >= 0) {
+          datosGlobales.secciones[idx] = sec;
+        } else {
+          datosGlobales.secciones.push(sec);
+        }
+      });
+    }
+  } catch(e) {
+    console.error('Error cargando sección ' + seccionId, e);
+  }
+}
+
+// ── CRUCEROS ARRIBADOS RENDER ──
+function renderCrucerosArribados(sec) {
+  const items = sec.filas.filter(f => f && f.tipo === 'crucero_arribado');
+  if (!items.length) return '<div class="empty">Sin cruceros arribados.</div>';
+
+  const totalCruceros = items.length;
+  const totalPasajIng = items.reduce((s,f) => s + f.datos.pasajIng, 0);
+  const totalTripIng = items.reduce((s,f) => s + f.datos.tripIng, 0);
+  const totalPasajSal = items.reduce((s,f) => s + f.datos.pasajSal, 0);
+  const totalTripSal = items.reduce((s,f) => s + f.datos.tripSal, 0);
+
+  let h = '<div class="buques-kpi-grid">';
+  h += `<div class="buques-kpi"><div class="kpi-val" style="color:var(--blue)">${totalCruceros}</div><div class="kpi-lbl">Total Cruceros</div></div>`;
+  h += `<div class="buques-kpi"><div class="kpi-val" style="color:var(--green)">${totalPasajIng.toLocaleString()}</div><div class="kpi-lbl">Pasajeros Ingr.</div></div>`;
+  h += `<div class="buques-kpi"><div class="kpi-val" style="color:var(--teal,#0d9488)">${totalTripIng.toLocaleString()}</div><div class="kpi-lbl">Tripulantes Ingr.</div></div>`;
+  h += `<div class="buques-kpi"><div class="kpi-val" style="color:var(--amber)">${totalPasajSal.toLocaleString()}</div><div class="kpi-lbl">Pasajeros Salida</div></div>`;
+  h += `<div class="buques-kpi"><div class="kpi-val" style="color:var(--orange,#f97316)">${totalTripSal.toLocaleString()}</div><div class="kpi-lbl">Tripulantes Salida</div></div>`;
+  h += '</div>';
+
+  const allPuertos = [...new Set(items.map(f => f.datos.puerto).filter(Boolean))].sort();
+  const allEstados = [...new Set(items.map(f => f.datos.estado).filter(Boolean))].sort();
+  const allNombres = [...new Set(items.map(f => f.datos.nombre).filter(Boolean))].sort();
+
+  h += '<div class="cruc-filtros">';
+  h += '<select id="cruc-f-puerto" onchange="crucFiltrarArribados()"><option value="">Todos los Puertos</option>';
+  allPuertos.forEach(p => { h += `<option value="${esc(p)}">${esc(p)}</option>`; });
+  h += '</select>';
+  h += '<select id="cruc-f-estado" onchange="crucFiltrarArribados()"><option value="">Todos los Estados</option>';
+  allEstados.forEach(e => { h += `<option value="${esc(e)}">${esc(e)}</option>`; });
+  h += '</select>';
+  h += '<input id="cruc-f-nombre" type="text" placeholder="Buscar por nombre..." oninput="crucFiltrarArribados()" style="padding:6px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:Outfit,sans-serif;min-width:160px">';
+  h += '<input id="cruc-f-fecha" type="date" onchange="crucFiltrarArribados()" style="padding:6px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:Outfit,sans-serif">';
+  h += '</div>';
+
+  h += '<div class="tbl-wrap"><div class="tbl-title">CRUCEROS - ARRIBADOS</div><table class="pna-table cruc-arrib-table" id="cruc-arrib-tbl"><tr>';
+  ['Puerto','Nombre','Estado','ETA/FH Amarre','Procedencia','Destino','Trip. Ingr.','Pasaj. Ingr.','FH Zarpada','Trip. Sal.','Pasaj. Sal.'].forEach(col => {
+    h += `<th>${col}</th>`;
+  });
+  h += '</tr>';
+
+  const sorted = items.slice().sort((a, b) => {
+    const fa = parseFechaArribado(a.datos.eta);
+    const fb = parseFechaArribado(b.datos.eta);
+    return fa - fb;
+  });
+
+  sorted.forEach(f => {
+    const d = f.datos;
+    const completado = d.eta && d.fhZarpada;
+    h += `<tr class="${completado ? 'cruc-completado' : ''}" data-puerto="${esc(d.puerto)}" data-estado="${esc(d.estado)}" data-nombre="${esc(d.nombre)}" data-fecha="${esc(d.eta)}">`;
+    h += `<td>${esc(d.puerto)}</td><td>${esc(d.nombre)}</td><td>${esc(d.estado)}</td><td>${esc(d.eta)}</td><td>${esc(d.procedencia)}</td><td>${esc(d.destino)}</td><td>${d.tripIng}</td><td>${d.pasajIng}</td><td>${esc(d.fhZarpada)}</td><td>${d.tripSal}</td><td>${d.pasajSal}</td>`;
+    h += '</tr>';
+  });
+  h += '</table></div>';
+
+  return h;
+}
+
+function crucFiltrarArribados() {
+  const puerto = document.getElementById('cruc-f-puerto').value;
+  const estado = document.getElementById('cruc-f-estado').value;
+  const nombre = document.getElementById('cruc-f-nombre').value.toLowerCase();
+  const fecha = document.getElementById('cruc-f-fecha').value;
+  const rows = document.querySelectorAll('#cruc-arrib-tbl tr[data-puerto]');
+  rows.forEach(r => {
+    const okPuerto = !puerto || r.dataset.puerto === puerto;
+    const okEstado = !estado || r.dataset.estado === estado;
+    const okNombre = !nombre || r.dataset.nombre.toLowerCase().includes(nombre);
+    const okFecha = !fecha || r.dataset.fecha.includes(fecha);
+    r.style.display = (okPuerto && okEstado && okNombre && okFecha) ? '' : 'none';
+  });
+}
+
+function initCrucerosArribadosCharts(sec) {}
+
+function parseFechaArribado(str) {
+  if (!str) return 0;
+  const parts = str.split(' ');
+  const dmy = parts[0].split('/');
+  if (dmy.length < 3) return 0;
+  const day = parseInt(dmy[0], 10) || 0;
+  const month = parseInt(dmy[1], 10) - 1 || 0;
+  const year = parseInt(dmy[2], 10) || 0;
+  let h = 0, m = 0;
+  if (parts[1]) {
+    const hm = parts[1].split(':');
+    h = parseInt(hm[0], 10) || 0;
+    m = parseInt(hm[1], 10) || 0;
+  }
+  return new Date(year, month, day, h, m).getTime();
 }
