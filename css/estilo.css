@@ -1640,6 +1640,29 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
   .ejerc-map-header { gap: 6px; }
 }
 @media (max-width: 480px) {
-  #chat-modal { width: 100dvw; height: 100dvh; bottom: 0; right: 0; border-radius: 0; }
+  #chat-modal { width: 100dvw; height: 100dvw; bottom: 0; right: 0; border-radius: 0; }
   #chat-btn { width: 52px; height: 52px; font-size: 22px; bottom: 16px; right: 16px; }
 }
+
+/* ── CRUCEROS TABS ── */
+.cruceros-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--gray-200)}
+.cruceros-tab{padding:10px 20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--text-lt);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.cruceros-tab:hover{color:var(--navy);background:rgba(29,111,164,0.05)}
+.cruceros-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.cruceros-panel{min-height:100px}
+.cruceros-table{width:100%;border-collapse:collapse}
+.cruceros-table th{background:var(--navy);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:center}
+.cruceros-table th:first-child{text-align:left}
+.cruceros-table td{padding:8px 10px;border-bottom:1px solid var(--gray-200);font-size:13px}
+.cruc-puerto{font-weight:700;color:var(--navy);min-width:80px}
+.cruc-num{text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.cruc-arrib{color:#16a34a;background:rgba(22,163,74,0.06)}
+.cruc-canc{color:#dc2626;background:rgba(220,38,38,0.06)}
+.cruc-pend{color:#d97706;background:rgba(217,119,6,0.06)}
+.cruceros-table tr.odd td{background:rgba(0,0,0,0.015)}
+.cruceros-table tr.even td{background:#fff}
+.cruc-total td{border-top:3px solid var(--navy);background:var(--navy) !important;color:#fff !important;font-weight:800;font-size:13px}
+.cruc-filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.cruc-filtros select,.cruc-filtros input{padding:6px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:'Outfit',sans-serif;background:#fff}
+.cruc-arrib-table tr.cruc-completado td{background:rgba(22,163,74,0.08) !important}
+.cruc-arrib-table tr.cruc-completado td:first-child{border-left:3px solid #16a34a}
