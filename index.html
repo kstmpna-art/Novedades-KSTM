@@ -496,7 +496,10 @@
 <!-- ── IMG ZOOM ───────────────────────────────────────────────────── -->
 <div id="imgZoomModal" onclick="cerrarZoom()">
   <span class="cerrar-zoom">✕</span>
-  <img id="imgZoomSrc" src="" alt="Zoom">
+  <button id="imgZoomPrev" class="img-zoom-arrow img-zoom-prev" onclick="event.stopPropagation();zoomNavegar(-1)">‹</button>
+  <img id="imgZoomSrc" src="" alt="Zoom" onclick="event.stopPropagation()">
+  <button id="imgZoomNext" class="img-zoom-arrow img-zoom-next" onclick="event.stopPropagation();zoomNavegar(1)">›</button>
+  <div id="imgZoomCounter" class="img-zoom-counter"></div>
 </div>
 
 <div id="sb-overlay" onclick="cerrarHamburger()"></div>
