@@ -2329,7 +2329,6 @@ function areasCargar(callback) {
     if (callback) callback();
   }
 }
-}
 
 function areasGuardarEnServer() {
   try { localStorage.setItem("areas_busqueda", JSON.stringify(_areasBusqueda)); } catch(e) {}
