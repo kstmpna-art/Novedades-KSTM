@@ -2307,11 +2307,11 @@ function aisMapHtmlReadOnly() {
 var _areasSuffix = "", _areaEditingId = "";
 
 function areasCargar(callback) {
-  try { var local = localStorage.getItem("areas_busqueda"); if (local && _areasBusqueda.length === 0) _areasBusqueda = JSON.parse(local); } catch(e) {}
+  try { var local = localStorage.getItem("areas_busqueda"); if (local) _areasBusqueda = JSON.parse(local); } catch(e) {}
   try {
     google.script.run
       .withSuccessHandler(function(r) {
-        _areasBusqueda = (r && r.ok) ? (r.data || []) : [];
+        _areasBusqueda = (r && r.ok) ? (r.data || []) : _areasBusqueda;
         try { localStorage.setItem("areas_busqueda", JSON.stringify(_areasBusqueda)); } catch(e) {}
         if (callback) callback();
       })
