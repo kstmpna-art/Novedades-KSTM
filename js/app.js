@@ -3,7 +3,7 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwvuZMy5hqo8R1Vc-xoWIviWuZMk6h2V2Ro2bjTYPhiYLtcA6dLDdZMMzYybwVueOByrA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby-Lw9GOAKN6ICnJxryX2XSjxZFuoCo88wdQg089G3Zk2j8klvshtFMAIWKMXijCukKgw/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -2307,37 +2307,48 @@ function aisMapHtmlReadOnly() {
 var _areasSuffix = "", _areaEditingId = "";
 
 function areasCargar(callback) {
-  try { var local = localStorage.getItem("areas_busqueda"); if (local) _areasBusqueda = JSON.parse(local); } catch(e) {}
+  // Traer de la hoja CONFIG vía fetch (funciona también desde file://)
   try {
-    google.script.run
-      .withSuccessHandler(function(r) {
-        if (r && r.ok && r.data) {
-          // Solo actualizamos si el servidor tiene datos y no teníamos localStorage
-          // o si el localStorage está vacío
-          if (!_areasBusqueda || _areasBusqueda.length === 0) {
-            _areasBusqueda = r.data;
-          }
+    var url = new URL(API_URL);
+    url.searchParams.set("accion", "obtenerAreasBusquedaSheet");
+    url.searchParams.set("_", Date.now());
+    fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store" })
+      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        console.log("[Áreas] obtenerSheet OK:", r && r.ok ? r.data.length + " áreas" : JSON.stringify(r));
+        if (r && r.ok && r.data && r.data.length > 0) {
+          _areasBusqueda = r.data;
         }
         try { localStorage.setItem("areas_busqueda", JSON.stringify(_areasBusqueda)); } catch(e) {}
         if (callback) callback();
       })
-      .withFailureHandler(function() {
+      .catch(function(e) {
+        console.error("[Áreas] obtenerSheet ERROR:", e);
+        try { var local = localStorage.getItem("areas_busqueda"); if (local) _areasBusqueda = JSON.parse(local); } catch(e) {}
         if (callback) callback();
-      })
-      .obtenerAreasBusqueda();
+      });
   } catch(e) {
+    try { var local = localStorage.getItem("areas_busqueda"); if (local) _areasBusqueda = JSON.parse(local); } catch(e) {}
     if (callback) callback();
   }
 }
 
 function areasGuardarEnServer() {
   try { localStorage.setItem("areas_busqueda", JSON.stringify(_areasBusqueda)); } catch(e) {}
+
+  // Guardar en hoja CONFIG vía fetch (funciona también desde file://)
   try {
-    google.script.run
-      .withSuccessHandler(function() {})
-      .withFailureHandler(function() {})
-      .guardarAreasBusqueda(JSON.stringify(_areasBusqueda));
-  } catch(e) {}
+    var url = new URL(API_URL);
+    url.searchParams.set("accion", "guardarAreasBusquedaSheet");
+    url.searchParams.set("areas", JSON.stringify(_areasBusqueda));
+    url.searchParams.set("_", Date.now());
+    fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store" })
+      .then(function(r) { return r.json(); })
+      .then(function(r) { console.log("[Áreas] guardarSheet OK:", JSON.stringify(r)); })
+      .catch(function(e) { console.error("[Áreas] guardarSheet ERROR:", e); });
+  } catch(e) {
+    console.error("[Áreas] Excepción guardarSheet:", e);
+  }
 }
 
 function areasAbrirModal(suffix) {
@@ -2498,13 +2509,26 @@ function areasZoomTo(id) {
 
 function areasEliminar(id) {
   if (!confirm("¿Eliminar esta área de búsqueda?")) return;
+  // Filtrar del array global
   _areasBusqueda = _areasBusqueda.filter(function(a) { return a.id !== id; });
+  // Eliminar del mapa si está dibujado
   if (_areaPolygons[id]) {
     var map = _aisMap;
     if (_areasSuffix === "_vc_mas") map = window._vcMasMap || map;
     if (map) try { map.removeLayer(_areaPolygons[id]); } catch(e) {}
     delete _areaPolygons[id];
   }
+  // Eliminar también de la hoja CONFIG vía fetch
+  try {
+    var urlDel = new URL(API_URL);
+    urlDel.searchParams.set("accion", "eliminarAreaBusquedaSheet");
+    urlDel.searchParams.set("id", id);
+    urlDel.searchParams.set("_", Date.now());
+    fetch(urlDel.toString(), { method: "GET", redirect: "follow", cache: "no-store" })
+      .then(function(r) { return r.json(); })
+      .then(function(r) { console.log("[Áreas] eliminarSheet OK:", JSON.stringify(r)); })
+      .catch(function(e) { console.error("[Áreas] eliminarSheet ERROR:", e); });
+  } catch(e) {}
   areasGuardarEnServer();
   areasRenderModal();
 }
