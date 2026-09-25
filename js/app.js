@@ -2311,7 +2311,13 @@ function areasCargar(callback) {
   try {
     google.script.run
       .withSuccessHandler(function(r) {
-        _areasBusqueda = (r && r.ok) ? (r.data || []) : _areasBusqueda;
+        if (r && r.ok && r.data) {
+          // Solo actualizamos si el servidor tiene datos y no teníamos localStorage
+          // o si el localStorage está vacío
+          if (!_areasBusqueda || _areasBusqueda.length === 0) {
+            _areasBusqueda = r.data;
+          }
+        }
         try { localStorage.setItem("areas_busqueda", JSON.stringify(_areasBusqueda)); } catch(e) {}
         if (callback) callback();
       })
@@ -2322,6 +2328,7 @@ function areasCargar(callback) {
   } catch(e) {
     if (callback) callback();
   }
+}
 }
 
 function areasGuardarEnServer() {
