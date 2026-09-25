@@ -151,6 +151,9 @@ function iniciarApp(user, role) {
   // En vez de abrir el app directamente, mostrar el selector
   mostrarSelector();
   filtrarNavegacionPermisos();
+
+  // Cargar áreas de búsqueda del servidor apenas inicia la app
+  areasCargar();
 }
 
 function filtrarNavegacionPermisos() {
@@ -2313,13 +2316,16 @@ function areasCargar(callback) {
     url.searchParams.set("accion", "obtenerAreasBusquedaSheet");
     url.searchParams.set("_", Date.now());
     fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store" })
-      .then(function(r) { return r.json(); })
-      .then(function(r) {
+      .then(function(r) { return r.text(); })
+      .then(function(t) {
+        var r;
+        try { r = JSON.parse(t); } catch(e) { console.error("[Áreas] Respuesta no-JSON:", t.substring(0, 200)); throw e; }
         console.log("[Áreas] obtenerSheet OK:", r && r.ok ? r.data.length + " áreas" : JSON.stringify(r));
         if (r && r.ok && r.data && r.data.length > 0) {
           _areasBusqueda = r.data;
         }
         try { localStorage.setItem("areas_busqueda", JSON.stringify(_areasBusqueda)); } catch(e) {}
+        areasRedibujarTodas();
         if (callback) callback();
       })
       .catch(function(e) {
@@ -2331,6 +2337,18 @@ function areasCargar(callback) {
     try { var local = localStorage.getItem("areas_busqueda"); if (local) _areasBusqueda = JSON.parse(local); } catch(e) {}
     if (callback) callback();
   }
+}
+
+/* Redibuja los polígonos en todos los mapas vivos (ais + vista completa MAS) */
+function areasRedibujarTodas() {
+  try {
+    if (_aisMap && document.body.contains(_aisMap.getContainer())) {
+      areasDibujarTodas(_aisCurrentSection || "");
+    }
+    if (window._vcMasMap && document.body.contains(window._vcMasMap.getContainer())) {
+      areasDibujarTodas("_vc_mas");
+    }
+  } catch(e) { console.error("[Áreas] Error al redibujar:", e); }
 }
 
 function areasGuardarEnServer() {
