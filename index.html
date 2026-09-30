@@ -8,12 +8,144 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="css/estilo.css?v=2">
+<style>
+/* ── CONTADOR DE CARGA POR ETAPAS (con barquito) ── */
+#boot-overlay{position:fixed;inset:0;background:#0f2744;display:flex;align-items:center;justify-content:center;z-index:99999;transition:opacity .4s ease}
+#boot-overlay.boot-hide{opacity:0;pointer-events:none}
+.boot-card{width:min(340px,86vw);color:#fff;font-family:'Outfit',sans-serif}
+.boot-title{font-size:15px;font-weight:700;letter-spacing:.3px;text-align:center}
+.boot-sea{position:relative;height:44px;margin:26px 0 6px}
+.boot-bar{position:absolute;left:0;right:0;bottom:0;height:14px;background:rgba(255,255,255,.10);border-radius:99px;overflow:hidden}
+.boot-fill{height:100%;width:0%;background:linear-gradient(90deg,#0d9488,#38bdf8);border-radius:99px;transition:width .5s ease}
+.boot-boat{position:absolute;bottom:9px;left:0%;transform:translateX(-50%);line-height:0;transition:left .5s ease;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45));z-index:2;animation:bootOla 1.6s ease-in-out infinite}
+.boot-boat svg{display:block}
+.boot-boat::after{content:"";position:absolute;left:50%;top:100%;width:40px;height:5px;margin-left:-20px;border-radius:50%;background:radial-gradient(ellipse,rgba(56,189,248,.55),transparent 70%)}
+@keyframes bootOla{0%,100%{transform:translateX(-50%) translateY(0) rotate(-4deg)}50%{transform:translateX(-50%) translateY(-3px) rotate(4deg)}}
+.boot-row{display:flex;justify-content:space-between;font-size:12px;opacity:.85}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
+
+<!-- ── CONTADOR DE CARGA — ENLACE DE DATOS ────────────────────────── -->
+<div id="boot-overlay" style="display:none">
+  <div class="boot-card">
+    <div class="boot-title" id="boot-title">Estableciendo enlace de datos…</div>
+    <div class="boot-sea">
+      <div class="boot-boat" id="boot-boat">
+        <svg viewBox="0 0 84 48" width="46" height="27" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- mástil + radar -->
+          <rect x="45" y="6" width="2.4" height="12" fill="#94a3b8"/>
+          <ellipse cx="46.2" cy="5" rx="7" ry="2.4" fill="#e2e8f0"/>
+          <ellipse cx="46.2" cy="5" rx="7" ry="2.4" fill="none" stroke="#0f2744" stroke-width="1"/>
+          <!-- cabina -->
+          <path d="M30 30 L34 16 L56 16 L61 30 Z" fill="#1e3a5f"/>
+          <!-- vidrios -->
+          <path d="M36.5 19 L39.5 19 L37 26 L33.8 26 Z" fill="#38bdf8"/>
+          <path d="M43 19 L48 19 L48 26 L41.5 26 Z" fill="#38bdf8"/>
+          <path d="M51 19 L56 19 L58.6 26 L51 26 Z" fill="#38bdf8"/>
+          <!-- casco -->
+          <path d="M7 30 L77 30 L66 40 Q63.5 42.5 59 42.5 L19 42.5 Q12.5 42.5 10 37 Z" fill="#f1f5f9"/>
+          <!-- franja teal del casco -->
+          <path d="M7.4 30 L76.6 30 L75.2 33.2 L8.6 33.2 Z" fill="#0d9488"/>
+          <!-- línea de cubierta -->
+          <path d="M14 36.5 L64 36.5" stroke="#cbd5e1" stroke-width="1.4" stroke-linecap="round"/>
+          <!-- reflector de proa -->
+          <circle cx="70" cy="31.8" r="1.6" fill="#fde047"/>
+        </svg>
+      </div>
+      <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
+    </div>
+    <div class="boot-row"><span id="boot-etapa">Iniciando</span><span id="boot-pct">0%</span></div>
+  </div>
+</div>
+<script>
+/* Contador por etapas — se activa solo cuando se establece el enlace de datos */
+var __bootTimer = null, __bootHideTimer = null, __bootActivo = false;
+var __bootPct = 0, __bootCreep = null;
+function __bootRender(pct, txt) {
+  var o = document.getElementById("boot-overlay");
+  if (!o) return;
+  o.style.display = "flex";
+  o.classList.remove("boot-hide");
+  document.getElementById("boot-fill").style.width = pct + "%";
+  var boat = document.getElementById("boot-boat");
+  if (boat) boat.style.left = pct + "%";
+  document.getElementById("boot-pct").textContent = Math.round(pct) + "%";
+  if (txt) document.getElementById("boot-etapa").textContent = txt;
+}
+function bootPaso(pct, txt) {
+  if (!__bootActivo) return; // pasos tardíos de una carga ya finalizada: ignorar
+  if (__bootHideTimer) { clearTimeout(__bootHideTimer); __bootHideTimer = null; }
+  if (__bootCreep) { clearInterval(__bootCreep); __bootCreep = null; }
+  if (pct < __bootPct) pct = __bootPct; // nunca retrocede
+  __bootPct = pct;
+  __bootRender(__bootPct, txt);
+  // Cada paso real re-armza el seguro: si algo se cuelga, se oculta a los 60s (failsafe; el error real llega antes por el timeout de 15s)
+  if (__bootTimer) clearTimeout(__bootTimer);
+  __bootTimer = setTimeout(bootFin, 60000);
+}
+/* Avance suave del barquito mientras se espera la respuesta del servidor */
+function bootSubir(maxPct, txt) {
+  if (!__bootActivo) return;
+  if (__bootCreep) { clearInterval(__bootCreep); __bootCreep = null; }
+  __bootCreep = setInterval(function() {
+    if (!__bootActivo) { clearInterval(__bootCreep); __bootCreep = null; return; }
+    if (__bootPct >= maxPct) { clearInterval(__bootCreep); __bootCreep = null; return; }
+    __bootPct = Math.min(maxPct, __bootPct + 0.6);
+    __bootRender(__bootPct, txt);
+    // mientras el barquito avanza, el seguro sigue vigente
+    if (__bootTimer) clearTimeout(__bootTimer);
+    __bootTimer = setTimeout(bootFin, 60000);
+  }, 220);
+}
+function bootIniciar(txt) {
+  __bootActivo = true;
+  __bootPct = 0;
+  if (__bootTimer) { clearTimeout(__bootTimer); __bootTimer = null; }
+  if (__bootCreep) { clearInterval(__bootCreep); __bootCreep = null; }
+  var bt = document.getElementById("boot-title");
+  if (bt) bt.textContent = "Estableciendo enlace de datos…";
+  bootPaso(15, txt || "Conectando con el servidor");
+}
+function bootFin() {
+  __bootActivo = false;
+  if (__bootTimer) { clearTimeout(__bootTimer); __bootTimer = null; }
+  if (__bootHideTimer) { clearTimeout(__bootHideTimer); __bootHideTimer = null; }
+  if (__bootCreep) { clearInterval(__bootCreep); __bootCreep = null; }
+  var o = document.getElementById("boot-overlay");
+  if (!o || o.style.display === "none") return;
+  __bootPct = 100;
+  document.getElementById("boot-fill").style.width = "100%";
+  var boat = document.getElementById("boot-boat");
+  if (boat) boat.style.left = "100%";
+  document.getElementById("boot-pct").textContent = "100%";
+  document.getElementById("boot-etapa").textContent = "Listo";
+  var bt = document.getElementById("boot-title");
+  if (bt) bt.textContent = "Enlace de datos establecido";
+  o.classList.add("boot-hide");
+  __bootHideTimer = setTimeout(function() {
+    o.style.display = "none";
+    o.classList.remove("boot-hide");
+    __bootHideTimer = null;
+  }, 450);
+}
+/* Error: cierra el contador al instante para ir directo al mensaje de error */
+function bootError() {
+  __bootActivo = false;
+  if (__bootTimer) { clearTimeout(__bootTimer); __bootTimer = null; }
+  if (__bootHideTimer) { clearTimeout(__bootHideTimer); __bootHideTimer = null; }
+  if (__bootCreep) { clearInterval(__bootCreep); __bootCreep = null; }
+  var o = document.getElementById("boot-overlay");
+  if (!o) return;
+  o.classList.remove("boot-hide");
+  o.style.display = "none";
+  __bootPct = 0;
+}
+</script>
 
 <!-- ── LOGIN ──────────────────────────────────────────────────────── -->
 <div id="login-screen">
@@ -782,6 +914,6 @@
   </div>
 </div>
 
-<script src="js/app.js?v=20260925a"></script>
+<script src="js/app.js?v=20260925g"></script>
 </body>
 </html>
