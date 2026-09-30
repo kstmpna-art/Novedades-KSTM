@@ -3,8 +3,22 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycby-Lw9GOAKN6ICnJxryX2XSjxZFuoCo88wdQg089G3Zk2j8klvshtFMAIWKMXijCukKgw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyfmHvaxyc6OWXQk-mApVXHMIaqndr_o1EfigLYDT9P0x54ZVeLQ3oHEsbFlxjtZjSSXg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
+
+/* Keep-alive: ping cada 3 min para que GAS no entre en frío (arranque de 8-13s) */
+(function() {
+  function _ping() {
+    try {
+      var c = new AbortController();
+      var t = setTimeout(function() { c.abort(); }, 10000);
+      fetch(API_URL + "?accion=ping&_=" + Date.now(), { method: "GET", cache: "no-store", redirect: "follow", signal: c.signal })
+        .then(function() { clearTimeout(t); }, function() { clearTimeout(t); });
+    } catch (e) {}
+  }
+  setTimeout(_ping, 3000);
+  setInterval(_ping, 180000);
+})();
 
 /* ================================================================
    ESTADO GLOBAL
@@ -93,16 +107,23 @@ async function intentarLogin() {
   err.style.display = "none";
   btn.disabled = true;
   btn.textContent = "⏳ Ingresando...";
+  if (typeof bootIniciar === "function") bootIniciar("Conectando con el servidor");
+  if (typeof bootSubir === "function") bootSubir(70, "Conectando con el servidor");
   try {
     const url = new URL(LOGIN_API_URL);
     url.searchParams.set("accion", "login");
     url.searchParams.set("usuario", usr);
     url.searchParams.set("password", pwd);
     url.searchParams.set("_", Date.now());
-    const r = await fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store" });
+    var ctrlLogin = new AbortController();
+    var toLogin = setTimeout(function() { ctrlLogin.abort(); }, 30000);
+    const r = await fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store", signal: ctrlLogin.signal });
     const text = await r.text();
+    clearTimeout(toLogin);
     const res = JSON.parse(text);
+    if (typeof bootPaso === "function") bootPaso(70, "Verificando acceso");
     if (!res || !res.ok) {
+      if (typeof bootError === "function") bootError();
       err.style.display = "block";
       err.textContent = "Usuario o contraseña incorrectos.";
       btn.disabled = false;
@@ -116,10 +137,16 @@ async function intentarLogin() {
     };
     const efectiveRole = (rolSeleccionado === "visual" || user.role === "visual") ? "visual" : "admin";
     usuarioSecciones = parsearPermisos(res.secciones);
+    if (typeof bootPaso === "function") bootPaso(90, "Preparando datos");
     iniciarApp(user, efectiveRole);
+    if (typeof bootFin === "function") bootFin();
   } catch(e) {
+    if (toLogin) clearTimeout(toLogin);
+    if (typeof bootError === "function") bootError();
     err.style.display = "block";
-    err.textContent = "Error de conexión: " + (e.message || e);
+    err.textContent = (e && e.name === "AbortError") ? "Error de conexión: el servidor no responde"
+      : (e instanceof SyntaxError) ? "Error de JSON: la respuesta del servidor no es válida"
+      : "Error de conexión: " + (e.message || e);
     btn.disabled = false;
     btn.textContent = "Ingresar al Sistema →";
   }
@@ -194,17 +221,41 @@ async function llamarAPI(accion, params={}, _retries) {
   const url = new URL(API_URL);
   url.searchParams.set("accion", accion);
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, typeof v==="object"?JSON.stringify(v):v));
+  var nTimeouts = 0, ultimoError = null;
   for (var i = 0; i <= _retries; i++) {
+    var ctrl = new AbortController();
+    var toId = setTimeout(function() { ctrl.abort(); }, 40000);
+    var t = "";
     try {
-      const r = await fetch(url.toString(),{method:"GET",redirect:"follow"});
-      const t = await r.text();
-      return JSON.parse(t);
+      const r = await fetch(url.toString(),{method:"GET",redirect:"follow",signal:ctrl.signal});
+      clearTimeout(toId);
+      t = await r.text();
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const body = (t || "").trim();
+      if (body.charAt(0) === "<") throw new Error("HTML"); // el servidor devolvió una página, no JSON
+      return JSON.parse(body);
     } catch(e) {
-      if (i < _retries) { await new Promise(function(ok){ setTimeout(ok, 1500); }); continue; }
+      clearTimeout(toId);
+      var esTimeout = !!(e && e.name === "AbortError");
+      var esHtml = (e && e.message === "HTML");
+      if (esTimeout) nTimeouts++;
+      ultimoError = e;
+      // Reintento: timeout 1 sola vez; HTML/JSON hasta _retries
+      var reintenta = i < _retries && (!esTimeout || nTimeouts <= 1);
+      if (reintenta) { await new Promise(function(ok){ setTimeout(ok, 1500); }); continue; }
+      if (esTimeout) {
+        console.error("API sin respuesta tras 40s:", accion);
+        throw new Error("El servidor no responde (tiempo agotado)");
+      }
+      if (esHtml) {
+        console.error("La API devolvió HTML en vez de JSON:", accion, (t||"").slice(0,200));
+        throw new Error("El servidor devolvió una página de error (no JSON)");
+      }
       console.error("Resp inválida tras reintentos:", e);
       throw new Error("API no devolvió JSON");
     }
   }
+  throw ultimoError || new Error("API no devolvió JSON");
 }
 
 // Caché de datos en memoria (evita re-fetchear si son recientes)
@@ -213,10 +264,54 @@ var _datosCacheTs = 0;
 var _CACHE_TTL_MS = 60000; // 60 segundos
 var _datosFase2Cargados = false;
 
-// Secciones críticas para el HOME (carga rápida)
-var _SECCIONES_FASE1 = ["AVIACION","SAR","MAS","GC","ARA","PUERTOS","DRAGAS","BUQUES","KSTM","VISITAS","RESERVA","REGATAS","EJER.ARMAS","NOVEDADES","BUQUES_BANDERA"];
-// Todo lo demás (carga diferida)
-var _SECCIONES_FASE2 = ["CONVENIO","SBGC","ALERTA","DETERMINANTES","PIR_95","METANEROS","PBIP","VELEROS_OC","CRUCEROS","CRUCEROS_ARRIBADOS","MDA_SIBI","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","PERSONAL_COSTERA","SALVAMENTO","DEMORADOS"];
+// FASE 1 — secciones críticas del HOME (pintan la primera vista)
+var _SECCIONES_FASE1 = ["SAR","MAS","GC","ARA","PUERTOS","DRAGAS","REGATAS"];
+
+// TANDAS PROGRESIVAS — el resto se carga en orden, de a poco, sin bloquear el home.
+// Cada tanda que llega repinta el home y sus KPIs pasan de "…" a su número.
+var _TANDAS_SECCIONES = [
+  ["AVIACION","BUQUES","BUQUES_BANDERA"],
+  ["EJER.ARMAS","KSTM","RESERVA"],
+  ["METANEROS","PBIP","PIR_95","VELEROS_OC"],
+  ["NOVEDADES","VISITAS","MDA_SIBI"],
+  ["CONVENIO","SBGC","ALERTA","DETERMINANTES"],
+  ["CRUCEROS","CRUCEROS_ARRIBADOS","PERSONAL_COSTERA","SALVAMENTO","DEMORADOS"],
+  ["MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4"]
+];
+var _TANDAS_FALLADAS = [];
+var _tandasPromise = null;
+
+function _secYaCargada(id) {
+  return !!(typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones &&
+    datosGlobales.secciones.find(function(s){ return s.id === id; }));
+}
+
+function _mezclarSecciones(secs) {
+  if (!secs) return;
+  function mergeInto(obj) {
+    if (!obj || !obj.secciones) return;
+    secs.forEach(function(nuevaSec) {
+      var idx = obj.secciones.findIndex(function(s){ return s.id === nuevaSec.id; });
+      if (idx >= 0) { obj.secciones[idx] = nuevaSec; } else { obj.secciones.push(nuevaSec); }
+    });
+  }
+  mergeInto(_datosCache);
+  if (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales !== _datosCache) mergeInto(datosGlobales);
+}
+
+/* Repinta la vista según lo que se esté viendo, después de llegar una tanda */
+function _repintarTrasCarga(secsNuevas) {
+  if (typeof actualizarPreavisos === "function") actualizarPreavisos();
+  var _homeEl = document.getElementById("home-view");
+  if (_homeEl && _homeEl.style.display !== "none") {
+    renderizar(_datosCache || datosGlobales);
+    mostrarHome();
+  } else if (window._vistaGeneralActiva && typeof renderizarVistaCompleta === "function") {
+    renderizarVistaCompleta();
+  } else if (seccionActiva && secsNuevas && secsNuevas.indexOf(seccionActiva) >= 0) {
+    mostrarSeccion(seccionActiva);
+  }
+}
 
 async function cargarDatos(forzar, filtroSecciones) {
   try {
@@ -230,20 +325,29 @@ async function cargarDatos(forzar, filtroSecciones) {
       } else {
         mostrarHome();
       }
+      // Si al entrar por caché faltan secciones (carga anterior incompleta), retomar
+      if (!_datosFase2Cargados) setTimeout(function(){ cargarFase2(); }, 600);
       return;
     }
 
     // FASE 1: Cargar solo secciones críticas del HOME
     _datosFase2Cargados = false;
+    _TANDAS_FALLADAS = [];
+    if (typeof bootIniciar === "function") bootIniciar("Estableciendo enlace de datos");
+    if (typeof bootPaso === "function") bootPaso(40, "Descargando novedades");
+    if (typeof bootSubir === "function") bootSubir(99, "Descargando novedades");
     const data1 = await llamarAPI("obtenerDatosPNA", { secciones: _SECCIONES_FASE1.join(",") });
+    if (typeof bootPaso === "function") bootPaso(99, "Procesando información");
     if (data1 && data1.error) {
-      document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error: ${data1.error}</div>`;
+      if (typeof bootError === "function") bootError();
+      mostrarErrorLoader("Error: " + data1.error);
       return;
     }
     _datosCache = data1;
     _datosCacheTs = Date.now();
     renderizar(data1);
     iniciarAutoRefresh();
+    if (typeof bootFin === "function") bootFin();
     if (servicioActivo && servicioActivo !== "KSTM") {
       mostrarSeccion(defaultSeccionPorServicio(servicioActivo));
     } else {
@@ -254,35 +358,93 @@ async function cargarDatos(forzar, filtroSecciones) {
     setTimeout(function() { cargarFase2(); }, 1500);
 
   } catch(err) {
-    document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error al cargar datos.<br><small>${err.message}</small></div>`;
+    if (typeof bootError === "function") bootError();
+    mostrarErrorLoader("Error al cargar datos.<br><small>" + (err.message || err) + "</small>");
   }
 }
 
-async function cargarFase2() {
-  try {
-    if (_datosFase2Cargados) return;
-    const data2 = await llamarAPI("obtenerDatosPNA", { secciones: _SECCIONES_FASE2.join(",") });
-    if (data2 && data2.secciones && _datosCache) {
-      // Merge: agregar las secciones nuevas al cache existente
-      data2.secciones.forEach(function(nuevaSec) {
-        var idx = _datosCache.secciones.findIndex(function(s){ return s.id === nuevaSec.id; });
-        if (idx >= 0) {
-          _datosCache.secciones[idx] = nuevaSec;
-        } else {
-          _datosCache.secciones.push(nuevaSec);
-        }
+/* Muestra el error en el loader con botón de reintento */
+function mostrarErrorLoader(html) {
+  var ld = document.getElementById("loader");
+  if (!ld) return;
+  ld.style.display = "flex";
+  ld.innerHTML = `
+    <div style="color:var(--red);font-family:'Outfit',sans-serif;text-align:center">${html}</div>
+    <button onclick="reintentarCarga()" style="margin-top:14px;padding:9px 22px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer">↺ Reintentar</button>
+  `;
+}
+
+/* Relanza la carga completa después de un error */
+function reintentarCarga() {
+  var ld = document.getElementById("loader");
+  if (ld) {
+    ld.style.display = "flex";
+    ld.innerHTML = `<div class="spin"></div><span>Estableciendo enlace de datos...</span>`;
+  }
+  cargarDatos(true);
+}
+
+/* Carga progresiva del resto de secciones, tanda por tanda, en orden.
+   - sin argumento: arranca (o retoma) la cadena de tandas
+   - con seccionDeseada: carga esa sección ya mismo (click del usuario) y
+     además sigue la cadena normal
+   Devuelve una promesa que se resuelve cuando termina la cadena completa. */
+function cargarFase2(seccionDeseada) {
+  var tareas = [];
+  if (seccionDeseada && !_secYaCargada(seccionDeseada)) {
+    tareas.push(_cargarTanda([seccionDeseada]));
+  }
+  tareas.push(_correrTandas());
+  return Promise.all(tareas).then(function(){});
+}
+
+function _correrTandas() {
+  if (_tandasPromise) return _tandasPromise;
+  _tandasPromise = _loopTandas().then(function() {
+    _datosFase2Cargados = true;
+    _tandasPromise = null;
+  }, function(e) {
+    console.log("Tandas diferidas:", e && e.message);
+    _datosFase2Cargados = true;
+    _tandasPromise = null;
+  });
+  return _tandasPromise;
+}
+
+async function _loopTandas() {
+  while (true) {
+    if (!_datosCache && (typeof datosGlobales === "undefined" || !datosGlobales)) return;
+    var tanda = null;
+    for (var i = 0; i < _TANDAS_SECCIONES.length; i++) {
+      var pend = _TANDAS_SECCIONES[i].filter(function(id) {
+        return !_secYaCargada(id) && _TANDAS_FALLADAS.indexOf(id) < 0;
       });
-      if (data2.fecha) _datosCache.fecha = data2.fecha;
-      _datosFase2Cargados = true;
-      var visorEl = document.getElementById("visor");
-      if (visorEl && visorEl.dataset && visorEl.dataset.secActiva === "HOME") {
-        renderizar(_datosCache);
-        mostrarHome();
-      } else if (window._vistaGeneralActiva && typeof renderizarVistaCompleta === "function") {
-        renderizarVistaCompleta();
-      }
+      if (pend.length) { tanda = pend; break; }
     }
-  } catch(e) { console.log("Fase 2 diferida:", e.message); }
+    if (!tanda) return; // todo cargado (o todo lo pendiente falló)
+    var ok = await _cargarTanda(tanda);
+    if (!ok) _TANDAS_FALLADAS = _TANDAS_FALLADAS.concat(tanda);
+  }
+}
+
+/* Pide una tanda de secciones, las mezcla y repinta. Devuelve true si salió bien. */
+async function _cargarTanda(ids) {
+  var pendientes = ids.filter(function(id){ return !_secYaCargada(id); });
+  if (!pendientes.length) return true;
+  try {
+    var data = await llamarAPI("obtenerDatosPNA", { secciones: pendientes.join(",") });
+    if (data && data.error) { console.log("Tanda con error:", data.error); return false; }
+    if (data && data.secciones) {
+      if (data.fecha && _datosCache) _datosCache.fecha = data.fecha;
+      _mezclarSecciones(data.secciones);
+      _repintarTrasCarga(pendientes);
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.log("Tanda falló:", pendientes.join(","), "-", e.message);
+    return false;
+  }
 }
 
 /* ================================================================
@@ -738,38 +900,46 @@ function partesAHtml(partes) {
 }
 function filaArrayAHtml(datos) { return (datos||[]).filter(v=>v).join(" <span style='opacity:.3'>|</span> "); }
 
+/* Recalcula preavisosUrl/fileName desde los datos actuales de ALERTA.
+   Se llama al renderizar, al abrir la sección ALERTA y al llegar la fase 2,
+   porque ALERTA viene en fase 2 y renderizar() por sí solo no la alcanza. */
+function actualizarPreavisos() {
+  preavisosUrl = null;
+  preavisosFileName = null;
+  var _sec = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+    ? datosGlobales.secciones.find(function(s){ return s.id === "ALERTA"; }) : null;
+  if (!_sec || !_sec.filas) return;
+  for (var i = 0; i < _sec.filas.length; i++) {
+    var f = _sec.filas[i];
+    if (!f) continue;
+    if (f.imgUrl && String(f.imgUrl).trim()) {
+      preavisosUrl = String(f.imgUrl).trim();
+      preavisosFileName = "Preaviso";
+      return;
+    }
+    if (f.datos && Array.isArray(f.datos)) {
+      for (var j = 0; j < f.datos.length; j++) {
+        var v = f.datos[j];
+        if (v && String(v).trim().startsWith("http")) {
+          preavisosUrl = String(v).trim();
+          preavisosFileName = "Preaviso";
+          return;
+        }
+      }
+    }
+  }
+}
+
 /* ================================================================
    RENDER PRINCIPAL
-================================================================ */
+=============================================================== */
 function renderizar(data) {
   if (!data||!data.secciones) { document.getElementById("loader").innerHTML = "Sin datos."; return; }
   datosGlobales = data;
 
-  // Preavisos: el backend guarda el link en la columna V de ALERT.MET
+  // Preavisos: el backend guarda el link en la columna F de ALERT.MET
   // y lo devuelve como imgUrl en la primera fila de la sección ALERTA
-  preavisosUrl = null;
-  preavisosFileName = null;
-  const _alertaSec = data.secciones && data.secciones.find(s => s.id === "ALERTA");
-  if (_alertaSec && _alertaSec.filas) {
-    for (const f of _alertaSec.filas) {
-      if (!f) continue;
-      if (f.imgUrl && String(f.imgUrl).trim()) {
-        preavisosUrl = String(f.imgUrl).trim();
-        preavisosFileName = "Preaviso";
-        break;
-      }
-      if (f.datos && Array.isArray(f.datos)) {
-        for (const v of f.datos) {
-          if (v && String(v).trim().startsWith("http")) {
-            preavisosUrl = String(v).trim();
-            preavisosFileName = "Preaviso";
-            break;
-          }
-        }
-        if (preavisosUrl) break;
-      }
-    }
-  }
+  actualizarPreavisos();
 
   document.getElementById("loader").style.display = "none";
   document.getElementById("home-view").style.display = "block";
@@ -1582,14 +1752,16 @@ function mostrarHome() {
         </button>` : ''}
       </div>
       <div class="home-header-kpi">
-        ${todos.map(t => `
+        ${todos.map(t => {
+          const _carg = _secYaCargada(t.sec);
+          return `
           <div class="home-kpi" onclick="mostrarSeccion('${t.sec}')" style="cursor:pointer">
-            <div class="kpi-val" style="color:${t.c}">${t.v}</div>
+            <div class="kpi-val" style="color:${_carg ? t.c : "rgba(255,255,255,0.45)"}">${_carg ? t.v : "…"}</div>
             <div class="kpi-lbl">${t.l}</div>
-            ${t.extra?`<div style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
-            ${t.sub?`<div style="font-size:8px;color:rgba(255,255,255,0.55);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.sub}</div>`:''}
-            ${t.sub2?`<div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:2px;white-space:nowrap;letter-spacing:.2px;border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;">${t.sub2}</div>`:''}
-          </div>`).join("")}
+            ${t.extra&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
+            ${t.sub&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.55);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.sub}</div>`:''}
+            ${t.sub2&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:2px;white-space:nowrap;letter-spacing:.2px;border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;">${t.sub2}</div>`:''}
+          </div>`;}).join("")}
       </div>
     </div>
     <div id="home-port-alert"></div>
@@ -1649,8 +1821,8 @@ function mostrarSeccion(id) {
   // Si la sección no está cargada, cargarla on-demand
   var secCheck = datosGlobales && datosGlobales.secciones && datosGlobales.secciones.find(function(s){ return s.id === id; });
   if (!secCheck && !_datosFase2Cargados) {
-    // Cargar Fase 2 si no está cargada
-    cargarFase2();
+    // Cargar esa sección ya mismo + seguir con el resto de tandas
+    cargarFase2(id);
   }
 
   seccionActiva = id;
@@ -3611,6 +3783,8 @@ function renderSeccion(sec) {
   }
 
   if (sec.id === "ALERTA") {
+  // Recalcular acá: el preaviso debe verse aunque renderizar() no haya corrido con ALERTA
+  actualizarPreavisos();
   let h = `
   <!-- BOTONES -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
@@ -6216,6 +6390,10 @@ function mostrarVistaCompleta(){
   window._vistaGeneralActiva = true;
   renderizarVistaCompleta();
 }
+/* Orden fijo de la vista general — AVIACION primero, sin importar
+   en qué fase/tanda llegó cada sección */
+var _ORDEN_VISTA_GENERAL = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","CRUCEROS_ARRIBADOS","VISITAS","NOVEDADES","PERSONAL_COSTERA","DEMORADOS"];
+
 function renderizarVistaCompleta(){
   if (!datosGlobales) return;
   window._vistaCompletaMode = true;
@@ -6231,7 +6409,12 @@ function renderizarVistaCompleta(){
   const ignorar = ["SEAV","SERS","SBGC","BUQUES_BANDERA","MDA_SIBI"];
   let html = "";
   console.log("Vista general - secciones:", datosGlobales.secciones.map(s => s.id + "(" + (s.filas||[]).length + " filas)"));
-  datosGlobales.secciones.forEach(sec => {
+  const _secsOrdenadas = datosGlobales.secciones.slice().sort(function(a, b) {
+    var ia = _ORDEN_VISTA_GENERAL.indexOf(a.id); if (ia < 0) ia = _ORDEN_VISTA_GENERAL.length;
+    var ib = _ORDEN_VISTA_GENERAL.indexOf(b.id); if (ib < 0) ib = _ORDEN_VISTA_GENERAL.length;
+    return ia - ib;
+  });
+  _secsOrdenadas.forEach(sec => {
     if (ignorar.includes(sec.id)) return;
     if (!sec.filas || !sec.filas.length) return;
     const titulo = sec.titulo || sec.id;
