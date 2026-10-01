@@ -230,7 +230,13 @@ async function llamarAPI(accion, params={}, _retries) {
       const r = await fetch(url.toString(),{method:"GET",redirect:"follow",signal:ctrl.signal});
       clearTimeout(toId);
       t = await r.text();
-      if (!r.ok) throw new Error("HTTP " + r.status);
+      if (!r.ok) {
+        var eHttp = new Error("HTTP " + r.status);
+        eHttp.httpStatus = r.status;
+        eHttp.snippet = (t || "").replace(/\s+/g, " ").slice(0, 150);
+        console.error("API HTTP " + r.status + " en " + accion + ":", eHttp.snippet);
+        throw eHttp;
+      }
       const body = (t || "").trim();
       if (body.charAt(0) === "<") throw new Error("HTML"); // el servidor devolvió una página, no JSON
       return JSON.parse(body);
@@ -238,18 +244,30 @@ async function llamarAPI(accion, params={}, _retries) {
       clearTimeout(toId);
       var esTimeout = !!(e && e.name === "AbortError");
       var esHtml = (e && e.message === "HTML");
+      var esHttp = !!(e && e.httpStatus);
+      var esJSON = (e instanceof SyntaxError);
       if (esTimeout) nTimeouts++;
       ultimoError = e;
-      // Reintento: timeout 1 sola vez; HTML/JSON hasta _retries
+      // Reintento: timeout 1 sola vez; HTTP/HTML/JSON hasta _retries (con espera creciente)
       var reintenta = i < _retries && (!esTimeout || nTimeouts <= 1);
-      if (reintenta) { await new Promise(function(ok){ setTimeout(ok, 1500); }); continue; }
+      if (reintenta) { await new Promise(function(ok){ setTimeout(ok, 2500 * (i + 1)); }); continue; }
       if (esTimeout) {
         console.error("API sin respuesta tras 40s:", accion);
         throw new Error("El servidor no responde (tiempo agotado)");
       }
+      if (esHttp) {
+        var st = e.httpStatus;
+        if (st === 429) throw new Error("El servidor alcanzó el límite de llamadas (HTTP 429). Esperá un minuto y reintentá.");
+        if (st >= 500) throw new Error("Error interno del servidor (HTTP " + st + ") — puede ser un arranque lento de Google Apps Script.");
+        throw new Error("El servidor respondió con error (HTTP " + st + ")");
+      }
       if (esHtml) {
-        console.error("La API devolvió HTML en vez de JSON:", accion, (t||"").slice(0,200));
+        console.error("La API devolvió HTML en vez de JSON:", accion, (t||"").slice(0,300));
         throw new Error("El servidor devolvió una página de error (no JSON)");
+      }
+      if (esJSON) {
+        console.error("Respuesta ilegible:", accion, (t||"").slice(0,300));
+        throw new Error("Respuesta ilegible del servidor (no es JSON válido)");
       }
       console.error("Resp inválida tras reintentos:", e);
       throw new Error("API no devolvió JSON");
@@ -299,18 +317,34 @@ function _mezclarSecciones(secs) {
   if (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales !== _datosCache) mergeInto(datosGlobales);
 }
 
-/* Repinta la vista según lo que se esté viendo, después de llegar una tanda */
+/* Repinta la vista según lo que se esté viendo, después de llegar una tanda.
+   Cada paso va en su propio try/catch: si renderizar() falla con los datos
+   nuevos, igual se ejecuta mostrarHome() (que es quien actualiza los KPI). */
 function _repintarTrasCarga(secsNuevas) {
-  if (typeof actualizarPreavisos === "function") actualizarPreavisos();
+  try { if (typeof actualizarPreavisos === "function") actualizarPreavisos(); } catch(e) { console.error("preavisos:", e); }
   var _homeEl = document.getElementById("home-view");
   if (_homeEl && _homeEl.style.display !== "none") {
-    renderizar(_datosCache || datosGlobales);
-    mostrarHome();
+    try { renderizar(_datosCache || datosGlobales); }
+    catch(e) { console.error("renderizar (tras tanda):", e); }
+    try { mostrarHome(); }
+    catch(e) {
+      console.error("mostrarHome (tras tanda):", e);
+      try { _actualizarKPIsInPlace(); } catch(e2) { console.error("KPI fallback:", e2); }
+    }
   } else if (window._vistaGeneralActiva && typeof renderizarVistaCompleta === "function") {
-    renderizarVistaCompleta();
+    try { renderizarVistaCompleta(); } catch(e) { console.error("vista completa (tras tanda):", e); }
   } else if (seccionActiva && secsNuevas && secsNuevas.indexOf(seccionActiva) >= 0) {
-    mostrarSeccion(seccionActiva);
+    try { mostrarSeccion(seccionActiva); } catch(e) { console.error("repintar sección:", e); }
   }
+}
+
+/* Refresca solo la grilla de KPI del home con valores recalculados, sin rehacer
+   toda la vista. Último recurso si mostrarHome() lanza error. */
+function _actualizarKPIsInPlace() {
+  var cont = document.querySelector(".home-header-kpi");
+  if (!cont) return;
+  var todos = calcularTodosKPI();
+  if (todos && todos.length) cont.innerHTML = _htmlKPIs(todos);
 }
 
 async function cargarDatos(forzar, filtroSecciones) {
@@ -319,6 +353,7 @@ async function cargarDatos(forzar, filtroSecciones) {
     // Si hay caché fresca y no se pide forzar, usar caché
     if (!forzar && _datosCache && (now - _datosCacheTs) < _CACHE_TTL_MS) {
       renderizar(_datosCache);
+      _cerrarBannerPorExito();
       iniciarAutoRefresh();
       if (servicioActivo && servicioActivo !== "KSTM") {
         mostrarSeccion(defaultSeccionPorServicio(servicioActivo));
@@ -340,12 +375,14 @@ async function cargarDatos(forzar, filtroSecciones) {
     if (typeof bootPaso === "function") bootPaso(99, "Procesando información");
     if (data1 && data1.error) {
       if (typeof bootError === "function") bootError();
+      if (_restaurarDatosAnteriores("Error del servidor: " + data1.error)) return;
       mostrarErrorLoader("Error: " + data1.error);
       return;
     }
     _datosCache = data1;
     _datosCacheTs = Date.now();
     renderizar(data1);
+    _cerrarBannerPorExito();
     iniciarAutoRefresh();
     if (typeof bootFin === "function") bootFin();
     if (servicioActivo && servicioActivo !== "KSTM") {
@@ -359,6 +396,8 @@ async function cargarDatos(forzar, filtroSecciones) {
 
   } catch(err) {
     if (typeof bootError === "function") bootError();
+    var _msg = "Error al cargar datos: " + (err.message || err);
+    if (_restaurarDatosAnteriores(_msg)) return;
     mostrarErrorLoader("Error al cargar datos.<br><small>" + (err.message || err) + "</small>");
   }
 }
@@ -382,6 +421,71 @@ function reintentarCarga() {
     ld.innerHTML = `<div class="spin"></div><span>Estableciendo enlace de datos...</span>`;
   }
   cargarDatos(true);
+}
+
+/* Si ya hay datos en memoria y la nueva carga falló, vuelve a mostrar esos
+   datos con un aviso no bloqueante en vez de dejar la pantalla en error
+   (evita quedarte sin nada tras el standby / una instancia fría de GAS). */
+function _restaurarDatosAnteriores(errMsg) {
+  var viejos = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones) ? datosGlobales
+    : (_datosCache && _datosCache.secciones ? _datosCache : null);
+  if (!viejos) return false;
+  try {
+    renderizar(viejos);
+    if (window._vistaGeneralActiva && typeof renderizarVistaCompleta === "function") {
+      renderizarVistaCompleta();
+    } else if (seccionActiva && seccionActiva !== "HOME") {
+      mostrarSeccion(seccionActiva);
+    } else {
+      mostrarHome();
+    }
+    mostrarBannerActualizacion(errMsg);
+    return true;
+  } catch(e) {
+    console.error("Restaurar datos anteriores:", e);
+    return false;
+  }
+}
+
+/* Aviso fijo arriba: la actualización falló pero se ven los datos guardados */
+var _bannerReintentos = 0;
+var _bannerRetryTimer = null;
+function mostrarBannerActualizacion(msg) {
+  var b = document.getElementById("banner-act");
+  if (!b) {
+    b = document.createElement("div");
+    b.id = "banner-act";
+    b.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99998;background:#b45309;color:#fff;padding:8px 14px;font-family:'Outfit',sans-serif;font-size:13px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.3)";
+    document.body.appendChild(b);
+  }
+  b.innerHTML =
+    '<span>⚠️ No se pudo actualizar — se muestran los datos guardados.</span>' +
+    '<small style="opacity:.85">' + esc(String(msg || "")) + '</small>' +
+    '<span style="display:flex;gap:8px;margin-left:auto">' +
+      '<button onclick="_reintentarDesdeBanner()" style="padding:4px 12px;border:1px solid #fff;background:rgba(255,255,255,.15);color:#fff;border-radius:6px;cursor:pointer;font-weight:700">↺ Reintentar</button>' +
+      '<button onclick="_ocultarBannerAct()" style="padding:4px 10px;border:1px solid #fff;background:transparent;color:#fff;border-radius:6px;cursor:pointer">✕</button>' +
+    '</span>';
+  // Reintento automático (hasta 3, cada 20s) mientras el aviso siga visible
+  if (_bannerReintentos < 3 && !_bannerRetryTimer) {
+    _bannerReintentos++;
+    _bannerRetryTimer = setTimeout(function() {
+      _bannerRetryTimer = null;
+      if (document.getElementById("banner-act")) actualizarSistema(true);
+    }, 20000);
+  }
+}
+function _reintentarDesdeBanner() {
+  _ocultarBannerAct();
+  actualizarSistema(false);
+}
+function _ocultarBannerAct() {
+  if (_bannerRetryTimer) { clearTimeout(_bannerRetryTimer); _bannerRetryTimer = null; }
+  var b = document.getElementById("banner-act");
+  if (b) b.remove();
+}
+function _cerrarBannerPorExito() {
+  _bannerReintentos = 0;
+  _ocultarBannerAct();
 }
 
 /* Carga progresiva del resto de secciones, tanda por tanda, en orden.
@@ -427,24 +531,37 @@ async function _loopTandas() {
   }
 }
 
-/* Pide una tanda de secciones, las mezcla y repinta. Devuelve true si salió bien. */
+/* Pide una tanda de secciones, las mezcla y repinta. Devuelve true si salió bien.
+   El repintado va aparte: si falla, la tanda sigue contando como cargada. */
 async function _cargarTanda(ids) {
   var pendientes = ids.filter(function(id){ return !_secYaCargada(id); });
   if (!pendientes.length) return true;
+  var data;
   try {
-    var data = await llamarAPI("obtenerDatosPNA", { secciones: pendientes.join(",") });
-    if (data && data.error) { console.log("Tanda con error:", data.error); return false; }
-    if (data && data.secciones) {
-      if (data.fecha && _datosCache) _datosCache.fecha = data.fecha;
-      _mezclarSecciones(data.secciones);
-      _repintarTrasCarga(pendientes);
-      return true;
-    }
-    return false;
+    data = await llamarAPI("obtenerDatosPNA", { secciones: pendientes.join(",") });
   } catch(e) {
     console.log("Tanda falló:", pendientes.join(","), "-", e.message);
     return false;
   }
+  if (!data || data.error || !data.secciones) {
+    console.log("Tanda con error:", data && data.error);
+    return false;
+  }
+  try {
+    if (data.fecha && _datosCache) _datosCache.fecha = data.fecha;
+    _mezclarSecciones(data.secciones);
+  } catch(e) {
+    console.error("Mezclando tanda:", e);
+    return false;
+  }
+  // Los datos ya están: el repintado nunca debe marcar la tanda como fallida
+  try {
+    _repintarTrasCarga(pendientes);
+  } catch(e) {
+    console.error("Repintado tras tanda (no crítico):", e);
+    try { _actualizarKPIsInPlace(); } catch(e2) { console.error("KPI fallback:", e2); }
+  }
+  return true;
 }
 
 /* ================================================================
@@ -1648,26 +1765,24 @@ document.addEventListener("fullscreenchange",()=>{
   }
 });
 
-function mostrarHome() {
-  cerrarDropdowns();
-  cerrarHamburger();
-  const hv = document.getElementById("home-view");
-  hv.style.display = "";
-  hv.classList.add("home-visible");
-  document.getElementById("section-view").style.display   = "none";
-  document.getElementById("dashboard-view").style.display = "none";
-  const tt = document.getElementById("topbar-title");
-  const ts = document.getElementById("topbar-sub");
-  if (tt) tt.textContent = "Panel General";
-  if (ts) ts.textContent = "";
-  
+function _cntSeccion(id, tipo) {
+  const s = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+    ? datosGlobales.secciones.find(x => x.id === id) : null;
+  return s ? (s.filas||[]).filter(f => f && (!tipo || f.tipo === tipo)).length : 0;
+}
+function _cntCasosPendientes(id) {
+  const s = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+    ? datosGlobales.secciones.find(x => x.id === id) : null;
+  const f = (s?.filas||[]).filter(x => x?.tipo === "caso_especial" && !((x.estado||"").toUpperCase().includes("CERRADO")));
+  return f.length;
+}
 
-  if (!datosGlobales) return;
-
-  // Conteos
-  function cnt(id, tipo) { const s = datosGlobales.secciones.find(x => x.id === id); return s ? (s.filas||[]).filter(f => f && (!tipo || f.tipo === tipo)).length : 0; }
-  function cntCasosPendientes(id) { const s = datosGlobales.secciones.find(x => x.id === id); const f = (s?.filas||[]).filter(x => x?.tipo === "caso_especial" && !((x.estado||"").toUpperCase().includes("CERRADO"))); return f.length; }
-  const sar = cntCasosPendientes("SAR"), mas = cntCasosPendientes("MAS"), gc = cnt("GC","fila");
+/* Conteos de los KPI del home (antes vivían adentro de mostrarHome).
+   Se calculan sobre datosGlobales actual, así se refrescan en cualquier momento. */
+function calcularTodosKPI() {
+  if (typeof datosGlobales === "undefined" || !datosGlobales || !datosGlobales.secciones) return [];
+  const cnt = _cntSeccion;
+  const sar = _cntCasosPendientes("SAR"), mas = _cntCasosPendientes("MAS"), gc = cnt("GC","fila");
   const ara = cnt("ARA","fila"), puertos = cnt("PUERTOS","puerto"), dragas = cnt("DRAGAS");
   const rFilasTotal = (datosGlobales.secciones.find(s=>s.id==="REGATAS")?.filas||[]).filter(f=>f&&!["subtitulo","separador","html"].includes(f.tipo));
   const eventos = rFilasTotal.length;
@@ -1709,12 +1824,10 @@ function mostrarHome() {
   const pir95 = pir95Sec ? (pir95Sec.filas||[]).filter(f=>f&&f.tipo==="pir95").reduce((sum,f)=>sum+(f.tabla1||[]).length,0) : 0;
   const veleros = (datosGlobales.secciones.find(s=>s.id==="VELEROS_OC")?.filas||[]).filter(f=>f&&!["subtitulo","separador","html","partes"].includes(f.tipo)&&f.datos&&f.datos.length>=3).length;
   const sibiActivos = (datosGlobales.secciones.find(s=>s.id==="MDA_SIBI")||{}).activeCount || 0;
-
-  // Obtener GC activos/previstas
   const gf = (datosGlobales.secciones.find(s=>s.id==="GC")?.filas||[]).filter(f=>f&&f.tipo==="fila");
   const gact = gf.filter(f=>{const d=new Date();d.setHours(0,0,0,0);const p=parseDate(f.datos[1]);return !p||p<=d;}).length;
 
-  const todos = [
+  return [
     { v:sar, l:"SAR Pendientes", sec:"SAR", c:sar?"#f87171":"#fff" },
     { v:mas, l:"MAS Pendientes", sec:"MAS", c:mas?"#f59e0b":"#fff" },
     { v:gact,l:"GC navegando",sec:"GC",  c:"#fff" },
@@ -1733,6 +1846,43 @@ function mostrarHome() {
     { v:visitas,l:"Visitas", sec:"VISITAS", c:"#fff" },
     { v:sibiActivos,l:"MDA-SIBI", sec:"MDA_SIBI", c:sibiActivos?"#e9d5ff":"#fff" },
   ];
+}
+
+/* HTML de la grilla de KPI (misma plantilla que usaba mostrarHome) */
+function _htmlKPIs(todos) {
+  return todos.map(t => {
+    const _carg = _secYaCargada(t.sec);
+    return `
+    <div class="home-kpi" onclick="mostrarSeccion('${t.sec}')" style="cursor:pointer">
+      <div class="kpi-val" style="color:${_carg ? t.c : "rgba(255,255,255,0.45)"}">${_carg ? t.v : "…"}</div>
+      <div class="kpi-lbl">${t.l}</div>
+      ${t.extra&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
+      ${t.sub&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.55);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.sub}</div>`:''}
+      ${t.sub2&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:2px;white-space:nowrap;letter-spacing:.2px;border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;">${t.sub2}</div>`:''}
+    </div>`;}).join("");
+}
+
+function mostrarHome() {
+  cerrarDropdowns();
+  cerrarHamburger();
+  const hv = document.getElementById("home-view");
+  hv.style.display = "";
+  hv.classList.add("home-visible");
+  document.getElementById("section-view").style.display   = "none";
+  document.getElementById("dashboard-view").style.display = "none";
+  const tt = document.getElementById("topbar-title");
+  const ts = document.getElementById("topbar-sub");
+  if (tt) tt.textContent = "Panel General";
+  if (ts) ts.textContent = "";
+  
+
+  if (!datosGlobales) return;
+
+  // Conteos (extraídos a calcularTodosKPI/_htmlKPIs para refrescar los KPI
+  // sin rehacer toda la vista, y como fallback si algo del render falla)
+  const todos = calcularTodosKPI();
+  const sar = _cntCasosPendientes("SAR"), mas = _cntCasosPendientes("MAS");
+  function cnt(id, tipo) { return _cntSeccion(id, tipo); }
 
   hv.innerHTML = `
     <div class="home-header">
@@ -1752,16 +1902,7 @@ function mostrarHome() {
         </button>` : ''}
       </div>
       <div class="home-header-kpi">
-        ${todos.map(t => {
-          const _carg = _secYaCargada(t.sec);
-          return `
-          <div class="home-kpi" onclick="mostrarSeccion('${t.sec}')" style="cursor:pointer">
-            <div class="kpi-val" style="color:${_carg ? t.c : "rgba(255,255,255,0.45)"}">${_carg ? t.v : "…"}</div>
-            <div class="kpi-lbl">${t.l}</div>
-            ${t.extra&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
-            ${t.sub&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.55);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.sub}</div>`:''}
-            ${t.sub2&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:2px;white-space:nowrap;letter-spacing:.2px;border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;">${t.sub2}</div>`:''}
-          </div>`;}).join("")}
+        ${_htmlKPIs(todos)}
       </div>
     </div>
     <div id="home-port-alert"></div>
@@ -8433,9 +8574,8 @@ function actualizarSistema(automatico) {
     btn.style.borderColor = "var(--amber)";
   }
 
-  // Resetear estado
-  datosGlobales = null;
-  _datosCache = null;
+  // Resetear estado (sin borrar los datos viejos: si la recarga falla,
+  // se siguen mostrando en vez de quedarte en pantalla de error)
   _datosCacheTs = 0;
   _datosFase2Cargados = false;
   _hist = null;
