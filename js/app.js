@@ -318,19 +318,17 @@ function _mezclarSecciones(secs) {
 }
 
 /* Repinta la vista según lo que se esté viendo, después de llegar una tanda.
-   Cada paso va en su propio try/catch: si renderizar() falla con los datos
-   nuevos, igual se ejecuta mostrarHome() (que es quien actualiza los KPI). */
+   En el home NO se reconstruye el HTML (parpadeaba con cada tanda): solo se
+   actualizan los KPI en su lugar. El resto del home se refresca una sola vez
+   cuando termina la cadena de tandas (_refrescarHomeInferior). */
 function _repintarTrasCarga(secsNuevas) {
   try { if (typeof actualizarPreavisos === "function") actualizarPreavisos(); } catch(e) { console.error("preavisos:", e); }
   var _homeEl = document.getElementById("home-view");
   if (_homeEl && _homeEl.style.display !== "none") {
     try { renderizar(_datosCache || datosGlobales); }
     catch(e) { console.error("renderizar (tras tanda):", e); }
-    try { mostrarHome(); }
-    catch(e) {
-      console.error("mostrarHome (tras tanda):", e);
-      try { _actualizarKPIsInPlace(); } catch(e2) { console.error("KPI fallback:", e2); }
-    }
+    try { _actualizarKPIsInPlace(); }
+    catch(e) { console.error("KPIs (tras tanda):", e); }
   } else if (window._vistaGeneralActiva && typeof renderizarVistaCompleta === "function") {
     try { renderizarVistaCompleta(); } catch(e) { console.error("vista completa (tras tanda):", e); }
   } else if (seccionActiva && secsNuevas && secsNuevas.indexOf(seccionActiva) >= 0) {
@@ -338,13 +336,51 @@ function _repintarTrasCarga(secsNuevas) {
   }
 }
 
-/* Refresca solo la grilla de KPI del home con valores recalculados, sin rehacer
-   toda la vista. Último recurso si mostrarHome() lanza error. */
+/* Actualiza los KPI del home en su lugar: cambia números/colores de los
+   elementos existentes, sin rehacer la grilla (sin parpadeo). */
 function _actualizarKPIsInPlace() {
   var cont = document.querySelector(".home-header-kpi");
   if (!cont) return;
   var todos = calcularTodosKPI();
-  if (todos && todos.length) cont.innerHTML = _htmlKPIs(todos);
+  if (!todos || !todos.length) return;
+  var cards = cont.querySelectorAll(".home-kpi");
+  if (cards.length !== todos.length) { cont.innerHTML = _htmlKPIs(todos); return; }
+  todos.forEach(function(t, i) {
+    var card = cards[i];
+    var _carg = _secYaCargada(t.sec);
+    var val = card.querySelector(".kpi-val");
+    if (val) {
+      var txt = _carg ? String(t.v) : "…";
+      if (val.textContent !== txt) val.textContent = txt;
+      val.style.color = _carg ? t.c : "rgba(255,255,255,0.45)";
+    }
+    ["extra","sub","sub2"].forEach(function(k) {
+      var el = card.querySelector('[data-kpi="' + k + '"]');
+      if (_carg && t[k]) {
+        if (!el) { el = document.createElement("div"); el.setAttribute("data-kpi", k); card.appendChild(el); }
+        if (el.textContent !== String(t[k])) el.textContent = t[k];
+        el.style.cssText = "font-size:8px;margin-top:" + (k === "sub2" ? "2px" : "1px") +
+          ";white-space:nowrap;letter-spacing:.2px;color:" +
+          (k === "extra" ? "rgba(255,255,255,0.6)" : k === "sub" ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.5)") + ";" +
+          (k === "sub2" ? "border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;" : "");
+      } else if (el) {
+        el.remove();
+      }
+    });
+  });
+}
+
+/* Una vez terminada la cadena de tandas: refresca el resto del home
+   (cards de abajo + alerta de vencidos), una sola vez y solo si el home
+   está visible. */
+function _refrescarHomeInferior() {
+  try {
+    var _homeEl = document.getElementById("home-view");
+    if (!_homeEl || _homeEl.style.display === "none") return;
+    if (!datosGlobales || !datosGlobales.secciones) return;
+    renderHomeCards(datosGlobales, _cntCasosPendientes("SAR"), _cntCasosPendientes("MAS"));
+    if (typeof actualizarAlertaVencidos === "function") actualizarAlertaVencidos();
+  } catch(e) { console.error("Refrescar home inferior:", e); }
 }
 
 async function cargarDatos(forzar, filtroSecciones) {
@@ -507,10 +543,12 @@ function _correrTandas() {
   _tandasPromise = _loopTandas().then(function() {
     _datosFase2Cargados = true;
     _tandasPromise = null;
+    _refrescarHomeInferior();
   }, function(e) {
     console.log("Tandas diferidas:", e && e.message);
     _datosFase2Cargados = true;
     _tandasPromise = null;
+    _refrescarHomeInferior();
   });
   return _tandasPromise;
 }
@@ -1856,9 +1894,9 @@ function _htmlKPIs(todos) {
     <div class="home-kpi" onclick="mostrarSeccion('${t.sec}')" style="cursor:pointer">
       <div class="kpi-val" style="color:${_carg ? t.c : "rgba(255,255,255,0.45)"}">${_carg ? t.v : "…"}</div>
       <div class="kpi-lbl">${t.l}</div>
-      ${t.extra&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
-      ${t.sub&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.55);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.sub}</div>`:''}
-      ${t.sub2&&_carg?`<div style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:2px;white-space:nowrap;letter-spacing:.2px;border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;">${t.sub2}</div>`:''}
+      ${t.extra&&_carg?`<div data-kpi="extra" style="font-size:8px;color:rgba(255,255,255,0.6);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.extra}</div>`:''}
+      ${t.sub&&_carg?`<div data-kpi="sub" style="font-size:8px;color:rgba(255,255,255,0.55);margin-top:1px;white-space:nowrap;letter-spacing:.2px">${t.sub}</div>`:''}
+      ${t.sub2&&_carg?`<div data-kpi="sub2" style="font-size:8px;color:rgba(255,255,255,0.5);margin-top:2px;white-space:nowrap;letter-spacing:.2px;border-top:1px solid rgba(255,255,255,0.15);padding-top:2px;">${t.sub2}</div>`:''}
     </div>`;}).join("");
 }
 
@@ -1909,7 +1947,14 @@ function mostrarHome() {
     <div id="home-dash-wrap" style="flex:1;min-height:0;overflow:hidden;"></div>
   `;
 
-  (function(){
+  actualizarAlertaVencidos();
+
+  renderHomeCards(datosGlobales, sar, mas);
+}
+
+/* Alerta de "Buques Excedidos" (zonas MOV_* con >5 días). Se calcula aparte
+   para poder refrescarla sin rehacer todo el home. */
+function actualizarAlertaVencidos() {
     var _zonasLabels = {MOV_BAJO_PARANA:"Bajo Paraná",MOV_DELTA:"Delta",MOV_ZONA3:"Río de la Plata"};
     var _zonaPills = [];
     var _totalAll = 0;
@@ -1924,7 +1969,9 @@ function mostrarHome() {
         _zonaPills.push({zId:zId, label:_zonasLabels[zId]||zId, total:v.total, amarrados:v.amarrados, fondeados:v.fondeados});
       }
     });
-    if (_totalAll === 0) return;
+    var _alertEl = document.getElementById('home-port-alert');
+    if (!_alertEl) return;
+    if (_totalAll === 0) { _alertEl.innerHTML = ""; return; }
     var _pillsHtml = _zonaPills.map(function(z) {
       var _det = [];
       if (z.amarrados > 0) _det.push(z.amarrados + ' amarr.');
@@ -1933,9 +1980,7 @@ function mostrarHome() {
         '📊 ' + z.label + ' <span style="color:#fca5a5;font-weight:800;">' + z.total + '</span> <span style="font-size:9px;color:rgba(255,255,255,0.5);">' + _det.join(' · ') + '</span>' +
       '</span>';
     }).join('');
-    var _alertEl = document.getElementById('home-port-alert');
-    if (_alertEl) {
-      _alertEl.innerHTML = '<div style="margin:8px 16px 4px;padding:8px 14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:var(--radius);animation:pulse-alert 1.6s ease-in-out infinite;box-shadow:0 2px 8px rgba(220,38,38,0.15);">' +
+    _alertEl.innerHTML = '<div style="margin:8px 16px 4px;padding:8px 14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:var(--radius);animation:pulse-alert 1.6s ease-in-out infinite;box-shadow:0 2px 8px rgba(220,38,38,0.15);">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
           '<span style="font-size:13px;">⚠️</span>' +
           '<span style="font-family:\'Outfit\',sans-serif;font-size:12px;font-weight:800;color:#991b1b;">' + _totalAll + ' Buque' + (_totalAll !== 1 ? 's' : '') + ' Excedido' + (_totalAll !== 1 ? 's' : '') + ' (5 días)</span>' +
@@ -1943,10 +1988,6 @@ function mostrarHome() {
           _pillsHtml +
         '</div>' +
       '</div>';
-    }
-  })();
-
-  renderHomeCards(datosGlobales, sar, mas);
 }
 
 function mostrarSeccion(id) {
