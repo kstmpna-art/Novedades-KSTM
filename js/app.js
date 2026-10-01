@@ -1100,7 +1100,8 @@ function renderizar(data) {
   document.getElementById("home-view").style.display = "block";
   const elFecha = document.getElementById("sb-fecha");
   if (elFecha) elFecha.textContent = "📅 " + (data.fecha||"");
-  document.getElementById("home-fecha-sub").textContent = data.fecha || "";
+  const elFechaSub = document.getElementById("home-fecha-sub");
+  if (elFechaSub) elFechaSub.textContent = data.fecha || "";
 
     const sarSec = data.secciones.find(s => s.id === "SAR");
     const masSec = data.secciones.find(s => s.id === "MAS");
@@ -1146,9 +1147,12 @@ function renderizar(data) {
     if (bKSTM) {bKSTM.textContent = totalActivos + " PENDIENTES";bKSTM.style.display = totalActivos > 0 ? "block" : "none";}
     if (bSBGC) { bSBGC.textContent = gcN + " NAV."; bSBGC.style.display = gcN > 0 ? "block" : "none"; }
 
-  document.getElementById("hkpi-sar").textContent = sarN;
-  document.getElementById("hkpi-mas").textContent = masN;
-  document.getElementById("hkpi-gc").textContent  = gcN;
+  const elHkSar = document.getElementById("hkpi-sar");
+  const elHkMas = document.getElementById("hkpi-mas");
+  const elHkGc  = document.getElementById("hkpi-gc");
+  if (elHkSar) elHkSar.textContent = sarN;
+  if (elHkMas) elHkMas.textContent = masN;
+  if (elHkGc)  elHkGc.textContent  = gcN;
   const elSarBar = document.getElementById("sb-sar-bar");
   const elMasBar = document.getElementById("sb-mas-bar");
   if (elSarBar) elSarBar.innerHTML = `<span class="sdot r"></span>SAR: ${sarN} casos`;
@@ -1926,6 +1930,7 @@ function mostrarHome() {
     <div class="home-header">
       <div class="home-header-left">
         <h2>Reporte de Novedades</h2>
+        <p id="home-fecha-sub">${esc((datosGlobales && datosGlobales.fecha) || "")}</p>
         <a href="https://gis.prefecturanaval.gob.ar/portal/apps/experiencebuilder/experience/?id=27d4ea8480d84489a4b677ab0f37da48&page=GUARDACOSTAS-4_0&views=Vessel-Tracker" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
           <span>🗺️</span>
           <span>Abrir Sistema GC</span>
