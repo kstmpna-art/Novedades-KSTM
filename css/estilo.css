@@ -1714,3 +1714,20 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .areas-modal-btn-save:hover{background:#0f766e}
 .areas-modal-btn-cancel{padding:6px 12px;background:#f1f5f9;color:#64748b;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;cursor:pointer}
 .areas-modal-btn-cancel:hover{background:#e2e8f0}
+
+/* ── MAPAS DE SECCIÓN A PANTALLA COMPLETA (solo desktop) ───────
+   La columna del mapa estira a la altura de la lista (sin gris al lado)
+   y el mapa llena esa columna entera. */
+@media (min-width: 769px) {
+  .puertos-layout { align-items: stretch; }
+  .puertos-col-mapa { display: flex; min-height: calc(100vh - 150px); }
+  .puertos-mapa-wrap { flex: 1 1 auto; display: flex; flex-direction: column; }
+  #sec-puertos-map { flex: 1 1 auto; height: auto !important; min-height: 460px; }
+  .ejerc-layout { align-items: stretch; }
+  .ejerc-col-mapa { display: flex; flex-direction: column; min-height: calc(100vh - 175px); }
+  .ejerc-map-container { flex: 1 1 auto; height: auto !important; min-height: 460px; }
+}
+#sec-determinantes-map { min-height: 460px; }
+@media (max-width: 768px) {
+  #sec-determinantes-map { height: 320px !important; min-height: 0; }
+}
