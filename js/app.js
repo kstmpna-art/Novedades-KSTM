@@ -3,7 +3,7 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyfmHvaxyc6OWXQk-mApVXHMIaqndr_o1EfigLYDT9P0x54ZVeLQ3oHEsbFlxjtZjSSXg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwAGwGh0fLvf6z5Qkgxdy2ihxK9CZU6G7-ay1I4-nzj1Pfpob61O1EXoJnMOjGAe7jdDA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* Keep-alive: ping cada 3 min para que GAS no entre en frío (arranque de 8-13s) */
@@ -116,7 +116,7 @@ async function intentarLogin() {
     url.searchParams.set("password", pwd);
     url.searchParams.set("_", Date.now());
     var ctrlLogin = new AbortController();
-    var toLogin = setTimeout(function() { ctrlLogin.abort(); }, 30000);
+    var toLogin = setTimeout(function() { ctrlLogin.abort(); }, 60000);
     const r = await fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store", signal: ctrlLogin.signal });
     const text = await r.text();
     clearTimeout(toLogin);
@@ -224,7 +224,7 @@ async function llamarAPI(accion, params={}, _retries) {
   var nTimeouts = 0, ultimoError = null;
   for (var i = 0; i <= _retries; i++) {
     var ctrl = new AbortController();
-    var toId = setTimeout(function() { ctrl.abort(); }, 40000);
+    var toId = setTimeout(function() { ctrl.abort(); }, 120000);
     var t = "";
     try {
       const r = await fetch(url.toString(),{method:"GET",redirect:"follow",signal:ctrl.signal});
@@ -248,16 +248,22 @@ async function llamarAPI(accion, params={}, _retries) {
       var esJSON = (e instanceof SyntaxError);
       if (esTimeout) nTimeouts++;
       ultimoError = e;
-      // Reintento: timeout 1 sola vez; HTTP/HTML/JSON hasta _retries (con espera creciente)
-      var reintenta = i < _retries && (!esTimeout || nTimeouts <= 1);
-      if (reintenta) { await new Promise(function(ok){ setTimeout(ok, 2500 * (i + 1)); }); continue; }
+      // Reintento: timeout 1 sola vez; HTTP/HTML/JSON hasta _retries (con espera creciente).
+      // El 404 ( típico unos segundos tras un redespliegue, mientras GAS propaga la URL)
+      // se reintenta bastante más: hasta 6 intentos con esperas de 4s en 4s.
+      var st = esHttp ? e.httpStatus : 0;
+      var es404 = st === 404;
+      var maxReintentos = es404 ? 5 : _retries;
+      var reintenta = i < maxReintentos && (!esTimeout || nTimeouts <= 1);
+      if (reintenta) { await new Promise(function(ok){ setTimeout(ok, (es404 ? 4000 : 2500) * (i + 1)); }); continue; }
       if (esTimeout) {
-        console.error("API sin respuesta tras 40s:", accion);
+        console.error("API sin respuesta tras 120s:", accion);
         throw new Error("El servidor no responde (tiempo agotado)");
       }
       if (esHttp) {
         var st = e.httpStatus;
         if (st === 429) throw new Error("El servidor alcanzó el límite de llamadas (HTTP 429). Esperá un minuto y reintentá.");
+        if (st === 404) throw new Error("Servicio momentáneamente no disponible (HTTP 404) — reintentá en unos segundos.");
         if (st >= 500) throw new Error("Error interno del servidor (HTTP " + st + ") — puede ser un arranque lento de Google Apps Script.");
         throw new Error("El servidor respondió con error (HTTP " + st + ")");
       }
@@ -1040,9 +1046,22 @@ function initEjercMap(containerId, cuadrantes) {
       polys[areaIdx].openPopup();
       _areaIdx[idx] = (areaIdx + 1) % polys.length;
     },
-    fitAll: fitAll
+    fitAll: fitAll,
+    map: map
   };
 }
+
+/* Reajusta los mapas de sección al redimensionar la ventana (los mapas ahora
+   se dimensionan con calc(100vh - …) y Leaflet necesita invalidateSize) */
+window.addEventListener("resize", function() {
+  clearTimeout(window.__mapRsT);
+  window.__mapRsT = setTimeout(function() {
+    var ms = [window._puertosMap, (window._detMap || {}).map, (window._ejercMap || {}).map];
+    ms.forEach(function(m) {
+      if (m && typeof m.invalidateSize === "function") { try { m.invalidateSize(); } catch(e) {} }
+    });
+  }, 250);
+});
 function calcularDias(zarpada,regreso) {
   const ini=parseDate(zarpada),fin=parseDate(regreso);
   if (!ini||!fin) return {navegando:"?",restantes:"?"};
@@ -2122,9 +2141,12 @@ function mostrarSeccion(id) {
       Object.values(_aisMarkers).forEach(function(m) { if (m && _aisMap) _aisMap.removeLayer(m); });
       _aisMarkers = {};
     }
+    _aisTrailsClear();
+    _aisSyncDetener();
     var vl = document.getElementById("ais-vessel-list");
     if (vl) vl.innerHTML = "";
     _aisCurrentSection = null;
+    _aisWsOff = false;
   }
 }
 
@@ -2162,7 +2184,7 @@ function mapaGisHtml() {
 }
 
 /* ── AIS MAP (AISStream WebSocket) ──────────────────────────── */
-let _aisMap = null, _aisMarkers = {}, _aisManualVessels = [], _aisWs = null, _aisCurrentSection = null, _aisReconnectTimer = null, _aisBuffer = {}, _aisPinSections = {};
+let _aisMap = null, _aisMarkers = {}, _aisManualVessels = [], _aisWs = null, _aisCurrentSection = null, _aisReconnectTimer = null, _aisBuffer = {}, _aisPinSections = {}, _aisTrails = {}, _aisTrailLines = {}, _aisTrailDots = {}, _aisPinesSyncTimer = null, _aisPinsLoaded = [], _aisSizeAlerted = false, _aisWsOff = false;
 var _areasBusqueda = [], _areaPolygons = {}, _areaSidebarMap = null;
 
 function aisInitMap() {
@@ -2217,21 +2239,67 @@ function _aisGuardarPins() {
   var data = {};
   _aisManualVessels.forEach(function(id) {
     var e = _aisBuffer[id];
-    if (e) data[id] = { name: e.name, lat: e.lat, lon: e.lon, createdAt: e.createdAt, ts: e.ts, section: _aisPinSections[id] || "" };
+    if (e) {
+      var d = { name: e.name, lat: e.lat, lon: e.lon, createdAt: e.createdAt, ts: e.ts, section: _aisPinSections[id] || "" };
+      var t = _aisTrails[id];
+      if (t && t.pts && t.pts.length) { d.trail = t.pts; d.trailTs = t.t || 0; }
+      data[id] = d;
+    }
   });
-  llamarAPI("guardarPines", { pines: JSON.stringify(data) }).catch(function(e) { console.warn("[AIS] Error guardando pines:", e); });
+  var json = JSON.stringify(data);
+  if (json.length > 450000 && !_aisSizeAlerted) {
+    _aisSizeAlerted = true;
+    alert("⚠️ Derrotas: se está llegando al límite de almacenamiento (" + Math.round(json.length / 1000) + " KB de ~500 KB). Borrá derrotas que ya no necesites para no perder datos.");
+  } else if (json.length < 400000) _aisSizeAlerted = false;
+  llamarAPI("guardarPines", { pines: json }).catch(function(e) { console.warn("[AIS] Error guardando pines:", e); });
 }
 async function _aisCargarPins() {
   try {
     var res = await llamarAPI("obtenerPines");
     if (!res || !res.ok || !res.data) return;
+    var prev = _aisPinsLoaded || [];
+    _aisPinsLoaded = Object.keys(res.data);
+    // pines eliminados en otra máquina
+    prev.forEach(function(id) {
+      if (_aisPinsLoaded.indexOf(id) === -1 && _aisManualVessels.indexOf(id) !== -1) {
+        if (_aisMarkers[id] && _aisMap) { try { _aisMap.removeLayer(_aisMarkers[id]); } catch(err) {} delete _aisMarkers[id]; }
+        if (_aisTrailLines[id] && _aisMap) { try { _aisMap.removeLayer(_aisTrailLines[id]); } catch(err) {} delete _aisTrailLines[id]; }
+        delete _aisTrails[id]; delete _aisBuffer[id]; delete _aisPinSections[id];
+        _aisManualVessels = _aisManualVessels.filter(function(v) { return v !== id; });
+        _aisTrackedMMSIs = _aisTrackedMMSIs.filter(function(v) { return v !== id; });
+      }
+    });
     Object.keys(res.data).forEach(function(id) {
       var d = res.data[id];
       if (_aisManualVessels.indexOf(id) === -1) _aisManualVessels.push(id);
-      if (!_aisBuffer[id]) {
-        _aisBuffer[id] = { name: d.name, lat: d.lat, lon: d.lon, ts: d.createdAt || d.ts || "", data: { MetaData: { MMSI: id, ShipName: d.name, latitude: d.lat, longitude: d.lon } }, manual: true, createdAt: d.createdAt || d.ts || "" };
+      var local = _aisBuffer[id];
+      var remoteTs = d.ts || d.createdAt || "";
+      var posChanged = false;
+      if (!local) {
+        _aisBuffer[id] = { name: d.name, lat: d.lat, lon: d.lon, ts: remoteTs, data: { MetaData: { MMSI: id, ShipName: d.name, latitude: d.lat, longitude: d.lon } }, manual: true, createdAt: d.createdAt || remoteTs };
+        posChanged = true;
+      } else if (String(remoteTs) > String(local.ts || "") && (d.lat !== local.lat || d.lon !== local.lon || d.name !== local.name)) {
+        local.name = d.name; local.lat = d.lat; local.lon = d.lon; local.ts = remoteTs;
+        local.data = { MetaData: { MMSI: id, ShipName: d.name, latitude: d.lat, longitude: d.lon } };
+        posChanged = true;
+      }
+      // derrota remota (gana la más reciente según trailTs)
+      var t = _aisTrails[id];
+      if (d.trail && d.trail.length && (!t || (d.trailTs || 0) > (t.t || 0))) {
+        _aisTrails[id] = { color: _aisTrailColor(id), pts: d.trail, t: d.trailTs || 0 };
+        if (_aisTrailLines[id] && _aisMap) { try { _aisMap.removeLayer(_aisTrailLines[id]); } catch(err) {} delete _aisTrailLines[id]; }
+        _aisTrailDotsRemove(id);
+      } else if (!t) {
+        _aisTrails[id] = { color: _aisTrailColor(id), pts: [[d.lat, d.lon, Date.parse(d.ts || d.createdAt) || Date.now()]], t: 0 };
       }
       if (d.section) _aisPinSections[id] = d.section;
+      // repintar marker si es nuevo o se movió (solo con la sección abierta)
+      if (posChanged && _aisCurrentSection && _aisMap) {
+        if (_aisMarkers[id]) { try { _aisMap.removeLayer(_aisMarkers[id]); } catch(err) {} delete _aisMarkers[id]; }
+        aisProcessPosition(_aisBuffer[id].data, _aisCurrentSection);
+      } else if (_aisTrails[id] && _aisMap) {
+        _aisTrailDraw(id);
+      }
     });
   } catch(e) { console.warn("[AIS] Error cargando pines:", e); }
 }
@@ -2259,6 +2327,7 @@ function _aisGetKey() {
 }
 
 function aisWsConnect(seccionId) {
+  if (_aisWsOff) return; // Opción 1: sin AIS en SAR/MAS
   var apiKey = _aisGetKey();
   if (!apiKey) { var m = document.getElementById("ais-map-msg"); if (m) m.textContent = "Sin API Key de AISStream."; return; }
   if (_aisWs) try { _aisWs.close(); } catch(e) {}
@@ -2295,8 +2364,9 @@ function aisWsConnect(seccionId) {
       _handle(String(ev.data));
     } catch(e2) { console.warn("[AIS WS handler error]", e2.message); }
   };
-  _aisWs.onerror = function() { document.getElementById("ais-map-msg").textContent = "Error de conexión WebSocket."; };
+  _aisWs.onerror = function() { var m = document.getElementById("ais-map-msg"); if (m && !_aisWsOff) m.textContent = "Error de conexión WebSocket."; };
   _aisWs.onclose = function() {
+    if (_aisWsOff) return;
     if (_aisCurrentSection !== seccionId && _aisCurrentSection !== null) return;
     var m = document.getElementById("ais-map-msg");
     if (m) m.textContent = "Reconectando en 10s...";
@@ -2330,17 +2400,18 @@ function aisProcessPosition(data, seccionId) {
   var msg = document.getElementById("ais-map-msg");
   var updateEl = document.getElementById("ais-last-update");
 
+  var isManualPin = String(id).indexOf("MANUAL_") === 0;
+  var iconColor;
+  if (isManualPin) {
+    var midx = _aisManualVessels.indexOf(String(id));
+    iconColor = AIS_PALETTE[midx >= 0 ? midx % AIS_PALETTE.length : 0];
+  } else {
+    iconColor = _aisVesselColor(id);
+  }
+
   if (_aisMarkers[id]) {
     _aisMarkers[id].setLatLng([lat, lon]);
   } else {
-    var isManualPin = String(id).indexOf("MANUAL_") === 0;
-    var iconColor;
-    if (isManualPin) {
-      var midx = _aisManualVessels.indexOf(String(id));
-      iconColor = AIS_PALETTE[midx >= 0 ? midx % AIS_PALETTE.length : 0];
-    } else {
-      iconColor = _aisVesselColor(id);
-    }
     var icon = L.divIcon({
       className: "",
       html: '<div style="display:flex;align-items:center;gap:4px;white-space:nowrap"><div style="width:14px;height:14px;flex-shrink:0;background:' + iconColor + ';border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div><span style="font-size:10px;font-weight:700;color:#003366;text-shadow:0 0 4px #fff,0 0 4px #fff,0 0 4px #fff">' + esc(name) + '</span></div>',
@@ -2353,7 +2424,7 @@ function aisProcessPosition(data, seccionId) {
     var shipType = data.shipType || "—";
     var fechaTexto = "";
     if (isManualPin && _aisBuffer[id]) {
-      var src = _aisBuffer[id].createdAt || _aisBuffer[id].ts;
+      var src = _aisBuffer[id].ts || _aisBuffer[id].createdAt;
       if (src) {
         var d = new Date(src);
         if (!isNaN(d)) fechaTexto = d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -2372,13 +2443,423 @@ function aisProcessPosition(data, seccionId) {
     marker.bindPopup(popup);
     _aisMarkers[id] = marker;
   }
+  _aisTrailUpdate(id, lat, lon, ts, iconColor);
 
   var count = Object.keys(_aisMarkers).length;
-  if (msg) msg.textContent = count + " buque" + (count !== 1 ? "s" : "") + " localizado" + (count !== 1 ? "s" : "") + " en AIS.";
+  if (msg) msg.textContent = count + " buque" + (count !== 1 ? "s" : "") + " localizado" + (count !== 1 ? "s" : "") + " en el mapa.";
   if (updateEl) updateEl.textContent = new Date().toLocaleTimeString("es-AR");
   // update vessel list
   _aisRenderLista();
 }
+
+/* ── Derrotas: línea entre posiciones sucesivas de cada buque (persistente en pines) ── */
+function _r5(v) { return Math.round(v * 1e5) / 1e5; }
+function _aisTrailColor(id) {
+  if (String(id).indexOf("MANUAL_") === 0) {
+    var midx = _aisManualVessels.indexOf(String(id));
+    return AIS_PALETTE[midx >= 0 ? midx % AIS_PALETTE.length : 0];
+  }
+  return _aisVesselColor(id);
+}
+function _aisTrailSeed(id, e) {
+  var t = _aisTrails[id];
+  if (!t) { t = _aisTrails[id] = { color: _aisTrailColor(id), pts: [], t: 0 }; }
+  if (!t.pts.length && e && e.lat != null && e.lon != null) t.pts.push([_r5(e.lat), _r5(e.lon), Date.parse(e.ts || e.createdAt) || Date.now()]);
+}
+function _aisTrailUpdate(id, lat, lon, ts, color) {
+  var tr = _aisTrails[id];
+  if (!tr) { tr = _aisTrails[id] = { color: color, pts: [], t: 0 }; }
+  tr.color = color;
+  var tMs = Date.parse(ts) || Date.now();
+  var nLat = _r5(lat), nLon = _r5(lon);
+  var pts = tr.pts, last = pts[pts.length - 1];
+  if (!last || Math.abs(nLat - last[0]) > 1e-5 || Math.abs(nLon - last[1]) > 1e-5) {
+    pts.push([nLat, nLon, tMs]);
+    tr.t = Date.now();
+  }
+  _aisTrailDraw(id);
+}
+function _aisTrailDraw(id) {
+  if (!_aisMap || !_aisMarkers[id]) return;
+  var tr = _aisTrails[id];
+  if (!tr || tr.pts.length < 2) {
+    _aisTrailDotsRemove(id);
+    if (_aisTrailLines[id]) { try { _aisMap.removeLayer(_aisTrailLines[id]); } catch(e) {} delete _aisTrailLines[id]; }
+    return;
+  }
+  var latlngs = tr.pts.map(function(p) { return [p[0], p[1]]; });
+  var line = _aisTrailLines[id];
+  if (line) {
+    line.setLatLngs(latlngs);
+  } else {
+    _aisTrailLines[id] = L.polyline(latlngs, { color: tr.color, weight: 2, opacity: 0.5, dashArray: "6 6" }).addTo(_aisMap);
+  }
+  // puntos (pines) visibles de cada posición de la derrota
+  var dots = _aisTrailDots[id];
+  if (!dots || dots.length !== tr.pts.length) {
+    _aisTrailDotsRemove(id);
+    dots = [];
+    tr.pts.forEach(function(p, i) {
+      dots.push(L.circleMarker([p[0], p[1]], { radius: 4, color: "#fff", weight: 1.5, fillColor: tr.color, fillOpacity: 0.95 })
+        .bindPopup(_derrotaPuntoPopup(p, i, tr.pts.length)).addTo(_aisMap));
+    });
+    _aisTrailDots[id] = dots;
+  } else {
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].setLatLng([tr.pts[i][0], tr.pts[i][1]]);
+      dots[i].setPopupContent(_derrotaPuntoPopup(tr.pts[i], i, tr.pts.length));
+    }
+  }
+}
+function _aisTrailDotsRemove(id) {
+  var dots = _aisTrailDots[id];
+  if (dots && _aisMap) { dots.forEach(function(d) { try { _aisMap.removeLayer(d); } catch(e) {} }); }
+  delete _aisTrailDots[id];
+}
+function _aisTrailsClear() {
+  if (_aisTrailLines && _aisMap) {
+    Object.values(_aisTrailLines).forEach(function(l) { try { if (l) _aisMap.removeLayer(l); } catch(e) {} });
+  }
+  _aisTrailLines = {};
+  Object.keys(_aisTrailDots).forEach(function(k) { _aisTrailDotsRemove(k); });
+  _aisTrailDots = {};
+}
+/* ── Sync de pines/derrotas entre máquinas (cada 60 s con la sección abierta) ── */
+function _aisSyncIniciar() {
+  _aisSyncDetener();
+  _aisPinesSyncTimer = setInterval(function() {
+    var md = document.getElementById("modalDerrota");
+    if (md && md.style.display !== "none") return; // no refrescar con el modal abierto
+    _aisCargarPins().then(function() { _aisRenderLista(); });
+  }, 60000);
+}
+function _aisSyncDetener() {
+  if (_aisPinesSyncTimer) { clearInterval(_aisPinesSyncTimer); _aisPinesSyncTimer = null; }
+}
+
+/* ── Modal de derrotas: alta/edición punto por punto, persistente en pines ── */
+var _derrotaSel = null, _derrotaEditIdx = -1, _derrotaPick = false, _derrotaPickTarget = "dr-lat", _derrotaPickHandler = null;
+function _derrotaIsoLocal(ms) {
+  var d = new Date(ms);
+  if (isNaN(d)) return "";
+  var pad = function(n) { return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+function _derrotaPuntoPopup(p, i, n) {
+  var f = new Date(p[2]);
+  var fs = isNaN(f) ? "—" : f.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return '<div style="font-family:\'DM Sans\',sans-serif;font-size:12px;line-height:1.5;min-width:140px">' +
+    '<b style="color:#0d1b3e;font-size:13px">Punto ' + (i + 1) + ' de ' + n + '</b><br>' +
+    '🕐 ' + fs + '<br>' +
+    '<span style="color:#666;font-family:monospace;font-size:11px">' + Number(p[0]).toFixed(5) + ', ' + Number(p[1]).toFixed(5) + '</span>' +
+    (i === n - 1 ? '<br><span style="color:#8b5cf6;font-weight:700">📍 Posición actual</span>' : '') +
+    '</div>';
+}
+function derrotaModalDom() {
+  var m = document.getElementById("modalDerrota");
+  if (m) return m;
+  m = document.createElement("div");
+  m.id = "modalDerrota";
+  m.style.cssText = "display:none;position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.6);align-items:center;justify-content:center";
+  m.innerHTML =
+  '<div style="background:#fff;border-radius:12px;padding:16px;width:92vw;max-width:560px;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);font-family:\'DM Sans\',sans-serif">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<h3 style="margin:0;font-family:\'Outfit\',sans-serif;font-size:15px;color:#0d1b3e">📌 Derrota — <span id="derrota-buque" style="color:#8b5cf6"></span></h3>' +
+      '<button id="derrota-x" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;line-height:1">&times;</button>' +
+    '</div>' +
+    '<select id="derrota-select" style="width:100%;padding:7px;border:1px solid #d8dee9;border-radius:6px;font-size:12px;margin-bottom:8px" onchange="derrotaSelectChange()"></select>' +
+    '<div id="derrota-nuevo" style="display:none;background:#f7f9fc;border:1px solid #e3e9f2;border-radius:8px;padding:10px;margin-bottom:8px">' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+        '<input id="dr-nombre" placeholder="Nombre del buque" style="flex:1;min-width:120px;padding:6px;border:1px solid #d8dee9;border-radius:6px;font-size:12px">' +
+        '<input id="dr-fecha" type="datetime-local" title="Fecha y hora del punto" style="padding:5px;border:1px solid #d8dee9;border-radius:6px;font-size:11px">' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">' +
+        '<input id="dr-lat" placeholder="Lat (ej: -26.94 o 26° 56\' S)" style="flex:1;min-width:130px;padding:6px;border:1px solid #d8dee9;border-radius:6px;font-size:12px">' +
+        '<input id="dr-lon" placeholder="Lon (ej: -58.33 o 58° 29\' W)" style="flex:1;min-width:130px;padding:6px;border:1px solid #d8dee9;border-radius:6px;font-size:12px">' +
+        '<button onclick="derrotaPick(\'dr-lat\')" title="Elegir en el mapa" style="padding:6px 9px;border:1px solid #d8dee9;background:#fff;border-radius:6px;cursor:pointer">🎯</button>' +
+      '</div>' +
+      '<button onclick="derrotaCrearPin()" style="margin-top:8px;width:100%;padding:8px;border:none;border-radius:6px;background:#0d9488;color:#fff;font-weight:700;cursor:pointer;font-size:12px">＋ Crear buque y primer punto</button>' +
+    '</div>' +
+    '<div id="derrota-agregar" style="display:none;background:#f7f9fc;border:1px solid #e3e9f2;border-radius:8px;padding:10px;margin-bottom:8px">' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+        '<input id="dr2-fecha" type="datetime-local" title="Fecha y hora (vacío = ahora)" style="padding:5px;border:1px solid #d8dee9;border-radius:6px;font-size:11px">' +
+        '<input id="dr2-lat" placeholder="Lat" style="flex:1;min-width:110px;padding:6px;border:1px solid #d8dee9;border-radius:6px;font-size:12px">' +
+        '<input id="dr2-lon" placeholder="Lon" style="flex:1;min-width:110px;padding:6px;border:1px solid #d8dee9;border-radius:6px;font-size:12px">' +
+        '<button onclick="derrotaPick(\'dr2-lat\')" title="Elegir en el mapa" style="padding:6px 9px;border:1px solid #d8dee9;background:#fff;border-radius:6px;cursor:pointer">🎯</button>' +
+        '<button onclick="derrotaAgregarPunto()" style="padding:7px 10px;border:none;border-radius:6px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;font-size:12px">＋ Punto</button>' +
+      '</div>' +
+    '</div>' +
+    '<div id="derrota-list" style="max-height:36vh;overflow:auto;border:1px solid #e3e9f2;border-radius:8px"></div>' +
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
+      '<button onclick="derrotaRefrescar()" style="flex:1;padding:8px;border:1px solid #d8dee9;background:#fff;border-radius:6px;cursor:pointer;font-size:12px">🔄 Actualizar</button>' +
+      '<button onclick="derrotaBorrarDerrota()" style="flex:1;padding:8px;border:1px solid #fecaca;background:#fff2f2;color:#dc2626;border-radius:6px;cursor:pointer;font-size:12px">🗑 Borrar derrota</button>' +
+      '<button onclick="derrotaCerrar()" style="flex:1;padding:8px;border:none;background:#e8edf5;color:#334155;border-radius:6px;cursor:pointer;font-size:12px">Cerrar</button>' +
+    '</div>' +
+  '</div>';
+  document.body.appendChild(m);
+  m.addEventListener("click", function(ev) { if (ev.target === m) derrotaCerrar(); });
+  document.getElementById("derrota-x").onclick = derrotaCerrar;
+  return m;
+}
+function derrotaAbrirModal() {
+  derrotaModalDom();
+  _derrotaEditIdx = -1;
+  if (!_derrotaSel && _aisManualVessels.length) _derrotaSel = _aisManualVessels[0];
+  document.getElementById("modalDerrota").style.display = "flex";
+  derrotaRender();
+}
+function derrotaCerrar() {
+  var m = document.getElementById("modalDerrota");
+  if (m) m.style.display = "none";
+  _derrotaEditIdx = -1;
+}
+function derrotaPoblar() {
+  var sel = document.getElementById("derrota-select");
+  if (!sel) return;
+  var opts = '<option value="-1">＋ Nuevo buque…</option>';
+  _aisManualVessels.forEach(function(id, i) {
+    var e = _aisBuffer[id];
+    var n = (e && e.name) ? e.name : id;
+    opts += '<option value="' + i + '">' + esc(n) + '</option>';
+  });
+  sel.innerHTML = opts;
+  var idx = _aisManualVessels.indexOf(_derrotaSel);
+  sel.value = String(idx >= 0 ? idx : -1);
+  _derrotaSel = idx >= 0 ? _aisManualVessels[idx] : null;
+}
+function derrotaSelectChange() {
+  var sel = document.getElementById("derrota-select");
+  var v = parseInt(sel.value, 10);
+  _derrotaSel = (isNaN(v) || v < 0 || !_aisManualVessels[v]) ? null : _aisManualVessels[v];
+  _derrotaEditIdx = -1;
+  derrotaRender();
+}
+function derrotaRender() {
+  derrotaPoblar();
+  var nuevo = !_derrotaSel;
+  var e = nuevo ? null : _aisBuffer[_derrotaSel];
+  var titulo = document.getElementById("derrota-buque");
+  if (titulo) titulo.textContent = e ? ((e.name || "").trim() || _derrotaSel) : "";
+  var elNuevo = document.getElementById("derrota-nuevo");
+  var elAg = document.getElementById("derrota-agregar");
+  if (elNuevo) elNuevo.style.display = nuevo ? "block" : "none";
+  if (elAg) elAg.style.display = (!nuevo && e) ? "block" : "none";
+  var list = document.getElementById("derrota-list");
+  if (!list) return;
+  if (nuevo || !e) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:#8b95a7;font-size:12px">Elegí un buque de la lista o creá uno nuevo. El 2° punto arma la línea automáticamente.</div>';
+    return;
+  }
+  var tr = _aisTrails[_derrotaSel];
+  var pts = (tr && tr.pts) ? tr.pts : [];
+  if (!pts.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:#8b95a7;font-size:12px">Sin puntos todavía. El 2° punto arma la línea automáticamente.</div>';
+    return;
+  }
+  var h = '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    '<tr style="background:#f0f4ff"><th style="padding:6px;text-align:left">#</th><th style="text-align:left">Fecha</th><th style="text-align:left">Coordenadas</th><th style="width:58px"></th></tr>';
+  pts.forEach(function(p, i) {
+    var f = new Date(p[2]);
+    var fs = isNaN(f) ? "—" : f.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    if (_derrotaEditIdx === i) {
+      h += '<tr style="background:#fef9c3">' +
+        '<td style="padding:6px;font-weight:700">' + (i + 1) + '</td>' +
+        '<td><input id="dr-e-fecha" type="datetime-local" value="' + _derrotaIsoLocal(p[2]) + '" style="width:100%;padding:3px;font-size:11px;box-sizing:border-box"></td>' +
+        '<td><div style="display:flex;gap:4px">' +
+          '<input id="dr-e-lat" value="' + Number(p[0]).toFixed(5) + '" style="width:49%;padding:3px;font-size:11px;box-sizing:border-box">' +
+          '<input id="dr-e-lon" value="' + Number(p[1]).toFixed(5) + '" style="width:49%;padding:3px;font-size:11px;box-sizing:border-box">' +
+        '</div></td>' +
+        '<td><button onclick="derrotaGuardarFila(' + i + ')" title="Guardar" style="border:none;background:#22c55e;color:#fff;border-radius:4px;cursor:pointer;padding:4px 7px;font-weight:700">✓</button></td>' +
+      '</tr>';
+    } else {
+      h += '<tr style="border-bottom:1px solid #eef1f6">' +
+        '<td style="padding:6px;font-weight:700;color:#0d1b3e">' + (i + 1) + (i === pts.length - 1 ? ' <span title="Posición actual">📍</span>' : '') + '</td>' +
+        '<td style="padding:6px">' + fs + '</td>' +
+        '<td style="padding:6px;font-family:monospace;font-size:11px">' + Number(p[0]).toFixed(5) + ', ' + Number(p[1]).toFixed(5) + '</td>' +
+        '<td style="padding:6px;white-space:nowrap">' +
+          '<button onclick="derrotaEditarFila(' + i + ')" title="Editar punto" style="border:none;background:none;cursor:pointer;padding:0 2px">✏️</button>' +
+          '<button onclick="derrotaEliminarFila(' + i + ')" title="Eliminar punto" style="border:none;background:none;cursor:pointer;padding:0 2px">🗑️</button>' +
+        '</td>' +
+      '</tr>';
+    }
+  });
+  h += '</table>';
+  list.innerHTML = h;
+}
+function derrotaCrearPin() {
+  var name = (document.getElementById("dr-nombre").value || "").trim();
+  var latS = (document.getElementById("dr-lat").value || "").trim();
+  var lonS = (document.getElementById("dr-lon").value || "").trim();
+  var fecha = document.getElementById("dr-fecha").value;
+  if (!name || !latS || !lonS) { alert("Completá nombre y coordenadas"); return; }
+  var lat = _dmsToDec(latS), lon = _dmsToDec(lonS);
+  if (isNaN(lat) || isNaN(lon)) { alert("Coordenadas inválidas. Usá decimal (-26.94) o DMS (26° 56' S)"); return; }
+  var iso = fecha ? new Date(fecha).toISOString() : new Date().toISOString();
+  var id = "MANUAL_" + Date.now();
+  var data = { MetaData: { MMSI: id, ShipName: name, latitude: lat, longitude: lon, time_utc: iso } };
+  _aisBuffer[id] = { name: name, lat: lat, lon: lon, ts: iso, data: data, manual: true, createdAt: iso };
+  _aisManualVessels.push(id);
+  _aisPinSections[id] = _aisCurrentSection || "";
+  if (_aisCurrentSection && _aisMap) {
+    _aisMap.setView([lat, lon], 7);
+    aisProcessPosition(data, _aisCurrentSection);
+  } else {
+    _aisTrails[id] = { color: _aisTrailColor(id), pts: [[_r5(lat), _r5(lon), Date.parse(iso) || Date.now()]], t: Date.now() };
+  }
+  _aisGuardarPins();
+  _derrotaSel = id;
+  ["dr-nombre", "dr-lat", "dr-lon"].forEach(function(k) { var el = document.getElementById(k); if (el) el.value = ""; });
+  var ff = document.getElementById("dr-fecha"); if (ff) ff.value = "";
+  derrotaRender();
+  if (document.getElementById("ais-vessel-list")) _aisRenderLista();
+}
+function derrotaAgregarPunto() {
+  var id = _derrotaSel;
+  if (!id) return;
+  var e = _aisBuffer[id];
+  if (!e) return;
+  var latS = (document.getElementById("dr2-lat").value || "").trim();
+  var lonS = (document.getElementById("dr2-lon").value || "").trim();
+  var fecha = document.getElementById("dr2-fecha").value;
+  if (!latS || !lonS) { alert("Completá las coordenadas"); return; }
+  var lat = _dmsToDec(latS), lon = _dmsToDec(lonS);
+  if (isNaN(lat) || isNaN(lon)) { alert("Coordenadas inválidas. Usá decimal (-26.94) o DMS (26° 56' S)"); return; }
+  var iso = fecha ? new Date(fecha).toISOString() : new Date().toISOString();
+  _aisTrailSeed(id, e);
+  var data = { MetaData: { MMSI: id, ShipName: e.name, latitude: lat, longitude: lon, time_utc: iso } };
+  _aisBuffer[id] = { name: e.name, lat: lat, lon: lon, ts: iso, data: data, manual: true, createdAt: e.createdAt };
+  if (_aisMarkers[id] && _aisMap) { try { _aisMap.removeLayer(_aisMarkers[id]); } catch(err) {} delete _aisMarkers[id]; }
+  if (_aisCurrentSection && _aisMap) {
+    aisProcessPosition(data, _aisCurrentSection);
+  } else {
+    var t = _aisTrails[id];
+    t.pts.push([_r5(lat), _r5(lon), Date.parse(iso) || Date.now()]);
+    t.t = Date.now();
+  }
+  _aisGuardarPins();
+  ["dr2-lat", "dr2-lon"].forEach(function(k) { var el = document.getElementById(k); if (el) el.value = ""; });
+  var f2 = document.getElementById("dr2-fecha"); if (f2) f2.value = "";
+  derrotaRender();
+  if (document.getElementById("ais-vessel-list")) _aisRenderLista();
+}
+function derrotaEditarFila(i) { _derrotaEditIdx = i; derrotaRender(); }
+function derrotaGuardarFila(i) {
+  var id = _derrotaSel;
+  if (!id) return;
+  var tr = _aisTrails[id];
+  if (!tr || !tr.pts[i]) return;
+  var lat = _dmsToDec((document.getElementById("dr-e-lat").value || "").trim());
+  var lon = _dmsToDec((document.getElementById("dr-e-lon").value || "").trim());
+  if (isNaN(lat) || isNaN(lon)) { alert("Coordenadas inválidas"); return; }
+  var fv = document.getElementById("dr-e-fecha").value;
+  var tMs = fv ? new Date(fv).getTime() : tr.pts[i][2];
+  if (isNaN(tMs)) tMs = tr.pts[i][2];
+  tr.pts[i] = [_r5(lat), _r5(lon), tMs];
+  tr.t = Date.now();
+  if (i === tr.pts.length - 1) {
+    var e = _aisBuffer[id];
+    if (e) {
+      var iso = new Date(tMs).toISOString();
+      var data = { MetaData: { MMSI: id, ShipName: e.name, latitude: _r5(lat), longitude: _r5(lon), time_utc: iso } };
+      _aisBuffer[id] = { name: e.name, lat: _r5(lat), lon: _r5(lon), ts: iso, data: data, manual: true, createdAt: e.createdAt };
+      if (_aisMarkers[id] && _aisMap) { try { _aisMap.removeLayer(_aisMarkers[id]); } catch(err) {} delete _aisMarkers[id]; }
+      if (_aisCurrentSection && _aisMap) aisProcessPosition(data, _aisCurrentSection);
+    }
+  }
+  _derrotaEditIdx = -1;
+  _aisGuardarPins();
+  _aisTrailDraw(id);
+  derrotaRender();
+  if (document.getElementById("ais-vessel-list")) _aisRenderLista();
+}
+function derrotaEliminarFila(i) {
+  var id = _derrotaSel;
+  if (!id) return;
+  var tr = _aisTrails[id];
+  if (!tr || !tr.pts[i]) return;
+  if (!confirm("¿Eliminar el punto " + (i + 1) + " de la derrota?")) return;
+  var wasLast = (i === tr.pts.length - 1);
+  tr.pts.splice(i, 1);
+  tr.t = Date.now();
+  if (wasLast && tr.pts.length) {
+    var p = tr.pts[tr.pts.length - 1];
+    var e = _aisBuffer[id];
+    if (e) {
+      var iso = new Date(p[2]).toISOString();
+      e.lat = p[0]; e.lon = p[1]; e.ts = iso;
+      e.data = { MetaData: { MMSI: id, ShipName: e.name, latitude: p[0], longitude: p[1], time_utc: iso } };
+      if (_aisMarkers[id] && _aisMap) { try { _aisMap.removeLayer(_aisMarkers[id]); } catch(err) {} delete _aisMarkers[id]; }
+      if (_aisCurrentSection && _aisMap) aisProcessPosition(e.data, _aisCurrentSection);
+    }
+  }
+  _aisGuardarPins();
+  _aisTrailDraw(id);
+  derrotaRender();
+  if (document.getElementById("ais-vessel-list")) _aisRenderLista();
+}
+function derrotaBorrarDerrota() {
+  var id = _derrotaSel;
+  if (!id) return;
+  var tr = _aisTrails[id];
+  if (!tr || !tr.pts.length) { alert("Este buque no tiene derrota."); return; }
+  if (!confirm("¿Borrar TODA la derrota de este buque? El pin se mantiene.")) return;
+  tr.pts = [];
+  tr.t = Date.now();
+  if (_aisTrailLines[id] && _aisMap) { try { _aisMap.removeLayer(_aisTrailLines[id]); } catch(err) {} delete _aisTrailLines[id]; }
+  _aisTrailDotsRemove(id);
+  _aisGuardarPins();
+  derrotaRender();
+}
+function derrotaRefrescar() {
+  _aisCargarPins().then(function() {
+    Object.keys(_aisTrails).forEach(function(k) { _aisTrailDraw(k); });
+    if (document.getElementById("ais-vessel-list")) _aisRenderLista();
+    derrotaRender();
+    var msg = document.getElementById("ais-map-msg");
+    if (msg) msg.textContent = "Derrotas actualizadas " + new Date().toLocaleTimeString("es-AR");
+  });
+}
+function derrotaPick(target) {
+  if (!_aisMap) { alert("Mapa no disponible"); return; }
+  _derrotaPick = true;
+  _derrotaPickTarget = target;
+  var md = document.getElementById("modalDerrota");
+  if (md) md.style.display = "none";
+  var bar = document.getElementById("derrota-pickbar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "derrota-pickbar";
+    bar.style.cssText = "position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:99995;background:#0d1b3e;color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.4)";
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = '🎯 Clic en el mapa para ubicar el punto <button id="derrota-pickcancel" style="border:none;background:#ef4444;color:#fff;border-radius:5px;padding:4px 8px;cursor:pointer">Cancelar</button>';
+  bar.style.display = "flex";
+  document.getElementById("derrota-pickcancel").onclick = derrotaPickCancel;
+  _aisMap.getContainer().style.cursor = "crosshair";
+  if (!_derrotaPickHandler) {
+    _derrotaPickHandler = function(ev) {
+      if (!_derrotaPick) return;
+      var lt = ev.latlng.lat.toFixed(5), ln = ev.latlng.lng.toFixed(5);
+      derrotaPickFinish(function() {
+        var latEl = document.getElementById(_derrotaPickTarget);
+        var lonEl = document.getElementById(_derrotaPickTarget.replace("-lat", "-lon"));
+        if (latEl) latEl.value = lt;
+        if (lonEl) lonEl.value = ln;
+      });
+    };
+    _aisMap.on("click", _derrotaPickHandler);
+  }
+}
+function derrotaPickFinish(cb) {
+  _derrotaPick = false;
+  if (_aisMap) _aisMap.getContainer().style.cursor = "";
+  var bar = document.getElementById("derrota-pickbar");
+  if (bar) bar.style.display = "none";
+  if (cb) cb();
+  var md = document.getElementById("modalDerrota");
+  if (md) md.style.display = "flex";
+}
+function derrotaPickCancel() { derrotaPickFinish(null); }
 
 /* keep section-level MMSIs to filter on reconnect */
 let _aisTrackedMMSIs = [];
@@ -2391,11 +2872,19 @@ function aisStartBackground() {
 
 async function aisStartRefresh(seccionId) {
   _aisCurrentSection = seccionId;
+  // Opción 1: en SAR/MAS no se usa AISStream — cortamos el WebSocket
+  _aisWsOff = true;
+  if (_aisReconnectTimer) { clearTimeout(_aisReconnectTimer); _aisReconnectTimer = null; }
+  if (_aisWs) { try { _aisWs.close(); } catch(e) {} _aisWs = null; }
+  var _m0 = document.getElementById("ais-map-msg");
+  if (_m0) _m0.textContent = "Cargando mapa...";
   // restore manual pins from API
   await _aisCargarPins();
   // destroy old map so it's recreated on fresh DOM element
   if (_aisMap) { try { _aisMap.remove(); } catch(e) {} _aisMap = null; }
   _aisMarkers = {};
+  _aisTrailLines = {};
+  _aisTrailDots = {};
   if (!aisInitMap()) { setTimeout(function() { if (_aisCurrentSection === seccionId) aisStartRefresh(seccionId); }, 300); return; }
   // force map to render properly
   setTimeout(function() { if (_aisMap) _aisMap.invalidateSize(); }, 50);
@@ -2420,22 +2909,14 @@ async function aisStartRefresh(seccionId) {
   });
   // Refresh vessel list after manual plots
   setTimeout(function() { if (document.getElementById("ais-vessel-list")) _aisRenderLista(); }, 30);
-  // Then plot case-matched vessels from buffer (skip manual IDs)
-  var searchTerms = aisExtraerNombres(seccionId);
   var count = _aisManualVessels.filter(function(v) { var s = _aisPinSections[v] || ""; return !s || s === seccionId; }).length;
-  Object.keys(_aisBuffer).forEach(function(mmsi) {
-    if (_aisManualVessels.indexOf(mmsi) !== -1) return; // already plotted above
-    var entry = _aisBuffer[mmsi];
-    if (entry && (aisCoincide(entry.name, searchTerms) || searchTerms.some(function(s) { return String(s) === mmsi; }))) {
-      aisProcessPosition(entry.data, seccionId);
-      count++;
-    }
-  });
-  var totalInBuffer = Object.keys(_aisBuffer).length;
+  // redraw derrotas + puntos sobre el mapa nuevo
+  Object.keys(_aisTrails).forEach(function(k) { _aisTrailDraw(k); });
   var msg = document.getElementById("ais-map-msg");
-  if (msg) msg.textContent = "Mostrando " + count + " buque" + (count !== 1 ? "s" : "") + ". " + totalInBuffer + " en buffer.";
+  if (msg) msg.textContent = "Mostrando " + count + " buque" + (count !== 1 ? "s" : "") + " en el mapa.";
   // redraw search areas after map is recreated
   setTimeout(function() { areasDibujarTodas(_aisCurrentSection || ""); }, 300);
+  _aisSyncIniciar();
 }
 
 function aisLimpiarManuales() {
@@ -2450,6 +2931,8 @@ function aisLimpiarManuales() {
   });
   Object.values(_aisMarkers).forEach(function(m) { if (m && _aisMap) _aisMap.removeLayer(m); });
   _aisMarkers = {};
+  _aisTrailsClear();
+  _aisTrails = {};
   if (_aisCurrentSection) {
     if (_aisReconnectTimer) { clearTimeout(_aisReconnectTimer); _aisReconnectTimer = null; }
     if (_aisWs) { try { _aisWs.close(); } catch(e) {} _aisWs = null; }
@@ -2467,6 +2950,9 @@ function aisEliminarVessel(id) {
   var _n = _e ? (_e.name || id) : id;
   if (!confirm("¿Está seguro que desea eliminar " + _n + "?")) return;
   if (_aisMarkers[id] && _aisMap) { _aisMap.removeLayer(_aisMarkers[id]); delete _aisMarkers[id]; }
+  if (_aisTrailLines[id] && _aisMap) { try { _aisMap.removeLayer(_aisTrailLines[id]); } catch(e) {} delete _aisTrailLines[id]; }
+  _aisTrailDotsRemove(id);
+  delete _aisTrails[id];
   delete _aisBuffer[id];
   delete _aisPinSections[id];
   _aisManualVessels = _aisManualVessels.filter(function(v) { return v !== id; });
@@ -2501,6 +2987,8 @@ function aisStopRefresh() {
     Object.values(_aisMarkers).forEach(function(m) { if (m && _aisMap) _aisMap.removeLayer(m); });
     _aisMarkers = {};
   }
+  _aisTrailsClear();
+  _aisSyncDetener();
   var vl = document.getElementById("ais-vessel-list");
   if (vl) vl.innerHTML = "";
 }
@@ -2603,6 +3091,7 @@ function aisPinManual() {
     if (btn) btn.textContent = "+ Pin";
     var e = _aisBuffer[oldId];
     if (!e) return;
+    _aisTrailSeed(oldId, e);
     // remove old marker
     if (_aisMarkers[oldId]) { _aisMap.removeLayer(_aisMarkers[oldId]); delete _aisMarkers[oldId]; }
     // create updated entry (keep same id)
@@ -2636,13 +3125,12 @@ function aisMapHtml(suffix) {
   var sq = "'";
   return '<div id="ais-map-wrap'+s+'" class="activo" style="display:block;position:relative">' +
     '<div class="ais-map-header">' +
-      '<h3>Posiciones AIS en vivo</h3>' +
+      '<h3>Mapa de posiciones</h3>' +
       '<div class="ais-map-controls">' +
-        '<input type="text" id="ais-mmsi-input'+s+'" placeholder="IMO / MMSI / nombre" onkeydown="if(event.key===\'Enter\')aisAgregarManual'+s+'()" style="width:110px">' +
-        '<button onclick="aisAgregarManual'+s+'()" title="Agregar por MMSI/nombre">+ AIS</button>' +
         '<button onclick="if(_aisMap'+s+')_aisMap'+s+'.fitBounds([[-55,-73],[-22,-54]])" title="Ver Argentina completa" style="background:#64748b;color:#fff">🗺️ ARG</button>' +
         '<button onclick="aisLimpiarManuales'+s+'()" title="Limpiar todos" style="background:#ef4444;color:#fff">✕</button>' +
         '<button onclick="areasAbrirModal('+sq+s+sq+')" title="Áreas de búsqueda" style="background:#0d9488;color:#fff">📍 Áreas</button>' +
+        '<button onclick="derrotaAbrirModal()" title="Derrota: agregar/editar puntos del buque" style="background:#8b5cf6;color:#fff">📌 Derrota</button>' +
       '</div>' +
     '</div>' +
     '<div style="display:flex;gap:4px;padding:4px 8px;background:#f0f4ff;border-bottom:1px solid var(--gray-200);align-items:center;flex-wrap:wrap;font-size:11px">' +
@@ -2652,8 +3140,8 @@ function aisMapHtml(suffix) {
       '<input type="text" id="ais-pin-lon'+s+'" placeholder="Lon (ej: 58° 29\' W)" style="width:100px;padding:3px 6px;border:1px solid var(--gray-200);border-radius:4px;font-size:11px">' +
       '<button id="ais-pin-btn'+s+'" onclick="aisPinManual'+s+'()" style="padding:3px 8px;background:#8b5cf6;color:#fff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">+ Pin</button>' +
     '</div>' +
-    '<div id="ais-map'+s+'" style="height:670px;width:100%"></div>' +
-    '<div class="ais-map-msg" id="ais-map-msg'+s+'">Inicializando mapa AIS...</div>' +
+    '<div id="ais-map'+s+'" style="height:calc(100vh - 215px);min-height:460px;width:100%"></div>' +
+    '<div class="ais-map-msg" id="ais-map-msg'+s+'">Inicializando mapa...</div>' +
     '<div id="ais-vessel-list'+s+'" style="padding:4px 12px 6px;font-size:10px;background:#f8fafc;border-top:1px solid var(--gray-200);max-height:80px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:3px 8px;"></div>' +
   '</div>';
 }
@@ -4435,7 +4923,7 @@ function renderSeccion(sec) {
       📊 Ver determinantes
     </a>
   </div>
-  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+  <div style="display:flex;gap:16px;align-items:stretch;flex-wrap:wrap">
       <div style="flex:1;min-width:400px">
         <div class="tbl-wrap">
           <table class="pna-table">
@@ -4466,8 +4954,8 @@ function renderSeccion(sec) {
     });
   }
   h += `</table></div></div>
-      <div style="flex:1;min-width:320px">
-        <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="flex:1;min-width:320px;display:flex;flex-direction:column">
+        <div style="flex:1;display:flex;flex-direction:column;background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm)">
           <div style="background:var(--navy);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
             <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px">🗺️ Mapa de Determinantes</span>
             <div style="display:flex;align-items:center;gap:6px">
@@ -4476,7 +4964,7 @@ function renderSeccion(sec) {
               <span style="font-size:11px;color:rgba(255,255,255,0.5);margin-left:4px">${filasData.length} puntos</span>
             </div>
           </div>
-          <div id="sec-determinantes-map" style="height:600px;cursor:grab;"></div>
+          <div id="sec-determinantes-map" style="flex:1 1 auto;height:calc(100vh - 230px);min-height:460px;cursor:grab;"></div>
           <div style="padding:8px 16px;background:var(--gray-100);border-top:1px solid var(--gray-200);font-size:11px;color:var(--text-lt);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
             <span>Puntos críticos de navegación — Fuente: ANPYN</span>
             <span>Usá scroll para hacer zoom · Arrastrá para mover</span>
@@ -4872,7 +5360,7 @@ if (sec.tipo === "tipo_armas" || sec.id === "EJER.ARMAS") {
         <div class="bloque-sub ejerc-map-title">🗺️ Cuadrantes de ejercicio</div>
         <button onclick="window._ejercMap && window._ejercMap.fitAll()" class="tb-btn outline ejerc-map-btn">Todos</button>
       </div>
-      <div id="${mapId}" class="ejerc-map-container"></div>
+      <div id="${mapId}" class="ejerc-map-container" style="height:calc(100vh - 195px)"></div>
       <div id="legend-${mapId}" class="ejerc-legend"></div>
     </div>`;
     setTimeout(() => initEjercMap(mapId, cuadrantes), 150);
@@ -4986,7 +5474,7 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
           <div class="puertos-legend-item"><span class="puertos-legend-dot amber"></span> Restringidos (${restringidos.length})</div>
           <div class="puertos-legend-item"><span class="puertos-legend-dot red"></span> Cerrados (${cerrados.length})</div>
         </div>
-        <div id="sec-puertos-map" style="height:380px;cursor:grab;"></div>
+        <div id="sec-puertos-map" style="height:calc(100vh - 170px);cursor:grab;"></div>
       </div>
     </div>
   </div>`;
@@ -8174,6 +8662,245 @@ function cerrarModalGC(){document.getElementById("modalGC").classList.remove("ac
 function gcResetMap(){if(window._gcMap){window._gcMap.setView([-38, -58], 5);}}
 
 // Cierre al hacer clic afuera DESHABILITADO — solo se cierra con el botón X o "Cancelar"
+/* Toast breve de confirmación (sin dependencias) */
+function mostrarToast(msg, tipo) {
+  var t = document.getElementById("app-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "app-toast";
+    t.style.cssText = "position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100000;background:#16a34a;color:#fff;padding:10px 24px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:opacity .3s;pointer-events:none";
+    document.body.appendChild(t);
+  }
+  t.style.background = tipo === "err" ? "#dc2626" : tipo === "wait" ? "#b45309" : "#16a34a";
+  t.textContent = msg;
+  t.style.opacity = "1";
+  if (t._h) clearTimeout(t._h);
+  t._h = setTimeout(function(){ t.style.opacity = "0"; }, tipo === "err" ? 5200 : 3200);
+}
+
+/* Misma regla de siglas que el backend (obtenerSiglaBuque), para el parcheo local */
+function _siglaBuque(tipo) {
+  if (!tipo) return "B/";
+  const t = tipo.toUpperCase();
+  if (t.includes("PESQUERO")) return "B/P";
+  if (t.includes("B/T EMPUJE") || t.includes("TANQUE DE EMPUJE")) return "B/T";
+  if (t.includes("TANQUE")) return "B/T";
+  if (t.includes("GRANELERO")) return "B/M";
+  if (t.includes("CARGA") || t.includes("MOTOR") || t.includes("GENERAL")) return "B/M";
+  if (t.includes("PASAJERO")) return "B/PAX";
+  if (t.includes("LANCHA MOTOR")) return "L/M";
+  if (t.includes("REMOLCADOR DE EMPUJE")) return "R/E";
+  if (t.includes("REMOLCADOR")) return "B/R";
+  return "B/";
+}
+
+function _tsAhora() {
+  var d = new Date(), p = function(n){ return String(n).padStart(2, "0"); };
+  return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " " +
+         p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+}
+
+/* Réplica de caracteristicas que arma el backend al leer el caso */
+function _construirCaracteristicas(d, seccion) {
+  var tipoDisplay = (d.tipo || "").toString().trim();
+  var tu = tipoDisplay.toUpperCase();
+  if (tu.includes("EMPUJE") && (tu.includes("TANQUE") || tu.includes("B/T"))) tipoDisplay = "B/T EMPUJE";
+  var cc = "";
+  if (tipoDisplay) cc = "Tipo de buque: " + tipoDisplay;
+  if (d.eslora) cc += (cc ? " - " : "") + "E: " + d.eslora;
+  if (d.manga) cc += (cc ? " - " : "") + "M: " + d.manga;
+  if (seccion !== "SAR" && d.diagnostico) cc += (cc ? " - " : "") + "C: " + d.diagnostico;
+  var ap = (d.agencia_pob || "").split("|").map(function(s){ return s.trim(); }).filter(Boolean);
+  if (ap[0]) cc += (cc ? " - " : "") + ap[0];
+  if (ap[1]) cc += (cc ? " - " : "") + "POB: " + ap[1];
+  var pd = (d.procedencia_destino || "").split("|").map(function(s){ return s.trim(); }).filter(Boolean);
+  if (pd[0]) cc += (cc ? " - " : "") + "Procedencia: " + pd[0];
+  if (pd[1]) cc += (cc ? " - " : "") + "Destino: " + pd[1];
+  if (d.calado) cc += (cc ? " - " : "") + "Calado: " + d.calado;
+  if (d.puntal) cc += (cc ? " - " : "") + "Puntal: " + d.puntal;
+  if (d.tipo_carga) cc += (cc ? " - " : "") + "Tipo de carga: " + d.tipo_carga;
+  if (d.puerto_asiento) cc += (cc ? " - " : "") + "Puerto de asiento: " + d.puerto_asiento;
+  if (d.puerto_operaciones) cc += (cc ? " - " : "") + "Puerto de operaciones: " + d.puerto_operaciones;
+  return cc;
+}
+
+function _armarAsuntoLocal(d, sigla, nombreLimpio) {
+  return "CASO " + d.seccion + " " + (d.subcentro || "") + " Nº " + (d.numero || "") +
+    " – \"" + (d.nombre || "") + "\" " + sigla + " \"" + nombreLimpio + "\" (" +
+    (d.identificacion || "") + ") B/" + (d.bandera || "") + ". (" + (d.fecha_inicio || "") + ").";
+}
+
+/* Actualiza (o agrega) el caso en los datos en memoria al instante, sin esperar
+   al servidor. Devuelve "caps" (capturas) para confirmar la fila de la hoja o
+   revertir el cambio si el servidor falla. */
+function parchearCasoLocal(d) {
+  var caps = [];
+  function aplicar(data) {
+    if (!data || !data.secciones) return;
+    var sec = data.secciones.find(function(s){ return s.id === d.seccion; });
+    if (!sec) return;
+    var limpio = (d.buque || "").replace(/^(B\/[A-Z]*|L\/M|R\/E)\s+/i, "").trim().toUpperCase();
+    var sigla = _siglaBuque(d.tipo);
+    var ts = _tsAhora();
+    var idx = d.filaSheet ? sec.filas.findIndex(function(f){ return f && f.tipo === "caso_especial" && f.filaSheet == d.filaSheet; }) : -1;
+    if (idx >= 0) {
+      var f = sec.filas[idx];
+      caps.push({ op: "edit", sec: sec, idx: idx, fila: f, previa: Object.assign({}, f) });
+      f.buque = sigla + " " + limpio;
+      f.estado = d.estado || "";
+      f.novedad = d.novedad || "";
+      f.situacion = d.situacion || "";
+      f.fechaInicio = d.fecha_inicio || "";
+      f.fechaCierre = d.fecha_cierre || "";
+      f.identificacion = d.identificacion || "";
+      f.subcentro = d.subcentro || "";
+      f.numero = d.numero || "";
+      f.nombre = d.nombre || "";
+      f.tipoBuque = d.tipo || "";
+      f.bandera = d.bandera || "";
+      f.eslora = d.eslora || "";
+      f.manga = d.manga || "";
+      f.diagnostico = d.diagnostico || "";
+      f.mediosPrevistos = d.medios_previstos || "";
+      f.posicion = d.posicion || "";
+      f.tipoCarga = d.tipo_carga || "";
+      f.puertoAsiento = d.puerto_asiento || "";
+      f.puertoOperaciones = d.puerto_operaciones || "";
+      f.agenciaPob = d.agencia_pob || "";
+      f.procedenciaDestino = d.procedencia_destino || "";
+      f.caracteristicas = _construirCaracteristicas(d, d.seccion);
+      f.asunto = _armarAsuntoLocal(d, sigla, limpio);
+      f.ultimaActualizacion = ts;
+    } else if (!d.filaSheet) {
+      var nueva = {
+        tipo: "caso_especial",
+        buque: sigla + " " + limpio,
+        asunto: _armarAsuntoLocal(d, sigla, limpio),
+        posicion: d.posicion || "",
+        novedad: d.novedad || "",
+        caracteristicas: _construirCaracteristicas(d, d.seccion),
+        situacion: d.situacion || "",
+        estado: d.estado || "",
+        fechaInicio: d.fecha_inicio || "",
+        imgUrl: "",
+        filaSheet: null,
+        _pendiente: true,
+        hojaId: sec.hojaId || "",
+        ultimaActualizacion: ts,
+        identificacion: d.identificacion || "",
+        subcentro: d.subcentro || "",
+        numero: d.numero || "",
+        nombre: d.nombre || "",
+        tipoBuque: d.tipo || "",
+        bandera: d.bandera || "",
+        fechaCierre: d.fecha_cierre || "",
+        diagnostico: d.diagnostico || "",
+        mediosPrevistos: d.medios_previstos || "",
+        eslora: d.eslora || "",
+        manga: d.manga || "",
+        tipoCarga: d.tipo_carga || "",
+        puertoAsiento: d.puerto_asiento || "",
+        puertoOperaciones: d.puerto_operaciones || "",
+        agenciaPob: d.agencia_pob || "",
+        procedenciaDestino: d.procedencia_destino || ""
+      };
+      sec.filas.push(nueva);
+      caps.push({ op: "alta", sec: sec, idx: sec.filas.length - 1, fila: nueva });
+    }
+  }
+  aplicar(typeof datosGlobales !== "undefined" ? datosGlobales : null);
+  if (typeof _datosCache !== "undefined" && _datosCache && _datosCache !== datosGlobales) aplicar(_datosCache);
+  return caps;
+}
+
+/* El servidor confirmó: la fila pasó a existir en la hoja */
+function confirmarFilaLocal(caps, filaRes) {
+  if (!caps || !filaRes) return;
+  caps.forEach(function(c){
+    if (c.op === "alta" && c.fila) {
+      c.fila.filaSheet = parseInt(filaRes, 10);
+      delete c.fila._pendiente;
+    }
+  });
+}
+
+/* El servidor falló: deshace los cambios locales (edit → valor previo, alta → quita) */
+function revertirLocal(caps) {
+  if (!caps) return;
+  caps.forEach(function(c){
+    if (!c.sec || !c.sec.filas) return;
+    if (c.op === "alta") {
+      if (c.sec.filas[c.idx] === c.fila) c.sec.filas.splice(c.idx, 1);
+    } else if (c.op === "edit") {
+      if (c.sec.filas[c.idx] === c.fila) c.sec.filas[c.idx] = c.previa;
+    } else if (c.op === "baja") {
+      if (c.sec.filas[c.idx] !== c.fila) c.sec.filas.splice(c.idx, 0, c.fila);
+    }
+  });
+}
+
+/* Quita el caso de los datos en memoria (capturas para poder revertir) */
+function quitarCasoLocal(seccionId, filaSheet) {
+  var caps = [];
+  function aplicar(data) {
+    if (!data || !data.secciones) return;
+    var sec = data.secciones.find(function(s){ return s.id === seccionId; });
+    if (!sec) return;
+    var idx = (sec.filas || []).findIndex(function(f){
+      return f && f.tipo === "caso_especial" && f.filaSheet == filaSheet;
+    });
+    if (idx < 0) return;
+    caps.push({ op: "baja", sec: sec, idx: idx, fila: sec.filas[idx] });
+    sec.filas.splice(idx, 1);
+  }
+  aplicar(typeof datosGlobales !== "undefined" ? datosGlobales : null);
+  if (typeof _datosCache !== "undefined" && _datosCache && _datosCache !== datosGlobales) aplicar(_datosCache);
+  return caps;
+}
+
+/* Reabre el modal repoblando el formulario con los datos que intentó guardar
+   (para poder reintentar sin volver a tipear todo) */
+function _reabrirModalConData(d) {
+  if (!d) return;
+  var editando = !!d.filaSheet;
+  document.getElementById("casoSeccion").value = d.seccion || "";
+  document.getElementById("casoFila").value = d.filaSheet || "";
+  document.getElementById("btnEliminarCaso").style.display = editando ? "inline-block" : "none";
+  document.getElementById("modalCasoTitle").textContent =
+    (editando ? "Editar caso " + (d.seccion || "") + " — " + (d.buque || "") : "Cargar nuevo caso " + (d.seccion || ""));
+  document.getElementById("casoSubcentro").value = d.subcentro || "";
+  document.getElementById("casoNumero").value = d.numero || "";
+  document.getElementById("casoNombre").value = d.nombre || "";
+  document.getElementById("casoBuque").value = d.buque || "";
+  document.getElementById("casoIdentificacion").value = d.identificacion || "";
+  document.getElementById("casoTipo").value = d.tipo || "";
+  document.getElementById("casoBandera").value = d.bandera || "";
+  document.getElementById("casoFechaInicio").value = d.fecha_inicio || "";
+  document.getElementById("casoFechaCierre").value = d.fecha_cierre || "";
+  document.getElementById("casoPosicion").value = d.posicion || "";
+  document.getElementById("casoEslora").value = d.eslora || "";
+  document.getElementById("casoManga").value = d.manga || "";
+  document.getElementById("casoCalado").value = d.calado || "";
+  document.getElementById("casoPuntal").value = d.puntal || "";
+  document.getElementById("casoTipoCarga").value = d.tipo_carga || "";
+  document.getElementById("casoPuertoAsiento").value = d.puerto_asiento || "";
+  document.getElementById("casoPuertoOperaciones").value = d.puerto_operaciones || "";
+  var _ag = (d.agencia_pob || "").split("|");
+  document.getElementById("casoAgencia").value = (_ag[0] || "").trim();
+  document.getElementById("casoPob").value = (_ag[1] || "").trim();
+  var _pd = (d.procedencia_destino || "").split("|");
+  document.getElementById("casoProcedencia").value = (_pd[0] || "").trim();
+  document.getElementById("casoDestino").value = (_pd[1] || "").trim();
+  document.getElementById("casoDiagnostico").value = d.diagnostico || "";
+  document.getElementById("casoMediosPrevistos").value = d.medios_previstos || "";
+  document.getElementById("casoSituacion").value = d.situacion || "";
+  document.getElementById("casoNovedad").value = d.novedad || "";
+  syncTipoBuqueCaract();
+  setCasoEstado((d.estado || "").toUpperCase().includes("CERRADO") ? "Cerrados" : "Pendientes");
+  document.getElementById("modalCaso").classList.add("activo");
+  switchCasoTab("asunto", document.querySelector("#casoTabs .caso-tab"));
+}
+
 async function guardarCaso(e){
   e.preventDefault();
   var btn=document.getElementById("btnGuardarCaso");
@@ -8208,33 +8935,52 @@ async function guardarCaso(e){
     situacion:document.getElementById("casoSituacion").value.trim(),
     novedad:document.getElementById("casoNovedad").value.trim()
   };
+  var caps=null;
   try{
+    // — Respuesta instantánea: parchea en memoria, cierra el modal y repinta ya —
+    caps = parchearCasoLocal(data);
+    cerrarModalCaso();
+    if (data.seccion) mostrarSeccion(data.seccion);
+    mostrarToast(editando ? "Actualizando caso…" : "Guardando caso…", "wait");
     var params=new URLSearchParams();
     Object.keys(data).forEach(function(k){params.set(k,data[k]);});
-    var response=await fetch(API_URL,{
-      method:"POST",
-      redirect:"follow",
-      headers:{"Content-Type":"application/x-www-form-urlencoded"},
-      body:params.toString()
-    });
-    var text=await response.text();
-    var res=JSON.parse(text);
-    btn.disabled=false;btn.textContent=editando?"💾 Actualizar caso":"💾 Guardar caso";
-    if(res&&res.ok){
-      cerrarModalCaso();
-      var secGuardada = data.seccion;
-      datosGlobales = null;
-      _datosCache = null;
-      _datosCacheTs = 0;
-      _datosFase2Cargados = false;
-      await cargarDatos(true);
-      if(secGuardada) mostrarSeccion(secGuardada);
-    }else{
-      alert("⚠ Error al guardar: "+(res&&res.error||"Respuesta inválida"));
+    var ctrl=null,toId=null;
+    try{
+      ctrl=new AbortController();
+      toId=setTimeout(function(){ctrl.abort();},120000);
+      var response=await fetch(API_URL,{
+        method:"POST",
+        redirect:"follow",
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:params.toString(),
+        signal:ctrl.signal
+      });
+      var text=await response.text();
+      clearTimeout(toId);
+      var body=(text||"").trim();
+      if(body.charAt(0)==="<") throw new Error("HTML");
+      var res=JSON.parse(body);
+      if(res&&res.ok){
+        confirmarFilaLocal(caps, res.fila);
+        mostrarToast(editando ? "Caso actualizado ✓" : "Caso guardado ✓");
+      }else{
+        revertirLocal(caps);
+        if(data.seccion) mostrarSeccion(data.seccion);
+        _reabrirModalConData(data);
+        mostrarToast("⚠ Error al guardar: "+(res&&res.error||"Respuesta inválida"),"err");
+      }
+    }catch(innerErr){
+      clearTimeout(toId);
+      revertirLocal(caps);
+      if(data.seccion) mostrarSeccion(data.seccion);
+      _reabrirModalConData(data);
+      var msg=(innerErr&&innerErr.message==="HTML")?"el servidor devolvió una página de error (reintentá)"
+        :(innerErr&&innerErr.name==="AbortError")?"tiempo agotado (reintentá)"
+        :(innerErr&&innerErr.message)||innerErr;
+      mostrarToast("⚠ Error de conexión: "+msg,"err");
     }
-  }catch(err){
+  }finally{
     btn.disabled=false;btn.textContent=editando?"💾 Actualizar caso":"💾 Guardar caso";
-    alert("⚠ Error de conexión: "+(err.message||err));
   }
 }
 
@@ -8245,35 +8991,51 @@ async function eliminarCaso(){
   if(!confirm("¿Eliminar este caso definitivamente?")) return;
   var btn=document.getElementById("btnEliminarCaso");
   btn.disabled=true;btn.textContent="⏳ Eliminando...";
+  var caps=null;
   try{
+    // — Respuesta instantánea: quita de la vista, cierra el modal y repinta ya —
+    caps=quitarCasoLocal(seccion, filaSheet);
+    cerrarModalCaso();
+    if(seccion) mostrarSeccion(seccion);
+    mostrarToast("Eliminando caso…","wait");
     var params=new URLSearchParams();
     params.set("accion","eliminarCasoEspecial");
     params.set("seccion",seccion);
     params.set("filaSheet",filaSheet);
-    var response=await fetch(API_URL,{
-      method:"POST",
-      redirect:"follow",
-      headers:{"Content-Type":"application/x-www-form-urlencoded"},
-      body:params.toString()
-    });
-    var text=await response.text();
-    var res=JSON.parse(text);
-    btn.disabled=false;btn.textContent="🗑 Eliminar caso";
-    if(res&&res.ok){
-      cerrarModalCaso();
-      var secGuardada=seccion;
-      datosGlobales=null;
-      _datosCache = null;
-      _datosCacheTs = 0;
-      _datosFase2Cargados = false;
-      await cargarDatos(true);
-      if(secGuardada) mostrarSeccion(secGuardada);
-    }else{
-      alert("⚠ Error al eliminar: "+(res&&res.error||"Respuesta inválida"));
+    var ctrl=null,toId=null;
+    try{
+      ctrl=new AbortController();
+      toId=setTimeout(function(){ctrl.abort();},120000);
+      var response=await fetch(API_URL,{
+        method:"POST",
+        redirect:"follow",
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:params.toString(),
+        signal:ctrl.signal
+      });
+      var text=await response.text();
+      clearTimeout(toId);
+      var body=(text||"").trim();
+      if(body.charAt(0)==="<") throw new Error("HTML");
+      var res=JSON.parse(body);
+      if(res&&res.ok){
+        mostrarToast("Caso eliminado ✓");
+      }else{
+        revertirLocal(caps);
+        if(seccion) mostrarSeccion(seccion);
+        mostrarToast("⚠ Error al eliminar: "+(res&&res.error||"Respuesta inválida"),"err");
+      }
+    }catch(innerErr){
+      clearTimeout(toId);
+      revertirLocal(caps);
+      if(seccion) mostrarSeccion(seccion);
+      var msg=(innerErr&&innerErr.message==="HTML")?"el servidor devolvió una página de error (reintentá)"
+        :(innerErr&&innerErr.name==="AbortError")?"tiempo agotado (reintentá)"
+        :(innerErr&&innerErr.message)||innerErr;
+      mostrarToast("⚠ Error de conexión: "+msg,"err");
     }
-  }catch(err){
+  }finally{
     btn.disabled=false;btn.textContent="🗑 Eliminar caso";
-    alert("⚠ Error de conexión: "+(err.message||err));
   }
 }
 
@@ -8292,7 +9054,7 @@ function editarCaso(seccionId, filaSheet, hojaId){
   document.getElementById("casoSubcentro").value=caso.subcentro||"";
   document.getElementById("casoNumero").value=caso.numero||"";
   document.getElementById("casoNombre").value=caso.nombre||"";
-  document.getElementById("casoBuque").value=(caso.buque||"").replace(/^(B\/[A-Z]+|L\/M|R\/E)\s+/i,"");
+  document.getElementById("casoBuque").value=(caso.buque||"").replace(/^(B\/[A-Z]*|L\/M|R\/E)\s+/i,"");
   document.getElementById("casoIdentificacion").value=caso.identificacion||"";
   document.getElementById("casoTipo").value=caso.tipoBuque||"";
   syncTipoBuqueCaract();
@@ -8416,7 +9178,8 @@ function abrirServicio(id) {
   }
 
   // Iniciar AIS en background
-  if (!_aisWs) setTimeout(aisStartBackground, 1000);
+  // Sin AISStream: el WebSocket ya no se usa en ninguna parte de la app (Opción 1)
+  // if (!_aisWs) setTimeout(aisStartBackground, 1000);
 
   // Cargar datos o ir a la sección correspondiente
   if (!datosGlobales) {
