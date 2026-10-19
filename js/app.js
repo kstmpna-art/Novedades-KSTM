@@ -753,6 +753,7 @@ const puertosCoords = {
   BCAM:[-44.8008695,-65.715702],RGAL:[-51.6150533,-69.2159367],LARG:[-50.3037512,-72.3057638],
   USHU:[-54.8051392,-68.2986013],RECA: [-35.09, -55.865], OLVA:[-46.4407159,-67.5153727],
   RGRA:[-53.7944709,-67.6874973],SFER: [-34.4290221,-58.5595956], ALVE:[-29.112778, -56.555278],
+  MCAS:[-30.251944, -57.622222],
 };
 const puertosNombres = {
   POSA:"Posadas",IGUA:"Iguazú",PILC:"Pilcomayo",BOUV:"Bouvier",FORM:"Formosa",
@@ -771,7 +772,7 @@ const puertosNombres = {
   CRIV:"Comodoro Rivadavia",CORD:"Caleta Córdoba",SJUL:"San Julián",
   BCAM:"Bahía Camarones",RGAL:"Río Gallegos",LARG:"Lago Argentino",
   USHU:"Ushuaia",OLVA:"Caleta Olivia",RGRA:"Río Grande", RECA: "Pontón Recalada", SFER: "San Fernando", 
-  ALVE: "Alvear"  
+  ALVE: "Alvear", MCAS: "Monte Caseros"
 };
 function initPuertosMap(containerId, closedCodes, portFilas) {
   const el = document.getElementById(containerId);
