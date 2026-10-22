@@ -3970,7 +3970,7 @@ function renderSeccion(sec) {
     const sbgcFilas = sbgcSec ? (sbgcSec.filas || []).filter(f => f && f.tipo === "fila" && f.latitud && f.longitud) : [];
     const gcMapId = "gc-map-" + uid();
 
-    h+=`<div style="flex:1 1 calc(33.33% - 11px);min-width:300px;background:var(--card-bg,#fff);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:16px;box-shadow:var(--shadow-sm)">`;
+    h+=`<div style="flex:1 1 calc(33.33% - 11px);min-width:300px;background:var(--card-bg,#fff);border-radius:var(--radius-lg);border:1px solid var(--gray-200);padding:16px;box-shadow:var(--shadow-sm);position:sticky;top:10px;align-self:flex-start">`;
     h+=`<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">`;
     h+=`<span>🗺️ Ubicación de Guardacostas</span>`;
     h+=`<button onclick="gcResetMap()" style="background:var(--navy);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px">🔄 Ver todo</button>`;
@@ -4061,6 +4061,7 @@ function renderSeccion(sec) {
     window._sbgcData = sbgcAll;
 
     h+=`<div style="flex:1 1 calc(33.33% - 11px);min-width:300px;background:var(--navy-dk);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2)">`;
+    h+=`<div style="position:sticky;top:10px">`;
     h+=`<div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📡 Estado de Guardacostas (SBGC)</div>`;
     h+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`;
     h+=`<div class="sers-kpi" onclick="gcAbrirModal('')" style="flex:1;min-width:70px;text-align:center;padding:8px;cursor:pointer;border-radius:8px;transition:all .15s"><div style="font-size:24px;font-weight:800;color:#fff">${totalSBGC}</div><div style="font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase">🚢 Total</div></div>`;
@@ -4093,6 +4094,7 @@ function renderSeccion(sec) {
     } else {
       h+=`<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-style:italic">Sin datos SBGC</div>`;
     }
+    h+=`</div>`;
     h+=`</div>`;
 
     h+=`</div>`;
