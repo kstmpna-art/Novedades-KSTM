@@ -5,6 +5,11 @@ let servicioActivo = "KSTM";
 ================================================================ */
 const API_URL = "https://script.google.com/macros/s/AKfycbwAGwGh0fLvf6z5Qkgxdy2ihxK9CZU6G7-ay1I4-nzj1Pfpob61O1EXoJnMOjGAe7jdDA/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
+/* Centro de Control — Capacidad Portuaria (web app externa embebida al pie de las zonas MOV_*) */
+const CAPACIDAD_PORT_URL = "https://script.google.com/macros/s/AKfycbz2qAu8I1REwIMw6YJd-Gx2IzqSmbeiJ03F6zTNjhw-32zRr-VzikFKVK1Ip0jHfJIx/exec";
+/* Interruptor del panel embebido: false = no se dibuja ni se precarga el iframe.
+   Pasar a true para volver a mostrarlo en las secciones MOV_*. */
+const CAP_PORT_VISIBLE = false;
 
 /* Keep-alive: ping cada 3 min para que GAS no entre en frío (arranque de 8-13s) */
 (function() {
@@ -139,6 +144,7 @@ async function intentarLogin() {
     usuarioSecciones = parsearPermisos(res.secciones);
     if (typeof bootPaso === "function") bootPaso(90, "Preparando datos");
     iniciarApp(user, efectiveRole);
+    if (CAP_PORT_VISIBLE && typeof _capPortCargar === "function") _capPortCargar();
     if (typeof bootFin === "function") bootFin();
   } catch(e) {
     if (toLogin) clearTimeout(toLogin);
@@ -211,6 +217,7 @@ function cerrarSesion() {
   datosGlobales = null; pinVerificado = false; currentUser = null;
   _datosCache = null; _datosCacheTs = 0;
   usuarioSecciones = ["*"];
+  if (typeof _capPortDestruir === "function") _capPortDestruir();
 }
 
 /* ================================================================
@@ -1017,10 +1024,15 @@ function initEjercMap(containerId, cuadrantes) {
       var popHtml = "<b>" + esc(c.label || c.name) + "</b>";
       if (c.fecha) popHtml += "<br><span style='font-size:11px;color:#555'>" + esc(c.fecha) + "</span>";
       if (c.obs) popHtml += "<br><span style='font-size:11px;color:#777'>" + esc(c.obs) + "</span>";
+      popHtml += "<br><span style='font-size:11px;color:#333;font-weight:700'>📐 " + areaPts.length + " vértices</span>";
       poly.bindPopup(popHtml, { maxWidth: 300 });
       poly.on("mouseover", function(){ this.setStyle({fillOpacity:0.3, weight:3}); });
       poly.on("mouseout", function(){ this.setStyle({fillOpacity:0.15, weight:2}); });
-      areaPts.forEach(function(p){ if (p) bounds.push(p); });
+      areaPts.forEach(function(p){
+        if (!p) return;
+        bounds.push(p);
+        L.circleMarker(p, { radius:3, color:"#fff", weight:1, fillColor:color, fillOpacity:0.9, interactive:false }).addTo(map);
+      });
       cuadrantePolys.push(poly);
     });
     allPolygons.push(cuadrantePolys);
@@ -2107,6 +2119,14 @@ function mostrarSeccion(id) {
   }
 
   visor.innerHTML = renderSeccion(sec);
+
+  /* Centro de Control (Capacidad Portuaria): panel iframe PERSISTENTE.
+     El iframe es único y no se destruye al cambiar de sección: queda
+     cargado en segundo plano y se acopla sobre el bloque de la zona
+     MOV_* visible mientras éste está a la vista. */
+  if (typeof _capPortDesacoplar === "function") _capPortDesacoplar();
+  var _capWrap = visor.querySelector('[data-cap-port="1"]');
+  if (_capWrap && typeof _capPortObservar === "function") _capPortObservar(_capWrap, sec.id);
   if (sec.tipo === "casos_especiales") {
     iniciarRelojes();
     setTimeout(function(){
@@ -3955,7 +3975,7 @@ function renderSeccion(sec) {
     h+=`<span>🗺️ Ubicación de Guardacostas</span>`;
     h+=`<button onclick="gcResetMap()" style="background:var(--navy);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px">🔄 Ver todo</button>`;
     h+=`</div>`;
-    h+=`<div id="${gcMapId}" style="height:400px;border-radius:var(--radius);z-index:0"></div>`;
+    h+=`<div id="${gcMapId}" style="height:calc(100vh - 210px);min-height:400px;border-radius:var(--radius);z-index:0"></div>`;
     setTimeout(function() {
       const el = document.getElementById(gcMapId);
       if (!el || typeof L === 'undefined') return;
@@ -3964,6 +3984,12 @@ function renderSeccion(sec) {
       L.control.attribution({position:"bottomleft",prefix:"© ESRI"}).addTo(map);
       L.control.scale({ imperial: false, metric: true, position: "bottomleft" }).addTo(map);
       window._gcMap = map;
+      if (!window._gcMapResizeBound) {
+        window._gcMapResizeBound = true;
+        window.addEventListener('resize', function() {
+          if (window._gcMap) { try { window._gcMap.invalidateSize(); } catch(e) {} }
+        });
+      }
       (function(){
         const malvinasIcon = L.divIcon({ html: '<div style="font-size:9px;font-weight:800;color:#0f2744;background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;white-space:nowrap">ISLAS MALVINAS</div>', iconSize: [0,0], iconAnchor: [0,0], className: '' });
         L.marker([-51.75, -59.0], {icon: malvinasIcon, interactive: false}).addTo(map);
@@ -5048,6 +5074,17 @@ function renderSeccion(sec) {
     var _vencidos = ZONAS_CON_ALERTA.indexOf(sec.id) !== -1 ? contarVencidos(buquesData) : { total: 0, amarrados: 0, fondeados: 0 };
 
     let h=``;
+    if (!window._vistaCompletaMode && CAP_PORT_VISIBLE) {
+      h += `
+    <div class="cap-port-embed">
+      <div class="cap-port-frame-wrap" id="cap-port-wrap" data-cap-port="1">
+        <div class="cap-port-placeholder" id="cap-port-placeholder">
+          <div class="spin"></div>
+          <span>Cargando centro de control…</span>
+        </div>
+      </div>
+    </div>`;
+    }
     if (_vencidos.total > 0) {
       var _zonaNombre = {MOV_BAJO_PARANA:"Bajo Paraná",MOV_DELTA:"Delta",MOV_ZONA3:"Río de la Plata"}[sec.id] || sec.id;
       var _vencItems = [];
@@ -5088,6 +5125,7 @@ function renderSeccion(sec) {
     subs.forEach(f=>{
       h+=`<div style="margin-top:8px;padding:8px 12px;background:var(--gray-100);border-radius:var(--radius);font-weight:700;color:var(--text);font-size:13px">${esc(f.datos[0].replace("<<SUBTITULO>>",""))}</div>`;
     });
+    h+=`<div style="height:32px"></div>`;
     return h;
   }
 
@@ -5314,7 +5352,7 @@ if (sec.tipo === "tipo_armas" || sec.id === "EJER.ARMAS") {
       ordenGrupos.push(key);
     }
     const pts = [];
-    for (let i = 4; i <= 7; i++) {
+    for (let i = 4; i < datos.length; i++) {
       if (datos[i]) { var c = dmsToDecimal(datos[i]); if (c) pts.push(c); }
     }
     if (pts.length >= 3) grupos[key].areas.push(pts);
@@ -6014,6 +6052,174 @@ function renderFilasGenericas(filas, opts) {
     else if(f.tipo==="novedad") h+=`<div class="item-card"${_fsStyle}><div style="font-weight:600;color:var(--navy);margin-bottom:3px">${esc(f.titulo)}</div><div style="color:var(--text-md)">${esc(f.texto)}</div></div>`;
   });
   return h||`<div class="empty">Sin novedades.</div>`;
+}
+
+/* ── CENTRO DE CONTROL — CAPACIDAD PORTUARIA (iframe persistente) ──
+   Un único iframe vivo que NO se destruye al cambiar de sección: queda
+   cargado en segundo plano y se acopla (dock) sobre el bloque de la
+   zona MOV_* visible. Se puede minimizar (sigue corriendo) o cerrar. */
+var _capPort = { host:null, iframe:null, slot:null, observer:null, cargado:false, fab:null, minimizado:false, seccionId:null, zonaEnv:null };
+var _CAP_PORT_ZONAS = { MOV_BAJO_PARANA:"PZBP", MOV_DELTA:"PZDE", MOV_ZONA3:"PZRP", MOV_ZONA4:"PZMN" };
+window.addEventListener("scroll", function() { _capPortPosicionar(); }, true);
+window.addEventListener("resize", function() { _capPortPosicionar(); });
+
+function _capPortHost() {
+  if (_capPort.host) return _capPort.host;
+  var host = document.createElement("div");
+  host.id = "cap-port-live";
+  host.innerHTML =
+    '<div class="cap-port-live-bar">' +
+      '<span class="cap-port-live-title">🎛️ Centro de Control — Capacidad Portuaria</span>' +
+      '<span class="cap-port-live-btns">' +
+        '<button type="button" class="cap-live-btn" id="cap-port-min" title="Minimizar — queda corriendo de fondo">—</button>' +
+        '<button type="button" class="cap-live-btn" id="cap-port-expand" title="Ampliar a pantalla completa / restaurar">⤢</button>' +
+        '<a class="cap-live-btn" href="' + CAPACIDAD_PORT_URL + '" target="_blank" rel="noopener" title="Abrir en pestaña nueva">↗</a>' +
+        '<button type="button" class="cap-live-btn cap-live-close" id="cap-port-destroy" title="Cerrar y descargar">✕</button>' +
+      '</span>' +
+    '</div>' +
+    '<div class="cap-port-live-body"></div>';
+  document.body.appendChild(host);
+  var ifr = document.createElement("iframe");
+  ifr.title = "Centro de Control — Capacidad Portuaria";
+  ifr.setAttribute("allowfullscreen", "");
+  ifr.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox");
+  host.querySelector(".cap-port-live-body").appendChild(ifr);
+  host.querySelector("#cap-port-min").addEventListener("click", _capPortMinimizar);
+  host.querySelector("#cap-port-expand").addEventListener("click", _capPortExpandir);
+  host.querySelector("#cap-port-destroy").addEventListener("click", _capPortDestruir);
+  var fab = document.createElement("button");
+  fab.id = "cap-port-fab";
+  fab.className = "cap-port-fab";
+  fab.innerHTML = "🎛️ Centro de Control";
+  fab.addEventListener("click", _capPortRestaurar);
+  document.body.appendChild(fab);
+  _capPort.host = host;
+  _capPort.iframe = ifr;
+  _capPort.fab = fab;
+  return host;
+}
+
+function _capPortCargar() {
+  if (_capPort.cargado) return;
+  _capPort.cargado = true;
+  _capPortHost();
+  _capPort.iframe.src = CAPACIDAD_PORT_URL;
+}
+
+/* Le pide al dashboard (vía el servidor del script GAS, CacheService + polling
+   de google.script.run dentro del iframe) que muestre la zona de la sección. */
+function _capPortEnviarZona() {
+  var code = _CAP_PORT_ZONAS[_capPort.seccionId];
+  if (!code || _capPort.zonaEnv === code) return;
+  _capPort.zonaEnv = code;
+  try {
+    fetch(CAPACIDAD_PORT_URL + "?accion=setZona&zona=" + encodeURIComponent(code), { mode: "no-cors", cache: "no-store" });
+  } catch (e) {}
+}
+
+/* Coloca (o oculta) el panel vivo sobre el bloque-slot de la sección */
+function _capPortPosicionar() {
+  if (!_capPort.cargado || !_capPort.host || _capPort.minimizado) return;
+  var host = _capPort.host;
+  if (host.classList.contains("cap-live-big")) { host.style.display = "flex"; _capPortFab(false); return; }
+  if (document.body.classList.contains("fs-active")) { host.style.display = "none"; _capPortFab(false); return; }
+  var slot = _capPort.slot;
+  var secView = document.getElementById("section-view");
+  var sectionVisible = secView && secView.style.display !== "none";
+  if (!slot || !slot.isConnected || !sectionVisible) {
+    if (host.style.display !== "none" && host.classList.contains("cap-live-floating")) return; // ya flotando: no tocar
+    host.style.display = "none";
+    return;
+  }
+  var r = slot.getBoundingClientRect();
+  var mb = document.getElementById("main-body");
+  var mr = mb ? mb.getBoundingClientRect() : { top:0, bottom: window.innerHeight };
+  var visible = r.bottom > mr.top + 8 && r.top < mr.bottom - 8 && r.height > 10;
+  if (!visible) { host.style.display = "none"; _capPortFab(true); return; }
+  host.classList.remove("cap-live-floating");
+  /* Sin clamp: el panel scrollea junto con su slot, nunca deja el placeholder
+     al descubierto y no tapa la tabla de abajo. */
+  host.style.top = r.top + "px";
+  host.style.left = r.left + "px";
+  host.style.width = r.width + "px";
+  host.style.height = r.height + "px";
+  host.style.display = "flex";
+  _capPortFab(false);
+}
+
+function _capPortAcoplar(slot, seccionId) {
+  _capPort.slot = slot;
+  _capPort.seccionId = seccionId || null;
+  _capPort.minimizado = false;
+  _capPortCargar();
+  _capPortEnviarZona();
+  var ph = slot.querySelector(".cap-port-placeholder");
+  if (ph) ph.innerHTML = '<span style="font-size:11px;color:var(--text-lt);font-weight:600;letter-spacing:.3px;text-transform:none">El panel interactivo se superpone en este espacio</span>';
+  _capPortPosicionar();
+}
+
+function _capPortDesacoplar() {
+  if (_capPort.observer) { try { _capPort.observer.disconnect(); } catch(e) {} _capPort.observer = null; }
+  _capPort.slot = null;
+  _capPort.seccionId = null;
+  _capPort.minimizado = false;
+  if (_capPort.host) _capPort.host.style.display = "none";
+  _capPortFab(false);
+}
+
+function _capPortObservar(wrap, seccionId) {
+  if (!("IntersectionObserver" in window)) { _capPortAcoplar(wrap, seccionId); return; }
+  if (_capPort.observer) { try { _capPort.observer.disconnect(); } catch(e) {} }
+  _capPort.observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) { _capPortAcoplar(wrap, seccionId); }
+      else if (_capPort.slot === wrap && _capPort.host) { _capPort.host.style.display = "none"; }
+    });
+  }, { root: document.getElementById("main-body") || null, threshold: 0.05 });
+  _capPort.observer.observe(wrap);
+}
+
+function _capPortMinimizar() {
+  _capPort.minimizado = true;
+  if (_capPort.host) { _capPort.host.classList.remove("cap-live-big"); _capPort.host.style.display = "none"; }
+  _capPortFab(true);
+}
+
+function _capPortExpandir() {
+  if (!_capPort.host) return;
+  _capPort.host.classList.toggle("cap-live-big");
+  if (_capPort.host.classList.contains("cap-live-big")) {
+    _capPort.minimizado = false;
+    _capPort.host.style.display = "flex";
+    _capPortFab(false);
+  } else {
+    _capPortPosicionar();
+  }
+}
+
+function _capPortFab(show) {
+  if (!_capPort.fab) return;
+  _capPort.fab.style.display = (show && _capPort.cargado) ? "block" : "none";
+}
+
+function _capPortRestaurar() {
+  _capPort.minimizado = false;
+  _capPortFab(false);
+  if (_capPort.host) _capPort.host.classList.remove("cap-live-big");
+  if (_capPort.slot && _capPort.slot.isConnected) {
+    _capPort.slot.scrollIntoView({ behavior: "smooth", block: "center" });
+    _capPortPosicionar();
+  } else if (_capPort.cargado) {
+    _capPort.host.classList.add("cap-live-floating");
+    _capPort.host.style.display = "flex";
+  }
+}
+
+function _capPortDestruir() {
+  if (_capPort.observer) { try { _capPort.observer.disconnect(); } catch(e) {} }
+  if (_capPort.host) { try { _capPort.host.remove(); } catch(e) {} }
+  if (_capPort.fab) { try { _capPort.fab.remove(); } catch(e) {} }
+  _capPort = { host:null, iframe:null, slot:null, observer:null, cargado:false, fab:null, minimizado:false, seccionId:null, zonaEnv:null };
 }
 
 /* ── MDA SIBI: FILTRO + MAPA ──────────────────────────── */
