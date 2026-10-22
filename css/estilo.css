@@ -630,6 +630,65 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .spin{width:36px;height:36px;border:3px solid var(--gray-200);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ── CENTRO DE CONTROL — CAPACIDAD PORTUARIA (iframe externo) ──── */
+.cap-port-embed{
+  margin-top:18px;background:#fff;border:1px solid var(--gray-200);
+  border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);
+}
+.cap-port-frame-wrap{position:relative;height:min(660px,74vh);background:var(--gray-100)}
+.cap-port-placeholder{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center;
+  color:var(--blue);font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;
+}
+@media (max-width:768px){
+  .cap-port-frame-wrap{height:400px}
+}
+
+/* Panel vivo persistente (iframe que no se destruye al cambiar de sección) */
+#cap-port-live{
+  position:fixed;z-index:6000;display:none;flex-direction:column;
+  background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-lg);
+  overflow:hidden;box-shadow:0 12px 40px rgba(15,39,68,0.35);
+}
+#cap-port-live.cap-live-floating{
+  top:auto !important;left:auto !important;right:18px;bottom:64px;
+  width:min(760px,92vw) !important;height:min(520px,72vh) !important;
+}
+#cap-port-live.cap-live-big{
+  top:10px !important;left:10px !important;
+  width:calc(100vw - 20px) !important;height:calc(100vh - 20px) !important;
+  z-index:6100;
+}
+.cap-port-live-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:3px 10px;background:var(--navy);flex-shrink:0;
+}
+.cap-port-live-title{
+  font-family:'Outfit',sans-serif;font-size:11px;font-weight:800;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cap-port-live-btns{display:flex;gap:4px;flex-shrink:0}
+.cap-live-btn{
+  background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);
+  color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;
+  padding:2px 8px;border-radius:5px;cursor:pointer;text-decoration:none;line-height:1.5;
+}
+.cap-live-btn:hover{background:rgba(255,255,255,0.25)}
+.cap-live-close:hover{background:#dc2626;border-color:#dc2626}
+.cap-port-live-body{flex:1;min-height:0;position:relative;background:#fff}
+.cap-port-live-body iframe{position:absolute;inset:0;width:100%;height:100%;border:none;display:block}
+.cap-port-fab{
+  position:fixed;right:18px;bottom:18px;z-index:6000;display:none;
+  padding:10px 16px;border:none;border-radius:99px;cursor:pointer;
+  background:var(--navy);color:#fff;font-family:'Outfit',sans-serif;
+  font-size:12px;font-weight:800;box-shadow:0 6px 20px rgba(15,39,68,0.4);
+}
+.cap-port-fab:hover{background:var(--navy-lt)}
+
+
+
 /* ── BUQUES INFRACCIÓN KPIs + CHARTS ──────────────────────────── */
 .buques-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}
 .buques-kpi{background:#fff;border-radius:var(--radius);padding:10px 12px;border:1px solid var(--gray-200);box-shadow:var(--shadow-sm);text-align:center}
