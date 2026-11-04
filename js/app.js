@@ -3,13 +3,13 @@ let servicioActivo = "KSTM";
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwAGwGh0fLvf6z5Qkgxdy2ihxK9CZU6G7-ay1I4-nzj1Pfpob61O1EXoJnMOjGAe7jdDA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwaaHM5OzRnEzYoCJSpv9RgJfuPqW8iKGGzKkgiAm-Slo4CVMe_SxiBst5E55uaDiEN/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 /* Centro de Control — Capacidad Portuaria (web app externa embebida al pie de las zonas MOV_*) */
 const CAPACIDAD_PORT_URL = "https://script.google.com/macros/s/AKfycbz2qAu8I1REwIMw6YJd-Gx2IzqSmbeiJ03F6zTNjhw-32zRr-VzikFKVK1Ip0jHfJIx/exec";
 /* Interruptor del panel embebido: false = no se dibuja ni se precarga el iframe.
    Pasar a true para volver a mostrarlo en las secciones MOV_*. */
-const CAP_PORT_VISIBLE = false;
+const CAP_PORT_VISIBLE = true;
 
 /* Keep-alive: ping cada 3 min para que GAS no entre en frío (arranque de 8-13s) */
 (function() {
@@ -206,6 +206,8 @@ function filtrarNavegacionPermisos() {
       btn.style.display = puedeVerSeccion(secId) ? "" : "none";
     }
   });
+  // BARCAZAS: re-aplicar regla de "solo visible si hay datos"
+  try { if (typeof _actualizarVisibilidadBarcazas === "function") _actualizarVisibilidadBarcazas(); } catch(e) {}
 }
 
 function cerrarSesion() {
@@ -307,7 +309,7 @@ var _TANDAS_SECCIONES = [
   ["NOVEDADES","VISITAS","MDA_SIBI"],
   ["CONVENIO","SBGC","ALERTA","DETERMINANTES"],
   ["CRUCEROS","CRUCEROS_ARRIBADOS","PERSONAL_COSTERA","SALVAMENTO","DEMORADOS"],
-  ["MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4"]
+  ["MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BARCAZAS"]
 ];
 var _TANDAS_FALLADAS = [];
 var _tandasPromise = null;
@@ -336,6 +338,7 @@ function _mezclarSecciones(secs) {
    cuando termina la cadena de tandas (_refrescarHomeInferior). */
 function _repintarTrasCarga(secsNuevas) {
   try { if (typeof actualizarPreavisos === "function") actualizarPreavisos(); } catch(e) { console.error("preavisos:", e); }
+  try { if (typeof _actualizarVisibilidadBarcazas === "function") _actualizarVisibilidadBarcazas(); } catch(e) { console.error("visibilidad BARCAZAS:", e); }
   var _homeEl = document.getElementById("home-view");
   if (_homeEl && _homeEl.style.display !== "none") {
     try { renderizar(_datosCache || datosGlobales); }
@@ -1799,6 +1802,8 @@ function toggleHamburger() {
         btn.style.display = puedeVerSeccion(secId) ? "" : "none";
       }
     });
+    // BARCAZAS: re-aplicar regla de "solo visible si hay datos"
+    try { if (typeof _actualizarVisibilidadBarcazas === "function") _actualizarVisibilidadBarcazas(); } catch(e) {}
   }
 }
 function cerrarHamburger() {
@@ -1973,6 +1978,10 @@ function mostrarHome() {
           <span>🛳️</span>
           <span>Cruceros</span>
         </button>
+        <button id="homebtn-BARCAZAS" onclick="irSeccion('BARCAZAS')" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
+          <span>🧱</span>
+          <span>+Bzas</span>
+        </button>
         ${cnt("DEMORADOS","demorado") > 0 ? `<button onclick="abrirModalDemorados()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.22)';this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.25)'">
           🚢 Demorados
         </button>` : ''}
@@ -1988,6 +1997,9 @@ function mostrarHome() {
   actualizarAlertaVencidos();
 
   renderHomeCards(datosGlobales, sar, mas);
+
+  // Aplicar regla de visibilidad del botón BARCAZAS al header recién generado
+  try { if (typeof _actualizarVisibilidadBarcazas === "function") _actualizarVisibilidadBarcazas(); } catch(e) {}
 }
 
 /* Alerta de "Buques Excedidos" (zonas MOV_* con >5 días). Se calcula aparte
@@ -2073,7 +2085,8 @@ function mostrarSeccion(id) {
     BUQUES:"Buques Infracción", VISITAS:"Visitas previstas",
     NOVEDADES:"Novedades Varias", PERSONAL_COSTERA:"Personal Costera",
     METANEROS:"Metaneros", PBIP:"PBIP", PIR_95:"PIR 95",
-    VELEROS_OC:"Veleros Oceánicos", CRUCEROS:"Cruceros", MDA_SIBI:"MDA - SIBI"
+    VELEROS_OC:"Veleros Oceánicos", CRUCEROS:"Cruceros", MDA_SIBI:"MDA - SIBI",
+    BARCAZAS:"Barcazas"
   };
 
   const sec = datosGlobales && datosGlobales.secciones.find(s => s.id === id);
@@ -2084,7 +2097,7 @@ function mostrarSeccion(id) {
   if (ts2) ts2.textContent = "";
 
   // Mostrar botón dashboard + navegación entre secciones
-  const _ALL_SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"];
+  const _ALL_SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA","BARCAZAS"];
   const SECCIONES_ORDEN = _ALL_SECCIONES_ORDEN.filter(function(sid) { return puedeVerSeccion(sid); });
   const dashWrap = document.getElementById("dash-btn-wrap");
   if (dashWrap) {
@@ -2182,11 +2195,11 @@ document.addEventListener("keydown", function(e) {
   const sv = document.getElementById("section-view");
   if (sv.style.display !== "block") return;
   if (e.key === "ArrowLeft") {
-    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"].filter(function(s){return puedeVerSeccion(s);});
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA","BARCAZAS"].filter(function(s){return puedeVerSeccion(s);});
     const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
     if (idx > 0) mostrarSeccion(SECCIONES_ORDEN[idx-1]);
   } else if (e.key === "ArrowRight") {
-    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA"].filter(function(s){return puedeVerSeccion(s);});
+    const SECCIONES_ORDEN = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","VISITAS","NOVEDADES","PERSONAL_COSTERA","BARCAZAS"].filter(function(s){return puedeVerSeccion(s);});
     const idx = SECCIONES_ORDEN.indexOf(seccionActiva);
     if (idx >= 0 && idx < SECCIONES_ORDEN.length-1) mostrarSeccion(SECCIONES_ORDEN[idx+1]);
   }
@@ -5850,6 +5863,99 @@ if (sec.tipo === "tipo_puertos" || sec.id === "PUERTOS") {
     return "";
   }
 
+  // ── BARCAZAS ─────────────────────────────────────
+  if (sec.id === "BARCAZAS") {
+    const items = (filas || []).filter(f => f && f.tipo === "barcaza");
+    const esAdmin = (typeof rolActual !== "undefined" && rolActual === "admin");
+
+    // Sin datos: mostrar aviso + botón de alta (para admin)
+    if (!items.length) {
+      let hVac = `<div class="empty">Sin barcazas registradas.</div>`;
+      if (esAdmin) {
+        hVac += `<div class="barc-acciones"><button class="tb-btn primary" onclick="abrirModalBarcaza()">＋ Nueva barcaza</button></div>`;
+      }
+      return hVac;
+    }
+
+    // ── KPIs (interactivos) ──
+    const totalBarc = items.length;
+    const prefs = {};
+    items.forEach(f => { const p = (f.datos.prefectura || "").trim(); if (p) prefs[p] = true; });
+    const totalPrefs = Object.keys(prefs).length;
+    const varadas = items.filter(f => /VARAD/i.test(f.datos.condicion || "")).length;
+    const amarradas = totalBarc - varadas;
+
+    let h = `<div class="barc-kpis">`;
+    h += `<div class="buques-kpi barc-kpi" data-filtro="todos" onclick="barcFiltrar('todos')" title="Mostrar todas las barcazas">
+            <div class="kpi-val" style="color:var(--blue)">${totalBarc}</div><div class="kpi-lbl">🚢 Total Barcazas</div></div>`;
+    h += `<div class="buques-kpi barc-kpi" data-filtro="pref" onclick="barcFiltrar('pref')" title="Filtrar por prefectura">
+            <div class="kpi-val" style="color:#7c3aed">${totalPrefs}</div><div class="kpi-lbl">🏛️ Prefecturas</div></div>`;
+    h += `<div class="buques-kpi barc-kpi" data-filtro="cond" onclick="barcFiltrar('cond')" title="Filtrar por condición (varadas / amarradas)">
+            <div class="kpi-val" style="color:var(--red)">${varadas}</div><div class="kpi-lbl">⚠️ Varadas <span style="font-weight:400;opacity:.7">/ ${amarradas} amarr.</span></div></div>`;
+    h += `</div>`;
+
+    // ── Filtro por prefectura (se despliega con el KPI) ──
+    h += `<div id="barc-filtro-pref" class="cruc-filtros" style="display:none">
+      <select id="barc-sel-pref" onchange="barcAplicarFiltroPref(this.value)">
+        <option value="">Todas las Prefecturas</option>`;
+    Object.keys(prefs).sort().forEach(p => {
+      const nom = (typeof _PREF_NOMBRES !== "undefined" && _PREF_NOMBRES[p]) ? _PREF_NOMBRES[p] : p;
+      h += `<option value="${esc(p)}">${esc(nom)}</option>`;
+    });
+    h += `</select></div>`;
+
+    // ── Botón nueva barcaza (solo admin) + Exportar PDF ──
+    h += `<div class="barc-acciones">`;
+    if (esAdmin) {
+      h += `<button class="tb-btn primary" onclick="abrirModalBarcaza()">＋ Nueva barcaza</button>`;
+    }
+    h += `<button class="tb-btn outline" onclick="exportarBarcazasPDF()" title="Exportar/Imprimir listado en PDF">📄 PDF</button>`;
+    h += `</div>`;
+
+    // ── Agrupación por prefectura ──
+    const grupos = {};
+    const ordenGrupos = [];
+    items.forEach(f => {
+      const p = (f.datos.prefectura || "").trim() || "SIN PREFECTURA";
+      if (!grupos[p]) { grupos[p] = []; ordenGrupos.push(p); }
+      grupos[p].push(f);
+    });
+    ordenGrupos.sort((a, b) => a.localeCompare(b, "es"));
+
+    h += `<div id="barc-lista">`;
+    ordenGrupos.forEach(p => {
+      const nom = (typeof _PREF_NOMBRES !== "undefined" && _PREF_NOMBRES[p]) ? _PREF_NOMBRES[p] : p;
+      const filasGrupo = grupos[p].slice().sort((a, b) => (Number(a.datos.orden) || 0) - (Number(b.datos.orden) || 0));
+      h += `<div class="barc-grupo" data-pref="${esc(p)}">
+        <div class="barc-grupo-titulo">PREFECTURA ${esc(nom.toUpperCase())} <span class="barc-grupo-cant">(${filasGrupo.length})</span></div>
+        <div class="tbl-wrap"><table class="pna-table cruceros-table barc-tabla">
+          <tr><th style="width:50px">Orden</th><th>Nombre</th><th>Matrícula</th><th>Condición</th><th>Tipo de Buque</th><th>QTH</th><th>Observaciones${esAdmin ? '<th style="width:90px">Acciones</th>' : ''}</th></tr>`;
+      filasGrupo.forEach(f => {
+        const d = f.datos;
+        const condUpper = (d.condicion || "").toUpperCase();
+        let condCls = "";
+        if (/VARAD/i.test(condUpper)) condCls = " barc-cond-varada";
+        else if (/AMARRAD/i.test(condUpper)) condCls = " barc-cond-amarrada";
+        h += `<tr data-pref="${esc(p)}" data-cond="${esc(condUpper)}">
+          <td class="cruc-num">${esc(d.orden || "")}</td>
+          <td class="cruc-puerto">${esc(d.nombre || "")}</td>
+          <td>${esc(d.matricula || "")}</td>
+          <td class="barc-cond${condCls}">${esc(d.condicion || "")}</td>
+          <td>${esc(d.tipoBuque || "")}</td>
+          <td>${esc(d.qth || "")}</td>
+          <td>${esc(d.observaciones || "")}</td>
+          ${esAdmin ? `<td class="barc-acc">
+            <button class="barc-btn-edit" title="Editar" onclick="abrirModalBarcaza(${f.filaSheet})">✏️</button>
+            <button class="barc-btn-del" title="Eliminar" onclick="eliminarBarcaza(${f.filaSheet})">🗑️</button>
+          </td>` : ''}
+        </tr>`;
+      });
+      h += `</table></div></div>`;
+    });
+    h += `</div>`;
+    return h;
+  }
+
   // ── MDA SIBI ────────────────────────────────────
   if (sec.id === "MDA_SIBI") {
     const items = filas.filter(f => f && f.tipo === "fila");
@@ -7277,7 +7383,7 @@ function mostrarVistaCompleta(){
 }
 /* Orden fijo de la vista general — AVIACION primero, sin importar
    en qué fase/tanda llegó cada sección */
-var _ORDEN_VISTA_GENERAL = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","CRUCEROS_ARRIBADOS","VISITAS","NOVEDADES","PERSONAL_COSTERA","DEMORADOS"];
+var _ORDEN_VISTA_GENERAL = ["AVIACION","GC","CONVENIO","ARA","SALVAMENTO","KSTM","RESERVA","DRAGAS","MDA_SIBI","SAR","MAS","REGATAS","EJER.ARMAS","PUERTOS","ALERTA","DETERMINANTES","PIR_95","MOV_BAJO_PARANA","MOV_DELTA","MOV_ZONA3","MOV_ZONA4","BUQUES","METANEROS","PBIP","VELEROS_OC","CRUCEROS","CRUCEROS_ARRIBADOS","VISITAS","NOVEDADES","PERSONAL_COSTERA","DEMORADOS","BARCAZAS"];
 
 function renderizarVistaCompleta(){
   if (!datosGlobales) return;
@@ -8478,6 +8584,8 @@ function abrirModalCaso(seccion){
   document.getElementById("modalCasoTitle").textContent="Cargar nuevo caso "+seccion;
   document.getElementById("formCaso").reset();
   syncTipoBuqueCaract();
+  _bxCargarBloques([]);
+  _bxActualizarVisibilidad();
   document.getElementById("casoEstado").value="Pendientes";
   document.getElementById("btnEstadoPendiente").style.background="#f59e0b";
   document.getElementById("btnEstadoPendiente").style.color="#fff";
@@ -8500,6 +8608,81 @@ function syncTipoBuqueCaract(){
   else{wrap.style.display="none";txt.textContent="";}
 }
 document.getElementById("casoTipo").addEventListener("input",syncTipoBuqueCaract);
+
+/* ── BUQUES ADICIONALES (mismo caso, pestaña Características) ────── */
+var _BX_ETIQUETAS = [
+  ["nombre","Nombre","ej: OTRA EMBARCACION"],
+  ["identificacion","Identificación","ej: RO-1234"],
+  ["tipo","Tipo","ej: BARCAZA / REMOLCADOR"],
+  ["bandera","Bandera","ej: ARGENTINA"],
+  ["eslora","Eslora","ej: 60 MTS"],
+  ["manga","Manga","ej: 14 MTS"],
+  ["calado","Calado","ej: 4.5 MTS"],
+  ["puntal","Puntal","ej: 6 MTS"],
+  ["tipo_carga","Tipo de carga","ej: GRANEL SOLIDO"],
+  ["puerto_asiento","Puerto de asiento","ej: Corrientes"],
+  ["puerto_operaciones","Puerto de operaciones","ej: Goya"]
+];
+
+function _bxDisponible(seccion) {
+  return seccion === "SAR" || seccion === "MAS";
+}
+function _bxActualizarVisibilidad() {
+  var wrap = document.getElementById("casoBuquesExtraWrap");
+  if (!wrap) return;
+  var sec = document.getElementById("casoSeccion").value || "";
+  wrap.style.display = _bxDisponible(sec) ? "block" : "none";
+}
+function agregarBloqueBuqueExtra(datos) {
+  datos = datos || {};
+  var cont = document.getElementById("casoBuquesExtra");
+  if (!cont) return;
+  var n = cont.querySelectorAll(".bx-bloque").length + 1;
+  var div = document.createElement("div");
+  div.className = "bx-bloque";
+  var h = '<div class="bx-head"><span class="bx-title">Buque ' + (n + 1) + '</span>' +
+          '<button type="button" class="bx-quitar" onclick="quitarBloqueBuqueExtra(this)" title="Quitar este buque">🗑️ Quitar</button></div>' +
+          '<div class="form-grid">';
+  _BX_ETIQUETAS.forEach(function(f) {
+    h += '<div class="form-group"><label>' + f[1] + '</label>' +
+         '<input type="text" data-bx="' + f[0] + '" placeholder="' + f[2] + '"></div>';
+  });
+  h += '</div>';
+  div.innerHTML = h;
+  // Asigna valores por JS (esc() no escapa comillas → no van inline en el HTML)
+  _BX_ETIQUETAS.forEach(function(f) {
+    if (datos[f[0]]) {
+      var inp = div.querySelector('input[data-bx="' + f[0] + '"]');
+      if (inp) inp.value = datos[f[0]];
+    }
+  });
+  cont.appendChild(div);
+}
+function quitarBloqueBuqueExtra(btn) {
+  var bloque = btn.closest(".bx-bloque");
+  if (bloque) bloque.remove();
+  // Re-numera los títulos
+  var cont = document.getElementById("casoBuquesExtra");
+  cont.querySelectorAll(".bx-bloque").forEach(function(b, i) {
+    var t = b.querySelector(".bx-title");
+    if (t) t.textContent = "Buque " + (i + 2);
+  });
+}
+function _bxLeerBloques() {
+  var out = [];
+  document.querySelectorAll("#casoBuquesExtra .bx-bloque").forEach(function(b) {
+    var o = {};
+    b.querySelectorAll("input[data-bx]").forEach(function(inp) { o[inp.getAttribute("data-bx")] = inp.value.trim(); });
+    if (o.nombre || o.identificacion) out.push(o); // ignora bloques vacíos
+  });
+  return out;
+}
+function _bxCargarBloques(lista) {
+  var cont = document.getElementById("casoBuquesExtra");
+  if (!cont) return;
+  cont.innerHTML = "";
+  (lista || []).forEach(function(datos) { agregarBloqueBuqueExtra(datos); });
+}
 function setCasoEstado(val){
   document.getElementById("casoEstado").value=val;
   var pBtn=document.getElementById("btnEstadoPendiente");
@@ -8931,6 +9114,28 @@ function _construirCaracteristicas(d, seccion) {
   if (d.tipo_carga) cc += (cc ? " - " : "") + "Tipo de carga: " + d.tipo_carga;
   if (d.puerto_asiento) cc += (cc ? " - " : "") + "Puerto de asiento: " + d.puerto_asiento;
   if (d.puerto_operaciones) cc += (cc ? " - " : "") + "Puerto de operaciones: " + d.puerto_operaciones;
+  // ── Buques adicionales del caso (parcial local, replica el backend) ──
+  var _bx = d.buquesExtra;
+  if (typeof _bx === "string") { try { _bx = _bx ? JSON.parse(_bx) : []; } catch(e) { _bx = []; } }
+  if (Array.isArray(_bx)) {
+    _bx.forEach(function(bx, bxi) {
+      if (!bx || !(bx.nombre || bx.identificacion)) return;
+      var partes = [];
+      if (bx.tipo) partes.push("Tipo de buque: " + bx.tipo);
+      if (bx.eslora) partes.push("E: " + bx.eslora);
+      if (bx.manga) partes.push("M: " + bx.manga);
+      if (seccion !== "SAR" && bx.diagnostico) partes.push("C: " + bx.diagnostico);
+      if (bx.identificacion) partes.push("Id: " + bx.identificacion);
+      if (bx.bandera) partes.push("B/" + bx.bandera);
+      if (bx.calado) partes.push("Calado: " + bx.calado);
+      if (bx.puntal) partes.push("Puntal: " + bx.puntal);
+      if (bx.tipo_carga) partes.push("Tipo de carga: " + bx.tipo_carga);
+      if (bx.puerto_asiento) partes.push("Puerto de asiento: " + bx.puerto_asiento);
+      if (bx.puerto_operaciones) partes.push("Puerto de operaciones: " + bx.puerto_operaciones);
+      var etiqueta = "BUQUE " + (bxi + 2) + (bx.nombre ? " (" + bx.nombre + ")" : "");
+      cc += (cc ? " | " : "") + etiqueta + (partes.length ? ": " + partes.join(" - ") : "");
+    });
+  }
   return cc;
 }
 
@@ -8979,6 +9184,7 @@ function parchearCasoLocal(d) {
       f.agenciaPob = d.agencia_pob || "";
       f.procedenciaDestino = d.procedencia_destino || "";
       f.caracteristicas = _construirCaracteristicas(d, d.seccion);
+      f.buquesExtra = (function(){ var x = d.buquesExtra; if (typeof x === "string") { try { x = x ? JSON.parse(x) : []; } catch(e) { x = []; } } return Array.isArray(x) ? x : []; })();
       f.asunto = _armarAsuntoLocal(d, sigla, limpio);
       f.ultimaActualizacion = ts;
     } else if (!d.filaSheet) {
@@ -9012,7 +9218,8 @@ function parchearCasoLocal(d) {
         puertoAsiento: d.puerto_asiento || "",
         puertoOperaciones: d.puerto_operaciones || "",
         agenciaPob: d.agencia_pob || "",
-        procedenciaDestino: d.procedencia_destino || ""
+        procedenciaDestino: d.procedencia_destino || "",
+        buquesExtra: (function(){ var x = d.buquesExtra; if (typeof x === "string") { try { x = x ? JSON.parse(x) : []; } catch(e) { x = []; } } return Array.isArray(x) ? x : []; })()
       };
       sec.filas.push(nueva);
       caps.push({ op: "alta", sec: sec, idx: sec.filas.length - 1, fila: nueva });
@@ -9105,6 +9312,10 @@ function _reabrirModalConData(d) {
   document.getElementById("casoMediosPrevistos").value = d.medios_previstos || "";
   document.getElementById("casoSituacion").value = d.situacion || "";
   document.getElementById("casoNovedad").value = d.novedad || "";
+  var _bxLista = d.buquesExtra || [];
+  if (typeof _bxLista === "string") { try { _bxLista = _bxLista ? JSON.parse(_bxLista) : []; } catch(e) { _bxLista = []; } }
+  _bxCargarBloques(Array.isArray(_bxLista) ? _bxLista : []);
+  _bxActualizarVisibilidad();
   syncTipoBuqueCaract();
   setCasoEstado((d.estado || "").toUpperCase().includes("CERRADO") ? "Cerrados" : "Pendientes");
   document.getElementById("modalCaso").classList.add("activo");
@@ -9143,7 +9354,8 @@ async function guardarCaso(e){
     diagnostico:document.getElementById("casoDiagnostico").value.trim(),
     medios_previstos:document.getElementById("casoMediosPrevistos").value.trim(),
     situacion:document.getElementById("casoSituacion").value.trim(),
-    novedad:document.getElementById("casoNovedad").value.trim()
+    novedad:document.getElementById("casoNovedad").value.trim(),
+    buquesExtra:JSON.stringify(_bxDisponible(document.getElementById("casoSeccion").value) ? _bxLeerBloques() : [])
   };
   var caps=null;
   try{
@@ -9289,6 +9501,9 @@ function editarCaso(seccionId, filaSheet, hojaId){
   document.getElementById("casoMediosPrevistos").value=caso.mediosPrevistos||"";
   document.getElementById("casoSituacion").value=caso.situacion || "";
   document.getElementById("casoNovedad").value=caso.novedad || "";
+
+  _bxCargarBloques(caso.buquesExtra || []);
+  _bxActualizarVisibilidad();
 
   setCasoEstado((caso.estado||"").toUpperCase().includes("CERRADO")?"Cerrados":"Pendientes");
 
@@ -9654,7 +9869,7 @@ const AUTO_ROTACION_SECCIONES = [
   "EJER.ARMAS", "PUERTOS", "ALERTA", "DETERMINANTES", "PIR_95",
   "AVIACION", "SALVAMENTO", "RESERVA", "VISITAS",
   "MOV_BAJO_PARANA", "MOV_DELTA", "MOV_ZONA3", "MOV_ZONA4", "BUQUES",
-  "METANEROS", "PBIP", "VELEROS_OC", "CRUCEROS", "MDA_SIBI"
+  "METANEROS", "PBIP", "VELEROS_OC", "CRUCEROS", "MDA_SIBI", "BARCAZAS"
 ];
 
 function toggleAutoRotacion() {
@@ -9711,6 +9926,17 @@ function avanzarAutoRotacion() {
       autoRotacionFase = (autoRotacionFase + 1) % AUTO_ROTACION_SECCIONES.length;
       autoRotacionTimer = setTimeout(avanzarAutoRotacion, 1000);
       return;
+    }
+    // BARCAZAS: solo rotar si tiene datos (sección condicional)
+    if (faseActual === "BARCAZAS") {
+      var _secBarc = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+        ? datosGlobales.secciones.find(function(s){ return s.id === "BARCAZAS"; }) : null;
+      var _barcFilas = _secBarc ? (_secBarc.filas || []).filter(function(f){ return f && f.tipo === "barcaza"; }) : [];
+      if (!_barcFilas.length) {
+        autoRotacionFase = (autoRotacionFase + 1) % AUTO_ROTACION_SECCIONES.length;
+        autoRotacionTimer = setTimeout(avanzarAutoRotacion, 1000);
+        return;
+      }
     }
     mostrarSeccion(faseActual);
     tiempoMs = 20000;
@@ -10129,8 +10355,9 @@ function renderCrucerosArribados(sec) {
   sorted.forEach(f => {
     const d = f.datos;
     const completado = d.eta && d.fhZarpada;
-    h += `<tr class="${completado ? 'cruc-completado' : ''}" data-puerto="${esc(d.puerto)}" data-estado="${esc(d.estado)}" data-nombre="${esc(d.nombre)}" data-fecha="${esc(d.eta)}">`;
-    h += `<td>${esc(d.puerto)}</td><td>${esc(d.nombre)}</td><td>${esc(d.estado)}</td><td>${esc(d.eta)}</td><td>${esc(d.procedencia)}</td><td>${esc(d.destino)}</td><td>${d.tripIng}</td><td>${d.pasajIng}</td><td>${esc(d.fhZarpada)}</td><td>${d.tripSal}</td><td>${d.pasajSal}</td>`;
+    const cancelado = /cancelad/i.test(d.estado || '');
+    h += `<tr class="${completado ? 'cruc-completado' : ''}${cancelado ? ' cruc-cancelado' : ''}" data-puerto="${esc(d.puerto)}" data-estado="${esc(d.estado)}" data-nombre="${esc(d.nombre)}" data-fecha="${esc(d.eta)}">`;
+    h += `<td>${esc(d.puerto)}</td><td>${esc(d.nombre)}</td><td class="${cancelado ? 'cruc-estado-cancel' : ''}">${esc(d.estado)}</td><td>${esc(d.eta)}</td><td>${esc(d.procedencia)}</td><td>${esc(d.destino)}</td><td>${d.tripIng}</td><td>${d.pasajIng}</td><td>${esc(d.fhZarpada)}</td><td>${d.tripSal}</td><td>${d.pasajSal}</td>`;
     h += '</tr>';
   });
   h += '</table></div>';
@@ -10170,4 +10397,368 @@ function parseFechaArribado(str) {
     m = parseInt(hm[1], 10) || 0;
   }
   return new Date(year, month, day, h, m).getTime();
+}
+
+/* ================================================================
+   BARCAZAS — códigos de prefectura, filtros, modal, CRUD
+   ================================================================ */
+// Códigos → nombres completos (fallback: código desconocido se muestra tal cual)
+var _PREF_NOMBRES = {
+  CORR: "Corrientes",
+  EMPE: "Empedrado",
+  GOYA: "Goya",
+  BVIS: "Bella Vista",
+  PARA: "Paraná"
+};
+
+var _barcFiltroActivo = "";   // "" = todos | "pref" | "cond"
+
+// KPIs interactivos: Total (limpia) · Prefecturas (despliega select) · Varadas (alterna)
+function barcFiltrar(tipo) {
+  const wrapPref = document.getElementById("barc-filtro-pref");
+  document.querySelectorAll(".barc-kpi").forEach(k => k.classList.remove("active"));
+  if (tipo === "todos") {
+    _barcFiltroActivo = "";
+    if (wrapPref) wrapPref.style.display = "none";
+    const sel = document.getElementById("barc-sel-pref");
+    if (sel) sel.value = "";
+    _barcPintarKpis("", "");
+    return;
+  }
+  if (tipo === "pref") {
+    _barcFiltroActivo = (_barcFiltroActivo === "pref") ? "" : "pref";
+    if (wrapPref) wrapPref.style.display = (_barcFiltroActivo === "pref") ? "flex" : "none";
+    if (_barcFiltroActivo === "pref") document.querySelector('.barc-kpi[data-filtro="pref"]').classList.add("active");
+    else {
+      const sel = document.getElementById("barc-sel-pref");
+      if (sel) sel.value = "";
+      _barcPintarKpis("", "");
+    }
+    return;
+  }
+  if (tipo === "cond") {
+    // Alterna: todas → solo varadas → todas
+    _barcFiltroActivo = (_barcFiltroActivo === "varadas") ? "" : "varadas";
+    if (_barcFiltroActivo === "varadas") document.querySelector('.barc-kpi[data-filtro="cond"]').classList.add("active");
+    _barcPintarKpis(_barcFiltroActivo === "varadas" ? "varadas" : "", "");
+  }
+}
+
+function barcAplicarFiltroPref(pref) {
+  _barcPintarKpis("", pref || "");
+}
+
+// Aplica los filtros visibles sobre las filas/grupos de la tabla
+function _barcPintarKpis(modoCond, prefSel) {
+  const filas = document.querySelectorAll("#barc-lista tr[data-pref]");
+  const grupos = document.querySelectorAll("#barc-lista .barc-grupo");
+  const cond = modoCond || (_barcFiltroActivo === "varadas" ? "varadas" : "");
+  filas.forEach(r => {
+    const okPref = !prefSel || r.dataset.pref === prefSel;
+    const okCond = cond !== "varadas" || /VARAD/i.test(r.dataset.cond || "");
+    r.style.display = (okPref && okCond) ? "" : "none";
+  });
+  // Oculta grupos que quedaron sin filas visibles
+  grupos.forEach(g => {
+    const visible = Array.from(g.querySelectorAll("tr[data-pref]")).some(r => r.style.display !== "none");
+    g.style.display = visible ? "" : "none";
+  });
+}
+
+// ── Modal: abrir (alta o edición) ──
+function abrirModalBarcaza(filaSheet) {
+  const sec = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+    ? datosGlobales.secciones.find(s => s.id === "BARCAZAS") : null;
+  const items = sec ? (sec.filas || []).filter(f => f && f.tipo === "barcaza") : [];
+
+  const sel = document.getElementById("barcPrefectura");
+  // Options: códigos conocidos + los que ya existan en la hoja + "Otra…"
+  const conocidos = Object.keys(_PREF_NOMBRES);
+  const enHoja = [...new Set(items.map(f => (f.datos.prefectura || "").trim()).filter(Boolean))];
+  const todos = [...new Set([...conocidos, ...enHoja])].sort();
+  sel.innerHTML = '<option value="">— Seleccione —</option>';
+  todos.forEach(c => {
+    const nom = _PREF_NOMBRES[c] || c;
+    sel.innerHTML += `<option value="${esc(c)}">${esc(nom)} (${esc(c)})</option>`;
+  });
+  sel.innerHTML += `<option value="__OTRA__">Otra… (escribir código)</option>`;
+
+  document.getElementById("barc-otra-wrap").style.display = "none";
+  document.getElementById("barcOtra").value = "";
+  document.getElementById("barcFila").value = "";
+  document.getElementById("barcTituloModal").textContent = "Nueva Barcaza";
+  document.getElementById("barcOrden").value = "";
+  document.getElementById("barcNombre").value = "";
+  document.getElementById("barcMatricula").value = "";
+  document.getElementById("barcCondicion").value = "";
+  document.getElementById("barcTipoBuque").value = "";
+  document.getElementById("barcQth").value = "";
+  document.getElementById("barcObservaciones").value = "";
+
+  if (filaSheet) {
+    const f = items.find(x => Number(x.filaSheet) === Number(filaSheet));
+    if (f) {
+      const d = f.datos;
+      document.getElementById("barcFila").value = f.filaSheet;
+      document.getElementById("barcTituloModal").textContent = "Editar Barcaza";
+      const cod = (d.prefectura || "").trim();
+      if (todos.indexOf(cod) >= 0) sel.value = cod;
+      else { sel.value = "__OTRA__"; document.getElementById("barc-otra-wrap").style.display = "block"; document.getElementById("barcOtra").value = cod; }
+      document.getElementById("barcOrden").value = d.orden || "";
+      document.getElementById("barcNombre").value = d.nombre || "";
+      document.getElementById("barcMatricula").value = d.matricula || "";
+      document.getElementById("barcCondicion").value = d.condicion || "";
+      document.getElementById("barcTipoBuque").value = d.tipoBuque || "";
+      document.getElementById("barcQth").value = d.qth || "";
+      document.getElementById("barcObservaciones").value = d.observaciones || "";
+    }
+  }
+  document.getElementById("modalBarcaza").classList.add("activo");
+}
+
+function barcSelPrefChange() {
+  const v = document.getElementById("barcPrefectura").value;
+  document.getElementById("barc-otra-wrap").style.display = (v === "__OTRA__") ? "block" : "none";
+}
+
+function cerrarModalBarcaza() {
+  document.getElementById("modalBarcaza").classList.remove("activo");
+}
+
+// ── Guardar (alta/edición) ──
+async function guardarBarcaza(e) {
+  if (e) e.preventDefault();
+  const btn = document.getElementById("btnGuardarBarcaza");
+  const editando = !!document.getElementById("barcFila").value;
+
+  let pref = document.getElementById("barcPrefectura").value;
+  if (pref === "__OTRA__") pref = (document.getElementById("barcOtra").value || "").trim().toUpperCase();
+  if (!pref) { _barcToast("⚠️ Seleccione la prefectura", true); return; }
+
+  const nombre = document.getElementById("barcNombre").value.trim();
+  if (!nombre) { _barcToast("⚠️ Ingrese el nombre de la barcaza", true); return; }
+
+  btn.disabled = true;
+  btn.textContent = editando ? "⏳ Actualizando..." : "⏳ Guardando...";
+
+  const valores = [
+    pref,
+    document.getElementById("barcOrden").value.trim(),
+    nombre,
+    document.getElementById("barcMatricula").value.trim(),
+    document.getElementById("barcCondicion").value.trim(),
+    document.getElementById("barcTipoBuque").value.trim(),
+    document.getElementById("barcQth").value.trim(),
+    document.getElementById("barcObservaciones").value.trim()
+  ];
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        accion: "guardarFilaHoja",
+        hoja: "BARCAZAS",
+        fila: document.getElementById("barcFila").value || "",
+        valores: valores
+      })
+    });
+    const data = await resp.json();
+    if (data && data.ok) {
+      _barcToast(editando ? "Barcaza actualizada ✓" : "Barcaza agregada ✓");
+      cerrarModalBarcaza();
+      await _barcRecargar();
+    } else {
+      _barcToast("⚠ Error al guardar: " + ((data && data.error) || "desconocido"), true);
+    }
+  } catch (err) {
+    _barcToast("⚠ Error de conexión: " + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
+
+// ── Eliminar (con confirmación) ──
+async function eliminarBarcaza(filaSheet) {
+  // Busca el nombre en los datos cargados (evita problemas de escaping en el HTML)
+  var nombre = "";
+  try {
+    var sec = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+      ? datosGlobales.secciones.find(function(s){ return s.id === "BARCAZAS"; }) : null;
+    var f = sec ? (sec.filas || []).find(function(x){ return x && x.tipo === "barcaza" && Number(x.filaSheet) === Number(filaSheet); }) : null;
+    nombre = f ? (f.datos.nombre || "") : "";
+  } catch(e) {}
+  if (!confirm("¿Eliminar la barcaza \"" + (nombre || ("fila " + filaSheet)) + "\"? Esta acción no se puede deshacer.")) return;
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ accion: "borrarFilaHoja", hoja: "BARCAZAS", fila: filaSheet })
+    });
+    const data = await resp.json();
+    if (data && data.ok) {
+      _barcToast("Barcaza eliminada ✓");
+      await _barcRecargar();
+    } else {
+      _barcToast("⚠ Error al eliminar: " + ((data && data.error) || "desconocido"), true);
+    }
+  } catch (err) {
+    _barcToast("⚠ Error de conexión: " + err.message, true);
+  }
+}
+
+// Recarga la sección desde el backend (invalida caché en el servidor)
+async function _barcRecargar() {
+  try {
+    const r = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ accion: "obtenerDatosPNA", secciones: "BARCAZAS" })
+    });
+    const d = await r.json();
+    if (d && d.secciones) {
+      if (d.fecha && typeof _datosCache !== "undefined" && _datosCache) _datosCache.fecha = d.fecha;
+      if (typeof _mezclarSecciones === "function") _mezclarSecciones(d.secciones);
+      else if (typeof datosGlobales !== "undefined" && datosGlobales) {
+        d.secciones.forEach(nueva => {
+          const i = (datosGlobales.secciones || []).findIndex(s => s.id === nueva.id);
+          if (i >= 0) datosGlobales.secciones[i] = nueva; else datosGlobales.secciones.push(nueva);
+        });
+      }
+      if (typeof mostrarSeccion === "function" && typeof seccionActiva !== "undefined" && seccionActiva === "BARCAZAS") {
+        mostrarSeccion("BARCAZAS");
+      }
+      _actualizarVisibilidadBarcazas();
+    }
+  } catch (e) { console.error("BARCAZAS recarga:", e); }
+}
+
+// ── Visibilidad: admin siempre; el resto solo si hay datos ──
+function _actualizarVisibilidadBarcazas() {
+  const sec = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+    ? datosGlobales.secciones.find(s => s.id === "BARCAZAS") : null;
+  const hayDatos = !!sec && (sec.filas || []).some(f => f && f.tipo === "barcaza");
+  const esAdmin = (typeof rolActual !== "undefined" && rolActual === "admin");
+  const permitido = (typeof puedeVerSeccion === "function" ? puedeVerSeccion("BARCAZAS") : true);
+  const mostrar = permitido && (hayDatos || esAdmin);
+  // Botón del menú superior (dropdown) y del hamburguesa
+  document.querySelectorAll("[onclick*=\"irSeccion('BARCAZAS')\"]").forEach(btn => {
+    btn.style.display = mostrar ? "" : "none";
+  });
+}
+
+// ── Toast propio (usa la función nativa del sistema) ──
+function _barcToast(msg, esError) {
+  if (typeof mostrarToast === "function") { mostrarToast(msg, esError ? "err" : "ok"); return; }
+  let t = document.getElementById("barc-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "barc-toast";
+    t.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0d1b3e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.3)";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = esError ? "#dc2626" : "#0d1b3e";
+  t.style.display = "block";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = "none"; }, 3200);
+}
+
+/* ================================================================
+   BARCAZAS — Exportar listado a PDF (vía diálogo de impresión)
+   ================================================================ */
+function exportarBarcazasPDF() {
+  var sec = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.secciones)
+    ? datosGlobales.secciones.find(function(s){ return s.id === "BARCAZAS"; }) : null;
+  var items = sec ? (sec.filas || []).filter(function(f){ return f && f.tipo === "barcaza"; }) : [];
+  if (!items.length) { _barcToast("⚠ No hay barcazas para exportar", true); return; }
+
+  // Filtro por prefectura activo en pantalla (si lo hay)
+  var prefSel = "";
+  var selEl = document.getElementById("barc-sel-pref");
+  var wrapPref = document.getElementById("barc-filtro-pref");
+  if (selEl && wrapPref && wrapPref.style.display !== "none") prefSel = selEl.value || "";
+  var soloVaradas = (typeof _barcFiltroActivo !== "undefined" && _barcFiltroActivo === "varadas");
+
+  var filtrados = items.filter(function(f){
+    var d = f.datos || {};
+    var okPref = !prefSel || (d.prefectura || "").trim() === prefSel;
+    var okCond = !soloVaradas || /VARAD/i.test(d.condicion || "");
+    return okPref && okCond;
+  });
+  if (!filtrados.length) { _barcToast("⚠ No hay barcazas que cumplan el filtro activo", true); return; }
+
+  // Agrupa por prefectura
+  var grupos = {}, orden = [];
+  filtrados.forEach(function(f){
+    var p = (f.datos.prefectura || "").trim() || "SIN PREFECTURA";
+    if (!grupos[p]) { grupos[p] = []; orden.push(p); }
+    grupos[p].push(f);
+  });
+  orden.sort(function(a,b){ return a.localeCompare(b, "es"); });
+
+  var fechaStr = (typeof datosGlobales !== "undefined" && datosGlobales && datosGlobales.fecha) || "";
+  var varadas = filtrados.filter(function(f){ return /VARAD/i.test(f.datos.condicion || ""); }).length;
+
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Barcazas - Listado</title>';
+  html += '<style>';
+  html += 'body{font-family:Arial,sans-serif;font-size:8pt;color:#111;margin:0;padding:10mm;}';
+  html += 'h1{font-size:14pt;color:#003366;margin:0 0 4pt;}';
+  html += 'h2{font-size:9pt;color:#555;margin:0 0 2pt;font-weight:normal;}';
+  html += 'table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:10pt;}';
+  html += 'th{background:#003366;color:white;border:1px solid #999;padding:4pt 5pt;text-align:left;font-weight:bold;}';
+  html += 'td{border:1px solid #ccc;padding:3pt 4pt;}';
+  html += 'tr:nth-child(even){background:#f5f5f5;}';
+  html += '.grp{background:#0d1b3e;color:#fff;font-weight:bold;font-size:8pt;padding:4pt 6pt;letter-spacing:.5pt;}';
+  html += '.varada{color:#dc2626;font-weight:bold;}';
+  html += '.amarrada{color:#16a34a;font-weight:bold;}';
+  html += '@media print{body{padding:6mm;}}';
+  html += '</style></head><body>';
+  html += '<h1>PREFECTURA NAVAL ARGENTINA</h1>';
+  html += '<h2>Dirección de Tráfico Marítimo, Fluvial y Lacustre — Listado de Barcazas</h2>';
+  html += '<h2>Fecha: ' + esc(fechaStr) + ' | Total: ' + filtrados.length + ' barcazas | Varadas: ' + varadas +
+          ' | Prefecturas: ' + orden.length + '</h2>';
+  html += '<h2 style="font-size:8pt;color:#888;margin:0 0 10pt;">Última actualización: ' +
+          esc((sec && sec.ultimaActualizacion) || "—") + '</h2>';
+
+  orden.forEach(function(p){
+    var filasGrupo = grupos[p].slice().sort(function(a,b){
+      return (Number(a.datos.orden) || 0) - (Number(b.datos.orden) || 0);
+    });
+    var nom = (typeof _PREF_NOMBRES !== "undefined" && _PREF_NOMBRES[p]) ? _PREF_NOMBRES[p] : p;
+    html += '<div class="grp">PREFECTURA ' + esc(String(nom).toUpperCase()) + ' (' + filasGrupo.length + ')</div>';
+    html += '<table><thead><tr>';
+    html += '<th style="width:6%">Orden</th><th style="width:16%">Nombre</th><th style="width:10%">Matrícula</th><th style="width:11%">Condición</th><th style="width:14%">Tipo de Buque</th><th style="width:14%">QTH</th><th>Observaciones</th>';
+    html += '</tr></thead><tbody>';
+    filasGrupo.forEach(function(f){
+      var d = f.datos || {};
+      var cond = d.condicion || "";
+      var cls = /VARAD/i.test(cond) ? ' class="varada"' : (/AMARRAD/i.test(cond) ? ' class="amarrada"' : "");
+      html += '<tr>';
+      html += '<td>' + esc(d.orden || "") + '</td>';
+      html += '<td><b>' + esc(d.nombre || "") + '</b></td>';
+      html += '<td>' + esc(d.matricula || "") + '</td>';
+      html += '<td' + cls + '>' + esc(cond) + '</td>';
+      html += '<td>' + esc(d.tipoBuque || "") + '</td>';
+      html += '<td>' + esc(d.qth || "") + '</td>';
+      html += '<td>' + esc(d.observaciones || "") + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+  });
+  html += '</body></html>';
+
+  var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var win = window.open(url, "_blank");
+  if (!win) {
+    _barcToast("⚠ El navegador bloqueó la ventana emergente. Permití pop-ups para este sitio.", true);
+    URL.revokeObjectURL(url);
+    return;
+  }
+  setTimeout(function(){
+    try { win.print(); } catch(e) {}
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 15000);
+  }, 600);
 }
