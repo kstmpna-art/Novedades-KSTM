@@ -7,7 +7,7 @@
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/estilo.css?v=8">
+<link rel="stylesheet" href="css/estilo.css?v=14">
 <style>
 /* ── CONTADOR DE CARGA POR ETAPAS (con barquito) ── */
 #boot-overlay{position:fixed;inset:0;background:#0f2744;display:flex;align-items:center;justify-content:center;z-index:99999;transition:opacity .4s ease}
@@ -506,6 +506,15 @@ function bootError() {
             <input type="text" id="casoDestino" placeholder="ej: Zárate">
           </div>
         </div>
+
+        <!-- ── BUQUES ADICIONALES (mismo caso) ── -->
+        <div id="casoBuquesExtraWrap" style="display:none;margin-top:14px;border-top:1px dashed var(--gray-200);padding-top:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <label style="font-size:12px;font-weight:700;color:#555;">Otros buques involucrados en el caso</label>
+            <button type="button" class="tb-btn outline" onclick="agregarBloqueBuqueExtra()">＋ Agregar otro buque</button>
+          </div>
+          <div id="casoBuquesExtra"></div>
+        </div>
       </div>
 
       <!-- PANEL 3: SITUACIÓN -->
@@ -600,6 +609,63 @@ function bootError() {
       <button onclick="exportarDemoradosPDF()" class="dem-btn" style="background:#d32f2f;border:1px solid #d32f2f;">📄 Exportar PDF</button>
     </div>
     <div id="demorados-content" style="max-height:calc(90vh - 200px);display:flex;flex-direction:column;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ── MODAL BARCAZAS ───────────────────────────────────────────── -->
+<div id="modalBarcaza">
+  <div class="modal-box" style="max-width:95vw;width:640px;max-height:90vh;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0" id="barcTituloModal">Nueva Barcaza</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalBarcaza()">&times;</button>
+    </div>
+    <form id="formBarcaza" onsubmit="return guardarBarcaza(event)">
+      <input type="hidden" id="barcFila" value="">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Prefectura</label>
+          <select id="barcPrefectura" onchange="barcSelPrefChange()" required style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:'Outfit',sans-serif;background:#fff;">
+            <option value="">— Seleccione —</option>
+          </select>
+        </div>
+        <div class="form-group" id="barc-otra-wrap" style="display:none">
+          <label>Código de prefectura</label>
+          <input type="text" id="barcOtra" placeholder="ej: POSADAS" style="text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+          <label>Orden</label>
+          <input type="number" id="barcOrden" min="1" placeholder="ej: 1">
+        </div>
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="barcNombre" required placeholder="ej: A.C.S.A 158">
+        </div>
+        <div class="form-group">
+          <label>Matrícula</label>
+          <input type="text" id="barcMatricula" placeholder="ej: 01241">
+        </div>
+        <div class="form-group">
+          <label>Condición</label>
+          <input type="text" id="barcCondicion" placeholder="ej: VARADO">
+        </div>
+        <div class="form-group">
+          <label>Tipo de Buque</label>
+          <input type="text" id="barcTipoBuque" placeholder="ej: BUQUE TANQUE">
+        </div>
+        <div class="form-group">
+          <label>QTH</label>
+          <input type="text" id="barcQth" placeholder="ej: KM 1195 MIRP">
+        </div>
+        <div class="form-group full">
+          <label>Observaciones</label>
+          <textarea id="barcObservaciones" rows="3" placeholder="Detalle de la situación..." style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:13px;font-family:'Outfit',sans-serif;resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+        <button type="button" class="tb-btn outline" onclick="cerrarModalBarcaza()">Cancelar</button>
+        <button type="submit" class="tb-btn" id="btnGuardarBarcaza" style="background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700;">Guardar</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -730,6 +796,7 @@ function bootError() {
                     <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('PBIP',this)"><span>🛡️</span><span>PBIP</span></button>
                     <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('VELEROS_OC',this)"><span>⛵</span><span>Veleros Oc.</span></button>
                     <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('CRUCEROS',this)"><span>🛳️</span><span>Cruceros</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" id="dditem-BARCAZAS" onclick="irSeccion('BARCAZAS',this)"><span>🧱</span><span>Barcazas</span></button>
                   </div>
                 </div>
                 <div class="tb-dd-sep"></div>
@@ -825,6 +892,7 @@ function bootError() {
           <button class="sb-act-btn ghost" onclick="irSeccion('PBIP');cerrarHamburger()">🛡️ PBIP</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('VELEROS_OC');cerrarHamburger()">⛵ Veleros Oceánicos</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('CRUCEROS');cerrarHamburger()">🛳️ Cruceros</button>
+          <button class="sb-act-btn ghost" id="hamb-BARCAZAS" onclick="irSeccion('BARCAZAS');cerrarHamburger()">🧱 Barcazas</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('VISITAS');cerrarHamburger()">📋 Visitas</button>
            <button class="sb-act-btn ghost" onclick="irSeccion('NOVEDADES');cerrarHamburger()">📝 Novedades Varias</button>
           <button class="sb-act-btn ghost" onclick="irSeccion('MDA_SIBI');cerrarHamburger()">🔍 MDA - SIBI</button>
@@ -860,6 +928,10 @@ function bootError() {
             <button onclick="irSeccion('CRUCEROS')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.25)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='rgba(255,255,255,0.3)'">
               <span style="font-size:16px;">🛳️</span>
               <span>Cruceros</span>
+            </button>
+            <button id="homebtn-BARCAZAS" onclick="irSeccion('BARCAZAS')" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.25)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='rgba(255,255,255,0.3)'">
+              <span style="font-size:16px;">🧱</span>
+              <span>+Bzas</span>
             </button>
             <div class="home-header-kpi">
               <div class="home-kpi red"><div class="kpi-val" id="hkpi-sar">—</div><div class="kpi-lbl">SAR Pendientes</div></div>
@@ -915,6 +987,6 @@ function bootError() {
 </div>
 
 
-<script src="js/app.js?v=20261021m"></script>
+<script src="js/app.js?v=20261104g"></script>
 </body>
 </html>
