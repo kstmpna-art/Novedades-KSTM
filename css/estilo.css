@@ -532,6 +532,9 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 #modalDemorados.activo{display:flex}
 #modalSeav{display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 #modalSeav.activo{display:flex}
+#modalBarcaza{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modalBarcaza.activo{display:flex}
+#modalBarcaza .modal-box{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:left}
 .dem-btn{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;color:#fff;transition:all .15s}
 .dem-btn-todos{border:1px solid #0077b6;background:#0077b6}
 .dem-btn-ent{border:1px solid #40916c;background:#40916c}
@@ -1730,6 +1733,48 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 .cruc-filtros select,.cruc-filtros input{padding:6px 10px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:12px;font-family:'Outfit',sans-serif;background:#fff}
 .cruc-arrib-table tr.cruc-completado td{background:rgba(22,163,74,0.08) !important}
 .cruc-arrib-table tr.cruc-completado td:first-child{border-left:3px solid #16a34a}
+/* ── ESTADO CANCELADO (remarcado fuerte) ── */
+.cruc-arrib-table tr.cruc-cancelado td{background:rgba(220,38,38,0.10) !important}
+.cruc-arrib-table tr.cruc-cancelado td:first-child{border-left:4px solid #dc2626}
+.cruc-arrib-table td.cruc-estado-cancel{background:#dc2626 !important}
+.cruc-arrib-table tr.cruc-cancelado:hover td{background:rgba(220,38,38,0.18) !important}
+
+/* ── BARCAZAS ── */
+.barc-kpis{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;justify-content:center}
+.barc-kpi{cursor:pointer;transition:transform .15s,box-shadow .15s;user-select:none;min-width:170px}
+.barc-kpi:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(13,27,62,.12)}
+.barc-kpi.active{outline:2px solid var(--blue);outline-offset:-2px}
+.barc-acciones{display:flex;justify-content:flex-end;margin-bottom:14px}
+.barc-grupo{margin-bottom:22px}
+.barc-grupo-titulo{background:var(--navy);color:#fff;font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:9px 14px;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:8px}
+.barc-grupo-cant{background:rgba(255,255,255,.2);border-radius:10px;padding:1px 9px;font-size:11px;font-weight:700}
+.barc-grupo .tbl-wrap{border:1px solid var(--gray-200);border-top:none;border-radius:0 0 8px 8px;overflow:hidden}
+.barc-cond{font-weight:600}
+.barc-cond-varada{color:#dc2626;background:rgba(220,38,38,.07)}
+.barc-cond-amarrada{color:#16a34a;background:rgba(22,163,74,.07)}
+.barc-acc{white-space:nowrap;text-align:center}
+.barc-btn-edit,.barc-btn-del{border:none;background:transparent;cursor:pointer;font-size:14px;padding:3px 6px;border-radius:5px;transition:background .15s}
+.barc-btn-edit:hover{background:rgba(29,111,164,.12)}
+.barc-btn-del:hover{background:rgba(220,38,38,.12)}
+/* Formulario del modal (misma convención que #modalCaso) */
+#modalBarcaza .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#modalBarcaza .form-group.full{grid-column:1/-1}
+#modalBarcaza .form-group label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:3px}
+#modalBarcaza .form-group input,#modalBarcaza .form-group select,#modalBarcaza .form-group textarea{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box}
+#modalBarcaza .form-group textarea{resize:vertical}
+@media (max-width:700px){#modalBarcaza .form-grid{grid-template-columns:1fr}}
+
+/* ── BUQUES ADICIONALES en casos SAR/MAS ── */
+.bx-bloque{background:#f8fafc;border:1px solid var(--gray-200);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.bx-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.bx-title{font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--navy);letter-spacing:.5px;text-transform:uppercase;background:#e0ecf7;border-radius:6px;padding:3px 10px}
+.bx-quitar{border:none;background:transparent;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;padding:4px 8px;border-radius:5px;transition:background .15s}
+.bx-quitar:hover{background:rgba(220,38,38,.1)}
+#casoBuquesExtra .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#casoBuquesExtra .form-group.full{grid-column:1/-1}
+#casoBuquesExtra .form-group label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:3px}
+#casoBuquesExtra .form-group input{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit;box-sizing:border-box}
+@media (max-width:700px){#casoBuquesExtra .form-grid{grid-template-columns:1fr}}
 
 /* ── ÁREAS DE BÚSQUEDA (MODAL) ──────────────────────────────── */
 .areas-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px}
